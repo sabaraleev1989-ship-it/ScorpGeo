@@ -3,84 +3,98 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>scorpGeo 3.0 | LIVE MAP</title>
-    
+    <title>scorpGeo 3.0 | SECURE</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="/socket.io/socket.io.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
     <style>
-        body { background: #05070a; color: #e2e8f0; font-family: monospace; }
+        body { background: #05070a; color: #e2e8f0; font-family: monospace; margin: 0; }
         #map { height: 100vh; width: 100%; z-index: 1; }
-        .glass { background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(8px); border: 1px solid rgba(6, 182, 212, 0.2); }
-        .custom-label { background: rgba(6, 182, 212, 0.8); color: white; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 10px; white-space: nowrap; }
+        .glass { background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(8px); border: 1px solid rgba(6, 182, 212, 0.3); }
+        .user-label { background: #00f2ff; color: black; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 11px; }
+        .team-label { background: #f43f5e; color: white; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 11px; }
     </style>
 </head>
-<body class="fixed inset-0 overflow-hidden">
+<body>
 
     <div id="auth-screen" class="fixed inset-0 z-[5000] flex items-center justify-center bg-[#05070a] p-6">
-        <div class="glass w-full max-w-sm rounded-3xl p-8 space-y-4">
-            <h1 class="text-2xl font-bold text-cyan-400 text-center">scorpGeo <span class="text-white">3.0</span></h1>
-            <input id="roomID" type="text" placeholder="ID КАНАЛА" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-4 outline-none focus:border-cyan-500">
-            <input id="callsign" type="text" placeholder="ТВОЙ ПОЗЫВНОЙ" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-4 outline-none focus:border-cyan-500">
-            <button onclick="login()" class="w-full bg-cyan-500 text-black font-bold py-4 rounded-xl uppercase tracking-widest">ВСТУПИТЬ В БОЙ</button>
+        <div class="glass w-full max-w-sm rounded-3xl p-8 space-y-4 text-center">
+            <h1 class="text-3xl font-bold text-cyan-400">scorpGeo 3.0</h1>
+            <input id="roomID" type="text" placeholder="ID КАНАЛА" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-4 text-center uppercase">
+            <input id="password" type="password" placeholder="КОД ДОСТУПА" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-4 text-center">
+            <input id="callsign" type="text" placeholder="ПОЗЫВНОЙ" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-4 text-center uppercase">
+            <button onclick="saveAndConnect()" class="w-full bg-cyan-500 text-black font-bold py-4 rounded-xl">ВСТУПИТЬ В БОЙ</button>
         </div>
     </div>
 
     <div id="main-ui" class="hidden">
-        <div class="fixed top-4 left-4 right-4 z-[1000] glass p-3 rounded-2xl flex justify-between items-center text-[10px]">
+        <div class="fixed top-4 left-4 right-4 z-[1000] glass p-3 rounded-2xl flex justify-between items-center">
             <div>
-                <div id="room-name" class="text-cyan-400 font-bold uppercase">--</div>
-                <div id="distance-info" class="text-white">Дистанция: -- м</div>
+                <div id="display-room" class="text-cyan-400 font-bold text-[10px]">--</div>
+                <div id="distance-info" class="text-[9px] text-white">Поиск бойцов...</div>
             </div>
-            <div id="status" class="text-green-500 italic">GPS: ACTIVE</div>
+            <button onclick="logout()" class="text-[10px] text-red-400 px-2 py-1">ВЫХОД</button>
         </div>
         <div id="map"></div>
     </div>
 
     <script>
         const socket = io();
-        let map, userMarker, otherMarkers = {};
-        let myData = { roomID: '', callsign: '', lat: 0, lng: 0 };
+        let map, myMarker, markers = {};
+        let myInfo = { roomID: '', callsign: '', password: '', lat: null, lng: null };
 
-        function login() {
-            myData.roomID = document.getElementById('roomID').value.toUpperCase();
-            myData.callsign = document.getElementById('callsign').value;
-            if(!myData.roomID || !myData.callsign) return alert("Введите данные!");
+        // Проверка при загрузке: есть ли данные в памяти?
+        window.onload = () => {
+            const saved = localStorage.getItem('scorpGeo_Auth');
+            if (saved) {
+                myInfo = JSON.parse(saved);
+                socket.emit('join_room', myInfo);
+            }
+        };
+
+        function saveAndConnect() {
+            myInfo.roomID = document.getElementById('roomID').value.toUpperCase();
+            myInfo.callsign = document.getElementById('callsign').value.toUpperCase();
+            myInfo.password = document.getElementById('password').value;
             
+            if(!myInfo.roomID || !myInfo.password || !myInfo.callsign) return alert("Заполни всё!");
+            
+            socket.emit('join_room', myInfo);
+        }
+
+        socket.on('login_success', () => {
+            localStorage.setItem('scorpGeo_Auth', JSON.stringify(myInfo));
             document.getElementById('auth-screen').style.display = 'none';
             document.getElementById('main-ui').style.display = 'block';
-            document.getElementById('room-name').innerText = "КАНАЛ: " + myData.roomID;
-
+            document.getElementById('display-room').innerText = "КАНАЛ: " + myInfo.roomID;
             initMap();
-            startTracking();
-            socket.emit('join_room', myData);
-        }
+        });
+
+        socket.on('error_msg', (msg) => alert(msg));
 
         function initMap() {
-            map = L.map('map', { zoomControl: false }).setView([43.5855, 39.7231], 15); // Сочи по умолчанию
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 19
+            if (map) return;
+            map = L.map('map', { zoomControl: false }).setView([43.5855, 39.7231], 13);
+            L.tileLayer('http://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}', {
+                maxZoom: 20, subdomains:['mt0','mt1','mt2','mt3']
             }).addTo(map);
+            startGps();
         }
 
-        function startTracking() {
+        function startGps() {
             navigator.geolocation.watchPosition(pos => {
                 const { latitude, longitude } = pos.coords;
-                myData.lat = latitude;
-                myData.lng = longitude;
-
-                if (!userMarker) {
-                    userMarker = L.circleMarker([latitude, longitude], { color: '#06b6d4', radius: 8, fillOpacity: 1 }).addTo(map);
-                    userMarker.bindTooltip("ВЫ (" + myData.callsign + ")", { permanent: true, className: 'custom-label' }).openTooltip();
+                myInfo.lat = latitude; myInfo.lng = longitude;
+                if (!myMarker) {
+                    myMarker = L.circleMarker([latitude, longitude], { color: '#00f2ff', radius: 6, fillOpacity: 1 }).addTo(map);
+                    myMarker.bindTooltip(myInfo.callsign, { permanent: true, direction: 'top', className: 'user-label' });
                     map.setView([latitude, longitude], 17);
                 } else {
-                    userMarker.setLatLng([latitude, longitude]);
+                    myMarker.setLatLng([latitude, longitude]);
                 }
-
                 socket.emit('update_gps', { lat: latitude, lng: longitude });
-            }, err => console.error(err), { enableHighAccuracy: true });
+            }, null, { enableHighAccuracy: true });
         }
 
         socket.on('presence_update', (users) => {
@@ -88,26 +102,21 @@
                 if (id === socket.id) return;
                 const u = users[id];
                 if (!u.lat) return;
-
-                if (!otherMarkers[id]) {
-                    otherMarkers[id] = L.circleMarker([u.lat, u.lng], { color: '#f43f5e', radius: 8, fillOpacity: 1 }).addTo(map);
-                    otherMarkers[id].bindTooltip(u.callsign, { permanent: true, className: 'custom-label' }).openTooltip();
+                if (!markers[id]) {
+                    markers[id] = L.circleMarker([u.lat, u.lng], { color: '#f43f5e', radius: 6, fillOpacity: 1 }).addTo(map);
+                    markers[id].bindTooltip(u.callsign, { permanent: true, direction: 'top', className: 'team-label' });
                 } else {
-                    otherMarkers[id].setLatLng([u.lat, u.lng]);
+                    markers[id].setLatLng([u.lat, u.lng]);
                 }
-
-                // Расчет дистанции до первого попавшегося напарника (для примера)
-                const dist = map.distance([myData.lat, myData.lng], [u.lat, u.lng]);
-                document.getElementById('distance-info').innerText = `ДО ${u.callsign}: ${Math.round(dist)} м`;
+                const d = map.distance([myInfo.lat, myInfo.lng], [u.lat, u.lng]);
+                document.getElementById('distance-info').innerText = `ДО ${u.callsign}: ${Math.round(d)}м`;
             });
         });
 
-        socket.on('user_disconnected', (id) => {
-            if (otherMarkers[id]) {
-                map.removeLayer(otherMarkers[id]);
-                delete otherMarkers[id];
-            }
-        });
+        function logout() {
+            localStorage.removeItem('scorpGeo_Auth');
+            location.reload();
+        }
     </script>
 </body>
 </html>
