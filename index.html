@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>Scorpion C2 - Tactical Server</title>
+    
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
+    
+    <style>
+        :root { --bg: #0a0c14; --panel: #161b22; --accent: #ff9f0a; --danger: #ff453a; --safe: #32d74b; }
+        body { margin: 0; background: var(--bg); color: #fff; font-family: sans-serif; overflow: hidden; display: flex; flex-direction: column; height: 100vh; }
+        
+        /* Панель управления */
+        .toolbar { background: var(--panel); border-bottom: 2px solid #30363d; z-index: 2000; padding: 4px; }
+        .tool-row { display: flex; gap: 4px; margin-bottom: 4px; align-items: center; }
+        
+        button, select { 
+            background: #21262d; border: 1px solid #30363d; color: white; 
+            border-radius: 8px; font-size: 14px; min-height: 40px; 
+            display: flex; align-items: center; justify-content: center; 
+            touch-action: manipulation; flex: 1;
+        }
+        
+        .btn-small { flex: 0.4; }
+        .active-tool { border-color: var(--accent); background: rgba(255, 159, 10, 0.2); }
+        .calibrating { animation: pulse-red 1s infinite; border-color: var(--danger); }
+        @keyframes pulse-red { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+
+        /* Модальные окна */
+        .modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--panel); border: 2px solid var(--accent); padding: 12px; border-radius: 12px; z-index: 3000; display: none; width: 85%; max-width: 350px; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+        
+        #viewport { flex-grow: 1; position: relative; background: #000; touch-action: none; overflow: hidden; }
+        canvas { position: absolute; top: 0; left: 0; transform-origin: 0 0; }
+        
+        .status-bar { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); padding: 4px 12px; border-radius: 15px; font-size: 10px; z-index: 100; white-space: nowrap; border: 1px solid #444; }
+    </style>
+</head>
+<body>
+
+<div class="toolbar">
+    <div class="tool-row">
+        <select id="mapPresets" onchange="handleMapChange(this.value)">
+            <option value="">🗺️ ВЫБОР КАРТЫ</option>
+            <option value="logo1.png">База 99</option>
+            <option value="logo2.png">Ахун</option>
+        </select>
+        <button class="btn-small" onclick="document.getElementById('fileInput').click()">⚙️</button>
+        <button id="calibBtn" class="btn-small" onclick="toggleCalibration()">📍</button>
+        <input type="file" id="fileInput" accept="image/*" style="display:none" onchange="addNewMap(this)">
+        <button class="btn-small" onclick="undo()">↩️</button>
+    </div>
+
+    <div class="tool-row">
+        <button id="moveBtn" onclick="setTool('move')" class="active-tool">✥</button>
+        <button id="pencilBtn" onclick="setTool('pencil')">✏️</button>
+        <button id="drawBtn" onclick="setTool('draw')">↗️</button>
+        <button id="tacticsBtn" onclick="setTool('tactics')">🚩</button>
+        <button class="btn-small" onclick="clearMap()" style="color: var(--danger)">🗑️</button>
+    </div>
+
+    <div class="tool-row">
+        <input type="range" id="sizeSlider" min="10" max="250" value="60" oninput="updateObjSize(this.value)">
+        <input type="color" id="colorPicker" value="#32d74b" style="width:45px; height:40px; border:none; background:none;">
+    </div>
+</div>
+
+<div id="tacticsModal" class="modal">
+    <button onclick="selectTacticShape('scorpion')">🦂</button>
+    <button onclick="selectTacticShape('octopus')">🐙</button>
+    <button onclick="selectTacticShape('99')">99</button>
+    <button onclick="selectTacticShape('knight')">LEGION</button>
+    <button onclick="selectTacticShape('bsg')">BSG</button>
+    <button onclick="selectTacticShape('flag')">🚩</button>
+    <button onclick="selectTacticShape('skull')">💀</button>
+    <button onclick="selectTacticShape('boom')">💥</button>
+    <button onclick="selectTacticShape('sun')">☀️</button>
+</div>
+
+<div id="viewport">
+    <canvas id="bgCanvas"></canvas>
+    <canvas id="drawCanvas"></canvas>
+    <canvas id="tempCanvas"></canvas>
+    <div class="status-bar" id="statusText">ОЖИДАНИЕ ПОДКЛЮЧЕНИЯ...</div>
+</div>
+
+<script>
+    // --- СЕТЕВАЯ ЛОГИКА ---
+    const socket = io();
+    let myData = { roomID: '', callsign: '', team: '', coords: null };
+    let remoteUsers = {};
+    let calibrationPoints = []; // Для привязки GPS к картинке
+    let isCalibrating = false;
+
+    window.addEventListener('load', () => {
+        myData.roomID = prompt("ID Комнаты:", "SCORPION_1");
+        const password = prompt("Пароль:");
+        myData.callsign = prompt("Твой позывной:", "ХАН");
+        myData.team = prompt("Команда:", "SCORPION");
+
+        if (myData.roomID && myData.callsign) {
+            socket.emit('join_room', { ...myData, password });
+            startGpsTracking();
+        }
+    });
+
+    function startGpsTracking() {
+        if ("geolocation" in navigator) {
+            navigator.geolocation.watchPosition((pos) => {
+                myData.coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                socket.emit('update_gps', myData.coords);
+                updateStatus();
+            }, null, { enableHighAccuracy: true });
+        }
+    }
+
+    socket.on('init_data', (data) => {
+        objects = data.objects;
+        remoteUsers = data.users;
+        document.getElementById('statusText').innerText = `СЕТЬ: ${myData.roomID} | БОЙЦОВ: ${Object.keys(remoteUsers).length}`;
+        render();
+    });
+
+    socket.on('presence_update', (data) => {
+        if (!remoteUsers[data.id]) remoteUsers[data.id] = {};
+        remoteUsers[data.id].coords = data.coords;
+        render();
+    });
+
+    socket.on('object_added', (obj) => { objects.push(obj); render(); });
+    socket.on('user_joined', (user) => { remoteUsers[user.id] = user; updateStatus(); });
+    socket.on('user_left', (id) => { delete remoteUsers[id]; updateStatus(); render(); });
+    socket.on('error_msg', (msg) => { alert(msg); location.reload(); });
+
+    function updateStatus() {
+        const count = Object.keys(remoteUsers).length;
+        const gps = myData.coords ? "📡 OK" : "📡 SEARCH";
+        document.getElementById('statusText').innerText = `КОМНАТА: ${myData.roomID} | ИГРОКОВ: ${count} | GPS: ${gps}`;
+    }
+
+    // --- ЛОГИКА КАЛИБРОВКИ ---
+    function toggleCalibration() {
+        isCalibrating = !isCalibrating;
+        document.getElementById('calibBtn').classList.toggle('calibrating');
+        if (isCalibrating) alert("Нажми на карте там, где ты сейчас стоишь физически");
+    }
+
+    // --- ОСНОВНОЙ ДВИЖОК ---
+    const viewport = document.getElementById('viewport'), bgCanvas = document.getElementById('bgCanvas'), drawCanvas = document.getElementById('drawCanvas'), tempCanvas = document.getElementById('tempCanvas');
+    const bgCtx = bgCanvas.getContext('2d'), drawCtx = drawCanvas.getContext('2d'), tempCtx = tempCanvas.getContext('2d');
+    
+    let bgImage = new Image(), objects = [], history = [], redoStack = [], selectedObj = null;
+    let scale = 1, posX = 0, posY = 0, lastScale, lastPosX, lastPosY;
+    let currentTool = 'move', currentTacticShape = 'flag', isDrawing = false, startP = {x:0, y:0};
+
+    function handleMapChange(url) {
+        if (!url) return;
+        bgImage.src = url;
+        bgImage.onload = () => {
+            bgCanvas.width = drawCanvas.width = tempCanvas.width = bgImage.width;
+            bgCanvas.height = drawCanvas.height = tempCanvas.height = bgImage.height;
+            scale = Math.min(viewport.clientWidth/bgImage.width, viewport.clientHeight/bgImage.height);
+            posX = (viewport.clientWidth - bgImage.width * scale)/2;
+            posY = (viewport.clientHeight - bgImage.height * scale)/2;
+            applyTransform(); render();
+        };
+    }
+
+    function applyTransform() {
+        const tr = `translate(${posX}px, ${posY}px) scale(${scale})`;
+        [bgCanvas, drawCanvas, tempCanvas].forEach(c => c.style.transform = tr);
+        bgCtx.drawImage(bgImage, 0, 0);
+    }
+
+    function render() {
+        drawCtx.clearRect(0,0, drawCanvas.width, drawCanvas.height);
+        
+        // Рисуем тактические объекты
+        objects.forEach(obj => {
+            drawCtx.save();
+            if(obj.type === 'tactic') drawTactic(drawCtx, obj);
+            else if(obj.type === 'arrow') drawArrow(drawCtx, obj);
+            else if(obj.type === 'pencil') drawPencil(drawCtx, obj);
+            drawCtx.restore();
+        });
+
+        // РИСУЕМ БОЙЦОВ (Remote Users)
+        Object.values(remoteUsers).forEach(user => {
+            if (user.coords && calibrationPoints.length >= 2) {
+                const pos = gpsToPixels(user.coords);
+                drawUserMarker(drawCtx, pos.x, pos.y, user.callsign, user.team);
+            }
+        });
+    }
+
+    function drawUserMarker(ctx, x, y, name, team) {
+        ctx.fillStyle = "#007aff"; ctx.beginPath(); ctx.arc(x, y, 15/scale, 0, Math.PI*2); ctx.fill();
+        ctx.strokeStyle = "white"; ctx.lineWidth = 2/scale; ctx.stroke();
+        ctx.font = `bold ${14/scale}px Arial`; ctx.fillStyle = "white"; ctx.textAlign = "center";
+        ctx.fillText(name, x, y - 20/scale);
+    }
+
+    // Вспомогательная функция (заглушка) для пересчета GPS в пиксели
+    // Для полноценной работы нужно 2 точки калибровки
+    function gpsToPixels(coords) {
+        // Здесь будет математика интерполяции после калибровки
+        return { x: 500, y: 500 }; 
+    }
+
+    // --- ИНСТРУМЕНТЫ ---
+    function setTool(t) {
+        document.getElementById('tacticsModal').style.display = (t === 'tactics') ? 'grid' : 'none';
+        currentTool = t;
+        document.querySelectorAll('.toolbar button').forEach(b => b.classList.remove('active-tool'));
+        document.getElementById(t + 'Btn')?.classList.add('active-tool');
+    }
+
+    function getCoords(e) {
+        const r = viewport.getBoundingClientRect();
+        const cx = e.touches ? e.touches[0].clientX : e.clientX;
+        const cy = e.touches ? e.touches[0].clientY : e.clientY;
+        return { x: (cx - r.left - posX)/scale, y: (cy - r.top - posY)/scale };
+    }
+
+    viewport.addEventListener('pointerdown', (e) => {
+        if(!bgImage.src) return;
+        const p = getCoords(e);
+
+        if (isCalibrating) {
+            calibrationPoints.push({ x: p.x, y: p.y, gps: { ...myData.coords } });
+            if (calibrationPoints.length >= 2) {
+                alert("Калибровка завершена! Теперь бойцы видны на карте.");
+                isCalibrating = false;
+                document.getElementById('calibBtn').classList.remove('calibrating');
+            }
+            return;
+        }
+
+        if(currentTool === 'move') {
+            selectedObj = [...objects].reverse().find(o => Math.hypot(o.x - p.x, o.y - p.y) < 50/scale);
+            render(); return;
+        }
+        isDrawing = true; startP = p;
+        if(currentTool === 'pencil') objects.push({ type:'pencil', color:document.getElementById('colorPicker').value, width:5/scale, points:[p] });
+    });
+
+    window.addEventListener('pointerup', (e) => {
+        if(!isDrawing) return; isDrawing = false;
+        const p = getCoords(e), color = document.getElementById('colorPicker').value, size = parseFloat(document.getElementById('sizeSlider').value);
+        let newObj = null;
+
+        if(currentTool === 'draw') {
+            const l = prompt("Позывной:");
+            newObj = { type:'arrow', x:startP.x, y:startP.y, x2:p.x, y2:p.y, size:size/scale, color, label:l||"" };
+        } else if(currentTool === 'tactics') {
+            newObj = { type:'tactic', shape:currentTacticShape, x:p.x, y:p.y, size, color };
+        }
+        
+        if (newObj) {
+            objects.push(newObj);
+            socket.emit('new_object', newObj); // ОТПРАВКА НА СЕРВЕР
+        }
+        tempCtx.clearRect(0,0, tempCanvas.width, tempCanvas.height); render();
+    });
+
+    // --- УПРАВЛЕНИЕ КАМЕРОЙ (HAMMER JS) ---
+    const mc = new Hammer.Manager(viewport);
+    mc.add(new Hammer.Pan({ threshold: 0, pointers: 0 }));
+    mc.add(new Hammer.Pinch({ enable: true }));
+    mc.on("panstart pinchstart", () => { lastPosX = posX; lastPosY = posY; lastScale = scale; });
+    mc.on("panmove pinchmove", (e) => {
+        if(currentTool === 'move') {
+            posX = lastPosX + e.deltaX; posY = lastPosY + e.deltaY;
+            if(e.type === 'pinchmove') scale = Math.max(0.05, lastScale * e.scale);
+            applyTransform();
+        }
+    });
+
+    function clearMap() { if(confirm('Очистить для всех?')) { socket.emit('clear_map'); objects=[]; render(); } }
+    
+    // Функции отрисовки (drawTactic, drawArrow, drawPencil) остаются такими же, как в v.17.1
+</script>
+</body>
+</html>
