@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>scorpGeo 3.0 | ТАКТИКА</title>
+    <title>scorpGeo 3.0 | ТАКТИКА PRO</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="/socket.io/socket.io.js"></script>
@@ -11,39 +11,40 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <style>
-        body { background: #f0f2f5; font-family: sans-serif; margin: 0; overflow: hidden; }
+        body { background: #f8fafc; font-family: -apple-system, system-ui, sans-serif; margin: 0; overflow: hidden; }
         #map { height: 100vh; width: 100%; z-index: 1; }
         
-        /* Панель инструментов в стиле Геотактики */
-        .gt-panel { background: rgba(255, 255, 255, 0.9); border-right: 2px solid #ccc; box-shadow: 2px 0 10px rgba(0,0,0,0.1); }
-        .gt-btn { width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid #eee; transition: 0.2s; background: white; font-size: 20px; }
-        .gt-btn.active { background: #007bff; color: white; }
+        .gt-panel { background: #ffffff; border-right: 1px solid #d1d5db; box-shadow: 2px 0 10px rgba(0,0,0,0.05); }
+        .gt-btn { width: 54px; height: 54px; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid #f1f5f9; transition: 0.2s; background: white; font-size: 22px; cursor: pointer; }
+        .gt-btn.active { background: #2563eb; color: white; box-shadow: inset 0 0 10px rgba(0,0,0,0.2); }
 
-        /* Метки с дистанцией */
-        .dist-label { background: rgba(0,0,0,0.7); color: white; padding: 1px 4px; border-radius: 4px; font-size: 11px; font-weight: bold; white-space: nowrap; border: 1px solid #fff; }
-        .user-tag { background: #007bff; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
-        .enemy-tag { background: #dc3545; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; }
+        /* Пульсирующая линия */
+        .nav-line { stroke: #2563eb; stroke-dasharray: 10, 10; animation: dash 20s linear infinite; opacity: 0.8; pointer-events: none; }
+        @keyframes dash { to { stroke-dashoffset: -1000; } }
+
+        /* Текст дистанции над линией */
+        .dist-on-line { background: rgba(255, 255, 255, 0.9); color: #1e293b; padding: 1px 4px; border-radius: 4px; font-size: 10px; font-weight: bold; border: 1px solid #2563eb; white-space: nowrap; }
+        
+        .user-tag { background: #2563eb; color: white; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; border: 1px solid white; }
+        .marker-label { font-size: 20px; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3)); }
     </style>
 </head>
 <body>
 
-    <div id="auth-screen" class="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-100 p-6">
-        <div class="bg-white w-full max-w-sm rounded-2xl shadow-2xl p-8 space-y-6 border-t-8 border-blue-600">
-            <div class="text-center">
-                <h1 class="text-2xl font-bold text-slate-800">scorpGeo <span class="text-blue-600">3.0</span></h1>
-                <p class="text-xs text-slate-400 uppercase tracking-widest mt-1">Тактическая система</p>
-            </div>
+    <div id="auth-screen" class="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-50 p-6">
+        <div class="bg-white w-full max-w-sm rounded-3xl shadow-xl p-8 space-y-6 border-b-8 border-blue-600">
+            <h1 class="text-3xl font-black text-slate-800 text-center">SCORP<span class="text-blue-600">GEO</span></h1>
             <div class="space-y-3">
-                <input id="roomID" type="text" placeholder="ID КАНАЛА" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-4 text-center focus:ring-2 ring-blue-500 outline-none uppercase">
-                <input id="password" type="password" placeholder="ПАРОЛЬ" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-4 text-center focus:ring-2 ring-blue-500 outline-none">
-                <input id="callsign" type="text" placeholder="ПОЗЫВНОЙ" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-4 text-center focus:ring-2 ring-blue-500 outline-none uppercase">
+                <input id="roomID" type="text" placeholder="ID КАНАЛА" class="w-full bg-slate-100 rounded-xl p-4 text-center outline-none uppercase font-bold">
+                <input id="password" type="password" placeholder="ПАРОЛЬ" class="w-full bg-slate-100 rounded-xl p-4 text-center outline-none">
+                <input id="callsign" type="text" placeholder="ПОЗЫВНОЙ" class="w-full bg-slate-100 rounded-xl p-4 text-center outline-none uppercase font-bold">
             </div>
-            <button onclick="saveAndConnect()" class="w-full bg-blue-600 text-white font-bold py-4 rounded-lg shadow-lg hover:bg-blue-700 transition-all uppercase">Войти в сеть</button>
+            <button onclick="saveAndConnect()" class="w-full bg-blue-600 text-white font-bold py-4 rounded-xl shadow-lg uppercase">Войти</button>
         </div>
     </div>
 
     <div id="main-ui" class="hidden">
-        <div class="fixed left-0 top-0 bottom-0 z-[5000] gt-panel flex flex-col w-[52px]">
+        <div class="fixed left-0 top-0 bottom-0 z-[5000] gt-panel flex flex-col w-[54px]">
             <button onclick="setMode('move')" id="btn-move" class="gt-btn active">🖐️</button>
             <button onclick="setMode('enemy')" id="btn-enemy" class="gt-btn">💀</button>
             <button onclick="setMode('point')" id="btn-point" class="gt-btn">🚩</button>
@@ -52,31 +53,26 @@
             <div class="mt-auto">
                 <button onclick="setLayer('sat')" class="gt-btn text-[10px] font-bold">СПУТ</button>
                 <button onclick="setLayer('map')" class="gt-btn text-[10px] font-bold">СХЕМ</button>
-                <button onclick="setLayer('topo')" class="gt-btn text-[10px] font-bold">РЕЛЬ</button>
                 <button onclick="logout()" class="gt-btn text-red-500 text-xs">ВЫХ</button>
             </div>
         </div>
-
-        <div class="fixed top-2 left-16 z-[4000] bg-white/90 px-4 py-2 rounded-lg shadow-md border border-slate-200">
-            <div id="display-room" class="text-blue-600 font-bold text-[10px]">--</div>
-        </div>
-
         <div id="map"></div>
     </div>
 
     <script>
         const socket = io();
         let map, myMarker, markers = {}, tacticalMarkers = {};
-        let navLines = {}, arrowStart = null, tempArrow = null;
+        let navLines = {}, distLabels = {};
         let layers = {};
         let myInfo = { roomID: '', callsign: '', password: '', lat: 0, lng: 0 };
         let currentMode = 'move';
+        let arrowStart = null;
 
         function saveAndConnect() {
             myInfo.roomID = document.getElementById('roomID').value.toUpperCase();
             myInfo.callsign = document.getElementById('callsign').value.toUpperCase();
             myInfo.password = document.getElementById('password').value;
-            if(!myInfo.roomID || !myInfo.password || !myInfo.callsign) return alert("Заполните данные!");
+            if(!myInfo.roomID || !myInfo.callsign) return alert("Заполни данные");
             socket.emit('join_room', myInfo);
         }
 
@@ -84,19 +80,30 @@
             localStorage.setItem('scorpGeo_Auth', JSON.stringify(myInfo));
             document.getElementById('auth-screen').style.display = 'none';
             document.getElementById('main-ui').style.display = 'block';
-            document.getElementById('display-room').innerText = "КАНАЛ: " + myInfo.roomID;
             initMap();
         });
 
         function initMap() {
             layers.sat = L.tileLayer('http://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}', { maxZoom: 20, subdomains:['mt0','mt1','mt2','mt3'] });
             layers.map = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 });
-            layers.topo = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', { maxZoom: 17 });
-
-            map = L.map('map', { zoomControl: false, layers: [layers.map] }).setView([43.5855, 39.7231], 13);
+            
+            map = L.map('map', { zoomControl: false, layers: [layers.map] }).setView([43.5855, 39.7231], 15);
             
             map.on('click', onMapClick);
             startGps();
+        }
+
+        function setMode(mode) {
+            // Если нажимаем на уже активную кнопку - выключаем инструмент (переходим в 'move')
+            if (currentMode === mode) {
+                currentMode = 'move';
+                arrowStart = null;
+            } else {
+                currentMode = mode;
+            }
+            
+            document.querySelectorAll('.gt-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('btn-' + currentMode).classList.add('active');
         }
 
         function onMapClick(e) {
@@ -105,33 +112,17 @@
             if (currentMode === 'arrow') {
                 if (!arrowStart) {
                     arrowStart = e.latlng;
-                    tempArrow = L.polyline([arrowStart, e.latlng], {color: 'blue', weight: 4}).addTo(map);
+                    return;
                 } else {
-                    socket.emit('new_map_marker', { 
-                        type: 'arrow', start: arrowStart, end: e.latlng, owner: myInfo.callsign 
-                    });
-                    map.removeLayer(tempArrow);
-                    arrowStart = null;
-                    setMode('move');
+                    const arrowID = 'arr_' + Date.now();
+                    socket.emit('new_map_marker', { id: arrowID, type: 'arrow', start: arrowStart, end: e.latlng, owner: myInfo.callsign });
+                    arrowStart = null; // Сброс для следующей стрелки
+                    return;
                 }
-                return;
             }
 
-            socket.emit('new_map_marker', { 
-                id: Date.now(), type: currentMode, lat: e.latlng.lat, lng: e.latlng.lng, owner: myInfo.callsign 
-            });
-            setMode('move');
-        }
-
-        function setMode(mode) {
-            currentMode = mode;
-            document.querySelectorAll('.gt-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById('btn-' + mode).classList.add('active');
-        }
-
-        function setLayer(t) {
-            Object.values(layers).forEach(l => map.removeLayer(l));
-            map.addLayer(layers[t]);
+            const markerID = 'm_' + Date.now();
+            socket.emit('new_map_marker', { id: markerID, type: currentMode, lat: e.latlng.lat, lng: e.latlng.lng, owner: myInfo.callsign });
         }
 
         function startGps() {
@@ -139,11 +130,11 @@
                 const { latitude, longitude } = pos.coords;
                 myInfo.lat = latitude; myInfo.lng = longitude;
                 if (!myMarker) {
-                    myMarker = L.circleMarker([latitude, longitude], { color: '#007bff', radius: 6, fillOpacity: 1 }).addTo(map);
+                    myMarker = L.circleMarker([latitude, longitude], { color: '#2563eb', radius: 6, fillOpacity: 1 }).addTo(map);
                     myMarker.bindTooltip("Я", { permanent: true, direction: 'top', className: 'user-tag' });
                     map.setView([latitude, longitude], 17);
                 } else { myMarker.setLatLng([latitude, longitude]); }
-                updateDistances();
+                updateAllNav();
                 socket.emit('update_gps', { lat: latitude, lng: longitude });
             }, null, { enableHighAccuracy: true });
         }
@@ -154,43 +145,82 @@
                 const u = users[id];
                 if (!u.lat) return;
                 if (!markers[id]) {
-                    markers[id] = L.circleMarker([u.lat, u.lng], { color: '#dc3545', radius: 6, fillOpacity: 1 }).addTo(map);
-                    markers[id].bindTooltip(`${u.callsign}`, { permanent: true, direction: 'top', className: 'enemy-tag' });
+                    markers[id] = L.circleMarker([u.lat, u.lng], { color: '#ef4444', radius: 6, fillOpacity: 1 }).addTo(map);
+                    markers[id].bindTooltip(u.callsign, { permanent: true, direction: 'top' });
+                    markers[id].on('click', () => toggleNav(id, markers[id]));
                 } else { markers[id].setLatLng([u.lat, u.lng]); }
-                updateDistances();
             });
+            updateAllNav();
         });
-
-        function updateDistances() {
-            Object.keys(markers).forEach(id => {
-                const d = map.distance([myInfo.lat, myInfo.lng], markers[id].getLatLng());
-                markers[id].setTooltipContent(`${usersData[id]?.callsign || 'БОЕЦ'} [${Math.round(d)}м]`);
-            });
-            // Обновление дистанции для меток (💀, 🚩 и т.д.)
-            Object.values(tacticalMarkers).forEach(m => {
-                if(m.getLatLng) {
-                    const d = map.distance([myInfo.lat, myInfo.lng], m.getLatLng());
-                    m.setTooltipContent(`${Math.round(d)}м`);
-                }
-            });
-        }
 
         socket.on('draw_marker', (m) => {
             if (m.type === 'arrow') {
-                const arrow = L.polyline([m.start, m.end], { color: '#007bff', weight: 5 }).addTo(map);
-                // Добавим простую логику наконечника (можно улучшить)
+                const line = L.polyline([m.start, m.end], { color: '#2563eb', weight: 4 }).addTo(map);
+                // Рисуем наконечник
+                const head = L.polyline(getArrowHead(m.start, m.end), { color: '#2563eb', weight: 4 }).addTo(map);
+                tacticalMarkers[m.id] = { line, head, latlng: m.end };
+                line.on('click', () => toggleNav(m.id, tacticalMarkers[m.id]));
                 return;
             }
 
             const icons = { enemy: '💀', point: '🚩', caution: '⚠️' };
             const marker = L.marker([m.lat, m.lng], {
-                icon: L.divIcon({ html: `<div style="font-size:20px;">${icons[m.type]}</div>`, className: 'dummy' })
+                icon: L.divIcon({ html: `<div class="marker-label">${icons[m.type]}</div>`, className: 'dummy' })
             }).addTo(map);
             
-            const dist = map.distance([myInfo.lat, myInfo.lng], [m.lat, m.lng]);
-            marker.bindTooltip(`${Math.round(dist)}м`, { permanent: true, direction: 'bottom', className: 'dist-label' });
+            marker.on('click', () => toggleNav(m.id, marker));
             tacticalMarkers[m.id] = marker;
         });
+
+        function getArrowHead(start, end) {
+            const d = Math.atan2(end.lng - start.lng, end.lat - start.lat);
+            const headLen = 0.0002; // Размер наконечника
+            return [
+                [end.lat - headLen * Math.cos(d - Math.PI/6), end.lng - headLen * Math.sin(d - Math.PI/6)],
+                [end.lat, end.lng],
+                [end.lat - headLen * Math.cos(d + Math.PI/6), end.lng - headLen * Math.sin(d + Math.PI/6)]
+            ];
+        }
+
+        function toggleNav(id, obj) {
+            if (navLines[id]) {
+                map.removeLayer(navLines[id]);
+                map.removeLayer(distLabels[id]);
+                delete navLines[id];
+                delete distLabels[id];
+            } else {
+                const targetPos = obj.getLatLng ? obj.getLatLng() : obj.latlng;
+                navLines[id] = L.polyline([[myInfo.lat, myInfo.lng], targetPos], { className: 'nav-line' }).addTo(map);
+                distLabels[id] = L.marker(getMid(targetPos), {
+                    icon: L.divIcon({ className: 'dist-on-line', html: '0м' })
+                }).addTo(map);
+                updateAllNav();
+            }
+        }
+
+        function updateAllNav() {
+            Object.keys(navLines).forEach(id => {
+                let targetPos;
+                if (markers[id]) targetPos = markers[id].getLatLng();
+                else if (tacticalMarkers[id]) targetPos = tacticalMarkers[id].getLatLng ? tacticalMarkers[id].getLatLng() : tacticalMarkers[id].latlng;
+
+                if (targetPos) {
+                    navLines[id].setLatLngs([[myInfo.lat, myInfo.lng], targetPos]);
+                    distLabels[id].setLatLng(getMid(targetPos));
+                    const d = map.distance([myInfo.lat, myInfo.lng], targetPos);
+                    distLabels[id].setIcon(L.divIcon({ className: 'dist-on-line', html: Math.round(d) + 'м' }));
+                }
+            });
+        }
+
+        function getMid(target) {
+            return [(myInfo.lat + target.lat) / 2, (myInfo.lng + target.lng) / 2];
+        }
+
+        function setLayer(t) {
+            Object.values(layers).forEach(l => map.removeLayer(l));
+            map.addLayer(layers[t]);
+        }
 
         function logout() { localStorage.removeItem('scorpGeo_Auth'); location.reload(); }
     </script>
