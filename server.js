@@ -7,16 +7,16 @@ const path = require('path');
 app.use(express.static(path.join(__dirname, 'public')));
 
 const users = {};
-const rooms = {}; // Для хранения паролей комнат
+const rooms = {}; 
+const roomMarkers = {}; // Хранилище меток для каждой комнаты
 
 io.on('connection', (socket) => {
     socket.on('join_room', (data) => {
         const { roomID, callsign, password } = data;
 
-        // Простая защита: если комнаты нет, создаем её с этим паролем.
-        // Если есть — проверяем пароль.
         if (!rooms[roomID]) {
             rooms[roomID] = password;
+            roomMarkers[roomID] = []; // Создаем пустой массив меток для новой комнаты
         } else if (rooms[roomID] !== password) {
             return socket.emit('error_msg', 'НЕВЕРНЫЙ КОД ДОСТУПА');
         }
@@ -24,9 +24,9 @@ io.on('connection', (socket) => {
         socket.join(roomID);
         users[socket.id] = { id: socket.id, roomID, callsign, lat: null, lng: null };
         
-        // Отправляем подтверждение успешного входа
         socket.emit('login_success');
-        console.log(`${callsign} вошел в ${roomID}`);
+        // Отправляем новому игроку все существующие метки в этой комнате
+        socket.emit('init_markers', roomMarkers[roomID]);
     });
 
     socket.on('update_gps', (coords) => {
@@ -35,6 +35,24 @@ io.on('connection', (socket) => {
             user.lat = coords.lat;
             user.lng = coords.lng;
             io.to(user.roomID).emit('presence_update', getRoomUsers(user.roomID));
+        }
+    });
+
+    // Обработка новой метки
+    socket.on('new_map_marker', (markerData) => {
+        const user = users[socket.id];
+        if (user && roomMarkers[user.roomID]) {
+            roomMarkers[user.roomID].push(markerData);
+            io.to(user.roomID).emit('draw_marker', markerData);
+        }
+    });
+
+    // Очистка всех меток
+    socket.on('clear_all_markers', () => {
+        const user = users[socket.id];
+        if (user) {
+            roomMarkers[user.roomID] = [];
+            io.to(user.roomID).emit('markers_cleared');
         }
     });
 
