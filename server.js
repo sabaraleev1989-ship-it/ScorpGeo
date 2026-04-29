@@ -6,38 +6,34 @@ const path = require('path');
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Хранилище активных пользователей и их данных
 const users = {};
+const rooms = {}; // Для хранения паролей комнат
 
 io.on('connection', (socket) => {
-    console.log('Новое подключение:', socket.id);
-
     socket.on('join_room', (data) => {
-        const { roomID, callsign } = data;
-        
-        // Привязываем сокет к комнате
-        socket.join(roomID);
-        
-        // Сохраняем данные пользователя
-        users[socket.id] = {
-            id: socket.id,
-            roomID: roomID,
-            callsign: callsign,
-            lat: null,
-            lng: null
-        };
+        const { roomID, callsign, password } = data;
 
-        console.log(`${callsign} вступил в канал: ${roomID}`);
+        // Простая защита: если комнаты нет, создаем её с этим паролем.
+        // Если есть — проверяем пароль.
+        if (!rooms[roomID]) {
+            rooms[roomID] = password;
+        } else if (rooms[roomID] !== password) {
+            return socket.emit('error_msg', 'НЕВЕРНЫЙ КОД ДОСТУПА');
+        }
+        
+        socket.join(roomID);
+        users[socket.id] = { id: socket.id, roomID, callsign, lat: null, lng: null };
+        
+        // Отправляем подтверждение успешного входа
+        socket.emit('login_success');
+        console.log(`${callsign} вошел в ${roomID}`);
     });
 
-    // Обновление координат от бойца
     socket.on('update_gps', (coords) => {
         const user = users[socket.id];
         if (user) {
             user.lat = coords.lat;
             user.lng = coords.lng;
-
-            // Рассылаем обновленные данные всем участникам ТОЛЬКО этой комнаты
             io.to(user.roomID).emit('presence_update', getRoomUsers(user.roomID));
         }
     });
@@ -47,25 +43,18 @@ io.on('connection', (socket) => {
         if (user) {
             const room = user.roomID;
             delete users[socket.id];
-            // Уведомляем остальных, что боец вышел из сети
             io.to(room).emit('user_disconnected', socket.id);
         }
-        console.log('Пользователь отключился:', socket.id);
     });
 });
 
-// Функция для получения списка всех пользователей в конкретной комнате
 function getRoomUsers(roomID) {
     const roomUsers = {};
     for (const id in users) {
-        if (users[id].roomID === roomID) {
-            roomUsers[id] = users[id];
-        }
+        if (users[id].roomID === roomID) roomUsers[id] = users[id];
     }
     return roomUsers;
 }
 
 const PORT = process.env.PORT || 3000;
-http.listen(PORT, () => {
-    console.log(`Сервер запущен на порту ${PORT}`);
-});
+http.listen(PORT, () => console.log(`Server on ${PORT}`));
