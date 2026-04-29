@@ -4,50 +4,68 @@ const http = require('http').createServer(app);
 const io = require('socket.io')(http);
 const path = require('path');
 
-app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, 'public')));
 
-const rooms = {};
+// Хранилище активных пользователей и их данных
+const users = {};
 
 io.on('connection', (socket) => {
+    console.log('Новое подключение:', socket.id);
+
     socket.on('join_room', (data) => {
-        const { roomID, password, callsign, team } = data;
-        if (!rooms[roomID]) {
-            rooms[roomID] = { password, users: {}, objects: [] };
-        }
-        if (rooms[roomID].password !== password) {
-            return socket.emit('error_msg', 'Неверный код доступа!');
-        }
+        const { roomID, callsign } = data;
+        
+        // Привязываем сокет к комнате
         socket.join(roomID);
-        socket.roomID = roomID;
-        rooms[roomID].users[socket.id] = { callsign, team, coords: null };
-        socket.emit('init_data', {
-            users: rooms[roomID].users,
-            objects: rooms[roomID].objects
-        });
-        socket.to(roomID).emit('user_joined', { id: socket.id, callsign, team });
+        
+        // Сохраняем данные пользователя
+        users[socket.id] = {
+            id: socket.id,
+            roomID: roomID,
+            callsign: callsign,
+            lat: null,
+            lng: null
+        };
+
+        console.log(`${callsign} вступил в канал: ${roomID}`);
     });
 
+    // Обновление координат от бойца
     socket.on('update_gps', (coords) => {
-        if (socket.roomID && rooms[socket.roomID]) {
-            rooms[socket.roomID].users[socket.id].coords = coords;
-            io.to(socket.roomID).emit('presence_update', { id: socket.id, coords });
-        }
-    });
+        const user = users[socket.id];
+        if (user) {
+            user.lat = coords.lat;
+            user.lng = coords.lng;
 
-    socket.on('new_object', (obj) => {
-        if (socket.roomID && rooms[socket.roomID]) {
-            rooms[socket.roomID].objects.push(obj);
-            socket.to(socket.roomID).emit('object_added', obj);
+            // Рассылаем обновленные данные всем участникам ТОЛЬКО этой комнаты
+            io.to(user.roomID).emit('presence_update', getRoomUsers(user.roomID));
         }
     });
 
     socket.on('disconnect', () => {
-        if (socket.roomID && rooms[socket.roomID]) {
-            io.to(socket.roomID).emit('user_left', socket.id);
-            delete rooms[socket.roomID].users[socket.id];
+        const user = users[socket.id];
+        if (user) {
+            const room = user.roomID;
+            delete users[socket.id];
+            // Уведомляем остальных, что боец вышел из сети
+            io.to(room).emit('user_disconnected', socket.id);
         }
+        console.log('Пользователь отключился:', socket.id);
     });
 });
 
+// Функция для получения списка всех пользователей в конкретной комнате
+function getRoomUsers(roomID) {
+    const roomUsers = {};
+    for (const id in users) {
+        if (users[id].roomID === roomID) {
+            roomUsers[id] = users[id];
+        }
+    }
+    return roomUsers;
+}
+
 const PORT = process.env.PORT || 3000;
-http.listen(PORT, () => console.log('Server running on port ' + PORT));
+http.listen(PORT, () => {
+    console.log(`Сервер запущен на порту ${PORT}`);
+});
