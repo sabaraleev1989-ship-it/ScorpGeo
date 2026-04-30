@@ -2,76 +2,80 @@ const express = require('express');
 const app = express();
 const http = require('http').createServer(app);
 const io = require('socket.io')(http);
-const path = require('path');
 
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static('public')); // Папка, где лежит твой index.html
 
-let users = {};
-let items = {}; // Храним объекты по комнатам
+// Глобальный объект для хранения данных комнат
+const rooms = {};
 
 io.on('connection', (socket) => {
-    // Вход в сеть
+    
+    // 1. Вход в комнату
     socket.on('join_room', (data) => {
-        socket.join(data.room);
-        users[socket.id] = { ...data, id: socket.id };
+        const { room, name } = data;
+        socket.join(room);
+        socket.room = room;
+        socket.userName = name;
+
+        if (!rooms[room]) rooms[room] = { users: {}, objects: [] };
+        
+        // Добавляем пользователя в список
+        rooms[room].users[socket.id] = { name: name, lat: 0, lng: 0 };
+
         socket.emit('login_success');
         
-        // Отправляем новому игроку уже существующие метки
-        if (items[data.room]) {
-            items[data.room].forEach(obj => socket.emit('draw', obj));
+        // Оповещаем всех: "Заходит: Позывной"
+        io.to(room).emit('player_joined', { name: name });
+        
+        // Сразу отправляем новичку текущую ситуацию в комнате
+        socket.emit('presence_update', rooms[room].users);
+        rooms[room].objects.forEach(obj => socket.emit('draw', obj));
+    });
+
+    // 2. Обновление GPS позиции
+    socket.on('gps_sync', (data) => {
+        if (socket.room && rooms[socket.room]) {
+            rooms[socket.room].users[socket.id].lat = data.lat;
+            rooms[socket.room].users[socket.id].lng = data.lng;
+            
+            // Рассылаем всем обновленные координаты бойцов
+            io.to(socket.room).emit('presence_update', rooms[socket.room].users);
         }
     });
 
-    // Синхронизация GPS
-    socket.on('gps_sync', (pos) => {
-        if (users[socket.id]) {
-            users[socket.id].lat = pos.lat;
-            users[socket.id].lng = pos.lng;
-            io.to(users[socket.id].room).emit('users_sync', users);
+    // 3. Создание меток (враг, цель, стрелка)
+    socket.on('new_obj', (obj) => {
+        if (socket.room && rooms[socket.room]) {
+            rooms[socket.room].objects.push(obj);
+            io.to(socket.room).emit('draw', obj);
         }
     });
 
-    // Новая метка или стрелка
-    socket.on('new_obj', (m) => {
-        if (users[socket.id]) {
-            const room = users[socket.id].room;
-            if (!items[room]) items[room] = [];
-            items[room].push(m);
-            io.to(room).emit('draw', m);
+    // 4. РАДИООБМЕН (Сообщения чата)
+    socket.on('chat_msg', (msg) => {
+        if (socket.room) {
+            io.to(socket.room).emit('receive_msg', msg);
         }
     });
 
-    // Радиоканал
-    socket.on('msg_send', (d) => {
-        if (users[socket.id]) {
-            io.to(users[socket.id].room).emit('msg_recv', d);
-        }
-    });
-
-    // Отмена последнего действия
-    socket.on('undo', () => {
-        if (users[socket.id]) {
-            const room = users[socket.id].room;
-            const last = items[room] ? items[room].pop() : null;
-            if (last) io.to(room).emit('del_obj', last.id);
-        }
-    });
-
-    // Полная очистка
+    // 5. Очистка карты
     socket.on('clear', () => {
-        if (users[socket.id]) {
-            const room = users[socket.id].room;
-            items[room] = [];
-            io.to(room).emit('reset');
+        if (socket.room && rooms[socket.room]) {
+            rooms[socket.room].objects = [];
+            io.to(socket.room).emit('clear_all');
         }
     });
 
+    // 6. Выход игрока
     socket.on('disconnect', () => {
-        delete users[socket.id];
+        if (socket.room && rooms[socket.room]) {
+            delete rooms[socket.room].users[socket.id];
+            io.to(socket.room).emit('presence_update', rooms[socket.room].users);
+        }
     });
 });
 
-const PORT = process.env.PORT || 10000;
+const PORT = process.env.PORT || 3000;
 http.listen(PORT, () => {
-    console.log('Сервер запущен на порту ' + PORT);
+    console.log(`Тактический сервер запущен на порту ${PORT}`);
 });
