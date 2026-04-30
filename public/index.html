@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SCORP GEO | PRO</title>
+    <title>SCORP GEO | FINAL</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="/socket.io/socket.io.js"></script>
@@ -11,48 +11,36 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Roboto+Condensed:wght@700;900&display=swap');
-        body { background: #000; margin: 0; overflow: hidden; color: #e2e8f0; font-family: 'Roboto Condensed', sans-serif; }
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Roboto+Condensed:wght@700&display=swap');
+        body { background: #000; margin: 0; overflow: hidden; font-family: 'Roboto Condensed', sans-serif; }
         #map { height: 100vh; width: 100%; background: #000; position: absolute; z-index: 1; }
-        .leaflet-control-attribution { display: none !important; }
-
+        
         /* ИНТЕРФЕЙС */
-        .side-panel { background: rgba(10, 15, 30, 0.95); border-right: 1px solid #1e293b; z-index: 5000; width: 60px; position: fixed; left: 0; top: 0; bottom: 0; display: flex; flex-direction: column; }
+        .side-panel { background: rgba(10, 15, 30, 0.9); border-right: 1px solid #1e293b; z-index: 5000; width: 60px; position: fixed; left: 0; top: 0; bottom: 0; display: flex; flex-direction: column; }
         .tool-btn { width: 60px; height: 50px; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid #1e293b; cursor: pointer; font-size: 20px; color: #64748b; }
         .tool-btn.active { background: #2563eb; color: white; }
-        .c-dot { width: 24px; height: 24px; border-radius: 4px; border: 2px solid #334155; margin: 4px 0; }
-        .c-dot.active { border-color: white; transform: scale(1.1); }
 
-        /* ФИКСИРОВАННЫЕ ОСИ КООРДИНАТ */
-        .grid-axis-x { position: fixed; top: 0; left: 60px; right: 0; height: 20px; background: rgba(0,0,0,0.6); z-index: 4000; display: flex; align-items: center; pointer-events: none; border-bottom: 1px solid rgba(34, 197, 94, 0.3); overflow: hidden; }
-        .grid-axis-y { position: fixed; top: 20px; right: 0; bottom: 0; width: 25px; background: rgba(0,0,0,0.6); z-index: 4000; display: flex; flex-direction: column; align-items: center; pointer-events: none; border-left: 1px solid rgba(34, 197, 94, 0.3); overflow: hidden; }
+        /* ОСИ КООРДИНАТ - ТЕПЕРЬ НЕ БЛОКИРУЮТ КЛИКИ */
+        .grid-axis-x { position: fixed; top: 0; left: 60px; right: 0; height: 25px; background: rgba(0,0,0,0.5); z-index: 4000; pointer-events: none; border-bottom: 1px solid rgba(34, 197, 94, 0.5); overflow: hidden; }
+        .grid-axis-y { position: fixed; top: 25px; right: 0; bottom: 0; width: 30px; background: rgba(0,0,0,0.5); z-index: 4000; pointer-events: none; border-left: 1px solid rgba(34, 197, 94, 0.5); overflow: hidden; }
         
-        .axis-label { color: #22c55e; font-family: 'Orbitron'; font-size: 10px; font-weight: bold; position: absolute; text-align: center; }
+        .axis-label { color: #22c55e; font-family: 'Orbitron'; font-size: 11px; font-weight: bold; position: absolute; width: 30px; text-align: center; text-shadow: 1px 1px 2px black; }
 
-        .dist-label { 
-            background: #fff !important; color: #000 !important; 
-            padding: 4px 10px !important; border: 3px solid #000 !important; 
-            font-weight: 900 !important; font-size: 16px !important; 
-            min-width: 60px; text-align: center; margin-top: 40px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.6);
-        }
-
-        .user-label { background: #2563eb; color: white; padding: 2px 6px; border-radius: 3px; font-weight: bold; border: 1px solid white; font-size: 10px; }
+        /* МЕТКИ */
+        .dist-label { background: white !important; color: black !important; padding: 2px 5px !important; border: 2px solid black !important; font-weight: 900 !important; font-size: 14px !important; text-align: center; }
+        .user-label { background: #2563eb; color: white; padding: 2px 6px; border-radius: 3px; font-weight: bold; border: 1px solid white; font-size: 11px; }
         
-        #auth-screen { background: radial-gradient(circle at center, #052e16 0%, #000 100%); z-index: 10000; position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; }
-        .auth-card { background: rgba(0,0,0,0.9); border: 2px solid #166534; padding: 30px; border-radius: 15px; width: 300px; text-align: center; }
-        .auth-input { background: #000; border: 1px solid #166534; color: #22c55e; padding: 12px; border-radius: 5px; width: 100%; margin-bottom: 10px; outline: none; }
-        .auth-btn { background: #166534; color: white; padding: 15px; border-radius: 5px; width: 100%; font-weight: bold; font-family: 'Orbitron'; }
-
-        .nav-line-f { stroke: #ff0000; stroke-dasharray: 8, 8; animation: dash 1s linear infinite; stroke-width: 4; pointer-events: none; }
-        @keyframes dash { from { stroke-dashoffset: 16; } to { stroke-dashoffset: 0; } }
+        #auth-screen { background: #000; z-index: 10000; position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; }
+        .auth-card { background: #111; border: 2px solid #166534; padding: 30px; border-radius: 10px; width: 280px; }
+        .auth-input { background: #000; border: 1px solid #333; color: #22c55e; padding: 10px; border-radius: 5px; width: 100%; margin-bottom: 10px; }
+        .auth-btn { background: #166534; color: white; padding: 12px; border-radius: 5px; width: 100%; font-weight: bold; }
     </style>
 </head>
 <body>
 
     <div id="auth-screen">
         <div class="auth-card">
-            <h1 style="font-family: 'Orbitron';" class="text-xl text-white mb-4">SCORP <span class="text-green-500">GEO</span></h1>
+            <h1 style="font-family: 'Orbitron';" class="text-white text-center mb-4 text-xl">SCORP <span class="text-green-500">GEO</span></h1>
             <input id="roomInput" type="text" placeholder="ID СЕТИ" class="auth-input">
             <input id="codeInput" type="password" placeholder="КОД" class="auth-input">
             <input id="nameInput" type="text" placeholder="ПОЗЫВНОЙ" class="auth-input">
@@ -70,17 +58,11 @@
             <div onclick="setTool('enemy')" id="t-enemy" class="tool-btn">💀</div>
             <div onclick="setTool('point')" id="t-point" class="tool-btn">🚩</div>
             <div onclick="setTool('arrow')" id="t-arrow" class="tool-btn">➡️</div>
-            <div class="flex flex-col items-center border-b border-slate-800 py-2">
-                <div onclick="pickColor('#2563eb', this)" class="c-dot bg-blue-600 active"></div>
-                <div onclick="pickColor('#ef4444', this)" class="c-dot bg-red-600"></div>
-                <div onclick="pickColor('#22c55e', this)" class="c-dot bg-green-600"></div>
-            </div>
             <div onclick="undo()" class="tool-btn text-yellow-500">↩️</div>
             <div onclick="clearMap()" class="tool-btn text-red-500">🗑️</div>
             <div class="mt-auto">
-                <div onclick="changeMap('sat')" id="btn-sat" class="tool-btn text-[10px] font-bold">SAT</div>
-                <div onclick="changeMap('map')" id="btn-map" class="tool-btn text-[10px] font-bold text-blue-400">MAP</div>
-                <div onclick="logout()" class="tool-btn text-red-600">🚪</div>
+                <div onclick="changeMap('sat')" id="btn-sat" class="tool-btn text-xs font-bold">SAT</div>
+                <div onclick="changeMap('map')" id="btn-map" class="tool-btn text-xs font-bold text-blue-400">MAP</div>
             </div>
         </div>
         <div id="map"></div>
@@ -90,79 +72,82 @@
         const socket = io();
         let map, myMarker, myInfo = { room: '', name: '', code: '', lat: 0, lng: 0 };
         let markers = {}, tactical = {}, dists = {}, navs = {};
-        let tool = 'move', color = '#2563eb', arrowFrom = null;
-        let layers = {}, gridLines = null;
+        let tool = 'move', color = '#2563eb', arrowFrom = null, tempStart = null;
+        let layers = {}, gridLayer = null;
 
-        const GRID_STEP_METERS = 20;
-        const DEG_PER_METER = 0.000009; // Примерно для широты Сочи
-        const STEP_DEG = GRID_STEP_METERS * DEG_PER_METER;
+        const GRID_STEP_METERS = 20; 
+        const DEG_PER_METER = 0.000009; 
+        const STEP = GRID_STEP_METERS * DEG_PER_METER;
 
         function startApp() {
             myInfo.room = document.getElementById('roomInput').value.toUpperCase().trim();
             myInfo.code = document.getElementById('codeInput').value.trim();
             myInfo.name = document.getElementById('nameInput').value.toUpperCase().trim();
-            if(myInfo.room && myInfo.name && myInfo.code) socket.emit('join_room', myInfo);
+            if(myInfo.room && myInfo.name) socket.emit('join_room', myInfo);
         }
 
         socket.on('login_success', () => {
-            document.getElementById('auth-screen').style.display = 'none';
+            document.getElementById('auth-screen').remove();
             document.getElementById('ui').classList.remove('hidden');
-            setTimeout(initMap, 400); 
+            initMap();
         });
 
         function initMap() {
-            layers.map = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
-            layers.sat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}');
+            layers.map = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 22 });
+            layers.sat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 22 });
             
-            map = L.map('map', { zoomControl: false, attributionControl: false }).setView([43.58, 39.72], 18);
+            map = L.map('map', { zoomControl: false, attributionControl: false, maxZoom: 22 }).setView([43.40, 39.95], 18);
             layers.map.addTo(map);
             
+            gridLayer = L.layerGroup().addTo(map);
             updateGrid();
             map.on('move zoom', updateGrid);
-            map.on('click', onMapClick);
+            map.on('mousedown', onMapClick); // Используем mousedown для лучшего отклика
             startGps();
         }
 
-        function centerMe() { if(myInfo.lat) map.setView([myInfo.lat, myInfo.lng], 19); }
-
         function updateGrid() {
-            if (gridLines) map.removeLayer(gridLines);
-            gridLines = L.layerGroup().addTo(map);
-
+            gridLayer.clearLayers();
             const b = map.getBounds();
             const axX = document.getElementById('axis-x');
             const axY = document.getElementById('axis-y');
             axX.innerHTML = ''; axY.innerHTML = '';
 
-            const startLng = Math.floor(b.getWest() / STEP_DEG) * STEP_DEG;
-            const endLng = Math.ceil(b.getEast() / STEP_DEG) * STEP_DEG;
-            const startLat = Math.floor(b.getSouth() / STEP_DEG) * STEP_DEG;
-            const endLat = Math.ceil(b.getNorth() / STEP_DEG) * STEP_DEG;
+            const startLng = Math.floor(b.getWest() / STEP) * STEP;
+            const endLng = Math.ceil(b.getEast() / STEP) * STEP;
+            const startLat = Math.floor(b.getSouth() / STEP) * STEP;
+            const endLat = Math.ceil(b.getNorth() / STEP) * STEP;
 
-            // Вертикальные линии + Буквы сверху
-            for (let x = startLng; x <= endLng; x += STEP_DEG) {
-                L.polyline([[startLat, x], [endLat, x]], { color: '#000', weight: 1, opacity: 0.3, dashArray: '2, 4' }).addTo(gridLines);
+            // Вертикали (X)
+            for (let x = startLng; x <= endLng; x += STEP) {
+                L.polyline([[startLat, x], [endLat, x]], { color: '#000', weight: 1, opacity: 0.2 }).addTo(gridLayer);
                 
-                const point = map.latLngToContainerPoint([b.getNorth(), x]);
+                // Ставим букву МЕЖДУ линиями (в центр квадрата)
+                const centerLng = x + (STEP / 2);
+                const point = map.latLngToContainerPoint([b.getNorth(), centerLng]);
                 if (point.x > 60) {
-                    const letter = String.fromCharCode(65 + (Math.abs(Math.round(x / STEP_DEG)) % 26));
+                    const letter = String.fromCharCode(65 + (Math.abs(Math.round(x / STEP)) % 26));
                     const el = document.createElement('div');
                     el.className = 'axis-label';
-                    el.style.left = (point.x - 65) + 'px';
+                    el.style.left = (point.x - 75) + 'px'; 
+                    el.style.top = '5px';
                     el.innerText = letter;
                     axX.appendChild(el);
                 }
             }
 
-            // Горизонтальные линии + Цифры справа
-            for (let y = startLat; y <= endLat; y += STEP_DEG) {
-                L.polyline([[y, startLng], [y, endLng]], { color: '#000', weight: 1, opacity: 0.3, dashArray: '2, 4' }).addTo(gridLines);
+            // Горизонтали (Y)
+            for (let y = startLat; y <= endLat; y += STEP) {
+                L.polyline([[y, startLng], [y, endLng]], { color: '#000', weight: 1, opacity: 0.2 }).addTo(gridLayer);
                 
-                const point = map.latLngToContainerPoint([y, b.getEast()]);
-                const num = Math.abs(Math.round(y / STEP_DEG)) % 100;
+                // Ставим цифру МЕЖДУ линиями (в центр квадрата)
+                const centerLat = y + (STEP / 2);
+                const point = map.latLngToContainerPoint([centerLat, b.getEast()]);
+                const num = Math.abs(Math.round(y / STEP)) % 100;
                 const el = document.createElement('div');
                 el.className = 'axis-label';
-                el.style.top = (point.y - 10) + 'px';
+                el.style.top = (point.y - 35) + 'px';
+                el.style.right = '5px';
                 el.innerText = num;
                 axY.appendChild(el);
             }
@@ -174,54 +159,41 @@
             if(tool === 'arrow') {
                 if(!arrowFrom) {
                     arrowFrom = e.latlng;
-                    tempStart = L.circleMarker(e.latlng, { radius: 4, color: color, fillOpacity: 1 }).addTo(map);
+                    tempStart = L.circleMarker(e.latlng, { radius: 5, color: '#2563eb' }).addTo(map);
                 } else {
                     if(tempStart) map.removeLayer(tempStart);
-                    socket.emit('new_obj', { id, type: 'arrow', start: arrowFrom, end: e.latlng, color });
+                    socket.emit('new_obj', { id, type: 'arrow', start: arrowFrom, end: e.latlng, color: '#2563eb' });
                     arrowFrom = null;
                 }
             } else {
-                socket.emit('new_obj', { id, type: tool, lat: e.latlng.lat, lng: e.latlng.lng, color });
+                socket.emit('new_obj', { id, type: tool, lat: e.latlng.lat, lng: e.latlng.lng, color: '#2563eb' });
             }
         }
 
         socket.on('draw', (m) => {
-            let obj, pos;
+            let obj;
             if(m.type === 'arrow') {
-                const l = L.polyline([m.start, m.end], { color: m.color, weight: 4 }).addTo(map);
-                const h = L.polyline(getHead(m.start, m.end), { color: m.color, weight: 4 }).addTo(map);
-                obj = { layers: [l, h], latlng: m.end };
-                pos = m.end;
+                const line = L.polyline([m.start, m.end], { color: m.color, weight: 5 }).addTo(map);
+                obj = { layers: [line], latlng: m.end };
             } else {
                 const ico = m.type === 'enemy' ? '💀' : '🚩';
-                obj = L.marker([m.lat, m.lng], { icon: L.divIcon({ html: `<div style="font-size:26px;">${ico}</div>`, className: 'dummy', iconAnchor: [13, 13] }) }).addTo(map);
-                pos = { lat: m.lat, lng: m.lng };
-                dists[m.id] = L.marker(pos, { icon: L.divIcon({ className: 'dist-label', html: '---', iconAnchor: [30, -15] }) }).addTo(map);
+                obj = L.marker([m.lat, m.lng], { 
+                    icon: L.divIcon({ html: `<div style="font-size:30px;">${ico}</div>`, className: 'dummy', iconAnchor: [15, 15] }) 
+                }).addTo(map);
+                dists[m.id] = L.marker([m.lat, m.lng], { 
+                    icon: L.divIcon({ className: 'dist-label', html: '---', iconAnchor: [20, -20] }) 
+                }).addTo(map);
             }
             tactical[m.id] = obj;
-            const target = obj.layers ? obj.layers[0] : obj;
-            target.on('click', () => togglePulse(m.id, pos));
             updateDist();
         });
-
-        function getHead(s, e) {
-            const d = Math.atan2(e.lng - s.lng, e.lat - s.lat);
-            const h = 0.0001; 
-            return [[e.lat - h * Math.cos(d - 0.5), e.lng - h * Math.sin(d - 0.5)], [e.lat, e.lng], [e.lat - h * Math.cos(d + 0.5), e.lng - h * Math.sin(d + 0.5)]];
-        }
-
-        function togglePulse(id, pos) {
-            if(navs[id]) { map.removeLayer(navs[id]); delete navs[id]; }
-            else { navs[id] = L.polyline([[myInfo.lat, myInfo.lng], pos], { className: 'nav-line-f' }).addTo(map); }
-        }
 
         function updateDist() {
             if(!myInfo.lat) return;
             Object.keys(dists).forEach(id => {
-                const p = tactical[id].latlng || tactical[id].getLatLng();
+                const p = tactical[id].getLatLng ? tactical[id].getLatLng() : tactical[id].latlng;
                 const d = Math.round(map.distance([myInfo.lat, myInfo.lng], p));
-                dists[id].setIcon(L.divIcon({ className: 'dist-label', html: d + 'м', iconAnchor: [30, -15] }));
-                if(navs[id]) navs[id].setLatLngs([[myInfo.lat, myInfo.lng], p]);
+                dists[id].setIcon(L.divIcon({ className: 'dist-label', html: d + 'м', iconAnchor: [20, -20] }));
             });
         }
 
@@ -229,9 +201,9 @@
             navigator.geolocation.watchPosition(p => {
                 myInfo.lat = p.coords.latitude; myInfo.lng = p.coords.longitude;
                 if(!myMarker) {
-                    myMarker = L.circleMarker([myInfo.lat, myInfo.lng], { color: '#2563eb', radius: 9, fillOpacity: 1 }).addTo(map);
-                    myMarker.bindTooltip(myInfo.name, { permanent: true, direction: 'top', className: 'user-label' });
-                    map.setView([myInfo.lat, myInfo.lng], 18);
+                    myMarker = L.circleMarker([myInfo.lat, myInfo.lng], { color: '#2563eb', radius: 10, fillOpacity: 1 }).addTo(map);
+                    myMarker.bindTooltip(myInfo.name, { permanent: true, className: 'user-label', direction: 'top' });
+                    map.setView([myInfo.lat, myInfo.lng], 19);
                 } else myMarker.setLatLng([myInfo.lat, myInfo.lng]);
                 updateDist();
                 socket.emit('gps_sync', { lat: myInfo.lat, lng: myInfo.lng });
@@ -242,7 +214,7 @@
             Object.keys(us).forEach(id => {
                 if(id === socket.id) return;
                 if(!markers[id]) {
-                    markers[id] = L.circleMarker([us[id].lat, us[id].lng], { color: '#ef4444', radius: 8 }).addTo(map);
+                    markers[id] = L.circleMarker([us[id].lat, us[id].lng], { color: '#ef4444', radius: 9 }).addTo(map);
                     markers[id].bindTooltip(us[id].name, { permanent: true, className: 'user-label' });
                 } else markers[id].setLatLng([us[id].lat, us[id].lng]);
             });
@@ -251,24 +223,22 @@
         function changeMap(t) { 
             map.eachLayer(l => { if(l instanceof L.TileLayer) map.removeLayer(l); });
             layers[t].addTo(map);
-            document.getElementById('btn-map').style.color = (t === 'map') ? '#60a5fa' : '#64748b';
-            document.getElementById('btn-sat').style.color = (t === 'sat') ? '#60a5fa' : '#64748b';
         }
-
-        function setTool(t) { tool = t; document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active')); document.getElementById('t-'+t).classList.add('active'); }
-        function pickColor(c, el) { color = c; document.querySelectorAll('.c-dot').forEach(d => d.classList.remove('active')); el.classList.add('active'); }
-        function logout() { location.reload(); }
+        function setTool(t) { 
+            tool = t; arrowFrom = null; if(tempStart) map.removeLayer(tempStart);
+            document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active')); 
+            document.getElementById('t-'+t).classList.add('active'); 
+        }
+        function centerMe() { if(myInfo.lat) map.setView([myInfo.lat, myInfo.lng], 19); }
         function undo() { socket.emit('undo'); }
-        function clearMap() { if(confirm("CLEAR ALL?")) socket.emit('clear'); }
+        function clearMap() { if(confirm("ОЧИСТИТЬ?")) socket.emit('clear'); }
         socket.on('del_obj', id => { 
             if(tactical[id]) { 
-                if(tactical[id].layers) tactical[id].layers.forEach(l => map.removeLayer(l)); else map.removeLayer(tactical[id]); 
+                if(tactical[id].layers) tactical[id].layers.forEach(l => map.removeLayer(l)); else map.removeLayer(tactical[id]);
                 if(dists[id]) map.removeLayer(dists[id]);
-                if(navs[id]) map.removeLayer(navs[id]);
-                delete tactical[id]; delete dists[id]; delete navs[id];
+                delete tactical[id]; delete dists[id];
             } 
         });
-        socket.on('reset', () => location.reload());
     </script>
 </body>
 </html>
