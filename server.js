@@ -10,21 +10,22 @@ const io = new Server(server, {
         origin: "*",
         methods: ["GET", "POST"]
     },
-    transports: ['websocket', 'polling']
+    transports: ['websocket', 'polling'],
+    pingTimeout: 60000,
+    pingInterval: 25000
 });
 
 // Настройки
 const PORT = process.env.PORT || 3000;
-const ROOM_PASSWORD = '1234'; // Пароль для входа в комнату
+const ROOM_PASSWORD = '1234';
 
 // Хранилища данных
-const rooms = {};          // { roomName: { players: {}, objects: {} } }
-const playerSockets = {};  // { socketId: { name, team, room, color } }
+const rooms = {};
+const playerSockets = {};
 
-// Раздаём статические файлы (HTML, CSS, JS)
+// Раздаём статические файлы
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Главная страница
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
@@ -43,119 +44,125 @@ function getRandomColor() {
 function getOrCreateRoom(roomName) {
     if (!rooms[roomName]) {
         rooms[roomName] = {
-            players: {},    // { playerName: { color, lat, lng, socketId } }
+            players: {},    // { playerName: { color, lat, lng, socketId, team } }
             objects: {},    // { objectId: { type, lat, lng, start, end, creator } }
-            messages: []    // История сообщений (последние 50)
+            messages: []    // История чата
         };
         console.log(`🏠 Комната создана: ${roomName}`);
     }
     return rooms[roomName];
 }
 
-// ==================== ОБРАБОТЧИКИ SOCKET.IO ====================
+// ==================== SOCKET.IO ОБРАБОТЧИКИ ====================
 io.on('connection', (socket) => {
-    console.log(`🔌 Новое подключение: ${socket.id}`);
+    console.log(`🔌 Подключение: ${socket.id} [${new Date().toLocaleTimeString()}]`);
 
     // ===== АВТОРИЗАЦИЯ =====
     socket.on('join_room', (data) => {
         const { room, name, team, pass } = data;
         
-        console.log(`🔑 Попытка входа: ${name} в комнату ${room}`);
+        console.log(`🔑 Вход: ${name} → комната ${room}`);
         
         // Проверка пароля
         if (pass !== ROOM_PASSWORD) {
             socket.emit('login_failed', { reason: 'Неверный пароль' });
-            console.log(`❌ Неверный пароль от ${name}`);
+            console.log(`❌ Неверный пароль: ${name}`);
             return;
         }
         
-        // Проверка на пустые поля
         if (!room || !name || !team) {
-            socket.emit('login_failed', { reason: 'Заполните все поля' });
+            socket.emit('login_failed', { reason: 'Все поля обязательны' });
             return;
         }
         
         const roomData = getOrCreateRoom(room);
         
-        // Проверка на дубликат позывного
+        // Удаляем старого игрока с таким же именем (если есть)
         if (roomData.players[name]) {
-            // Если игрок с таким позывным уже есть, удаляем старого
             const oldSocketId = roomData.players[name].socketId;
             const oldSocket = io.sockets.sockets.get(oldSocketId);
             if (oldSocket) {
                 oldSocket.emit('force_disconnect', { reason: 'Кто-то вошел с вашим позывным' });
-                oldSocket.disconnect();
-                console.log(`⚠️ Игрок ${name} был отключен (дубликат позывного)`);
+                oldSocket.disconnect(true);
             }
+            delete roomData.players[name];
         }
         
-        // Генерируем цвет для игрока
+        // Генерируем цвет
         const playerColor = getRandomColor();
         
-        // Сохраняем игрока в комнате
+        // Сохраняем игрока
         roomData.players[name] = {
             color: playerColor,
-            lat: 55.7558,  // По умолчанию Москва
+            lat: 55.7558,
             lng: 37.6176,
             socketId: socket.id,
             team: team
         };
         
-        // Сохраняем привязку сокета к игроку
-        playerSockets[socket.id] = { name, team, room, color: playerColor };
+        // Привязка сокета
+        playerSockets[socket.id] = {
+            name: name,
+            team: team,
+            room: room,
+            color: playerColor
+        };
         
-        // Подключаем сокет к комнате
+        // Подключаем к комнате
         socket.join(room);
         
-        // Отправляем успешный ответ с цветом
+        // === ВАЖНО: Отправляем успех и список существующих игроков ===
         socket.emit('login_success', {
             color: playerColor,
             name: name,
             room: room
         });
         
-        // Отправляем новому игроку список существующих игроков
-        const existingPlayers = Object.entries(roomData.players)
-            .filter(([playerName]) => playerName !== name)
-            .map(([playerName, data]) => ({
-                name: playerName,
-                color: data.color,
-                lat: data.lat,
-                lng: data.lng
-            }));
+        // Отправляем список ВСЕХ существующих игроков (кроме себя)
+        const existingPlayers = [];
+        for (const [playerName, playerData] of Object.entries(roomData.players)) {
+            if (playerName !== name) {
+                existingPlayers.push({
+                    name: playerName,
+                    color: playerData.color,
+                    lat: playerData.lat,  // РЕАЛЬНЫЕ координаты
+                    lng: playerData.lng   // РЕАЛЬНЫЕ координаты
+                });
+            }
+        }
         
         if (existingPlayers.length > 0) {
+            console.log(`👥 Отправляем ${existingPlayers.length} игроков для ${name}:`, 
+                existingPlayers.map(p => p.name).join(', '));
             socket.emit('existing_players', existingPlayers);
         }
         
-        // Отправляем новому игроку все существующие объекты
+        // Отправляем все существующие объекты новому игроку
         const allObjects = Object.entries(roomData.objects).map(([id, obj]) => ({
             id,
             ...obj
         }));
         
         if (allObjects.length > 0) {
-            allObjects.forEach(obj => {
-                socket.emit('draw', obj);
-            });
+            console.log(`📦 Отправляем ${allObjects.length} объектов для ${name}`);
+            allObjects.forEach(obj => socket.emit('draw', obj));
         }
         
-        // Отправляем историю чата (последние 50 сообщений)
+        // История чата
         if (roomData.messages.length > 0) {
-            roomData.messages.slice(-50).forEach(msg => {
-                socket.emit('receive_msg', msg);
-            });
+            const recentMessages = roomData.messages.slice(-50);
+            recentMessages.forEach(msg => socket.emit('receive_msg', msg));
         }
         
-        // Уведомляем всех в комнате о новом игроке
+        // Уведомляем ВСЕХ в комнате о новом игроке
         socket.to(room).emit('player_joined', {
             name: name,
             color: playerColor,
-            lat: 55.7558,
+            lat: 55.7558,  // Начальные координаты
             lng: 37.6176
         });
         
-        // Системное сообщение в чат
+        // Системное сообщение
         const systemMsg = {
             name: '⚡СИСТЕМА',
             text: `Боец ${name} присоединился к команде ${team}`,
@@ -166,35 +173,38 @@ io.on('connection', (socket) => {
         roomData.messages.push(systemMsg);
         io.to(room).emit('receive_msg', systemMsg);
         
-        console.log(`✅ ${name} вошел в комнату ${room} (цвет: ${playerColor})`);
+        console.log(`✅ ${name} в комнате ${room} (цвет: ${playerColor})`);
+        console.log(`📊 Игроков в комнате: ${Object.keys(roomData.players).length}`);
     });
 
     // ===== GPS СИНХРОНИЗАЦИЯ =====
     socket.on('gps_sync', (data) => {
+        if (!data || !data.lat || !data.lng) return;
+        
         const playerInfo = playerSockets[socket.id];
         if (!playerInfo) return;
         
         const { room, name } = playerInfo;
         const roomData = rooms[room];
-        if (!roomData) return;
+        if (!roomData || !roomData.players[name]) return;
         
-        // Обновляем координаты игрока
-        if (roomData.players[name]) {
-            roomData.players[name].lat = data.lat;
-            roomData.players[name].lng = data.lng;
-            
-            // Рассылаем обновление всем в комнате кроме отправителя
-            socket.to(room).emit('player_move', {
-                name: name,
-                lat: data.lat,
-                lng: data.lng,
-                color: playerInfo.color
-            });
-        }
+        // Обновляем координаты
+        roomData.players[name].lat = data.lat;
+        roomData.players[name].lng = data.lng;
+        
+        // Рассылаем ВСЕМ КРОМЕ отправителя
+        socket.to(room).emit('player_move', {
+            name: name,
+            lat: data.lat,
+            lng: data.lng,
+            color: playerInfo.color
+        });
     });
 
     // ===== НОВЫЙ ТАКТИЧЕСКИЙ ОБЪЕКТ =====
     socket.on('new_obj', (objData) => {
+        if (!objData || !objData.id || !objData.type) return;
+        
         const playerInfo = playerSockets[socket.id];
         if (!playerInfo) return;
         
@@ -202,7 +212,7 @@ io.on('connection', (socket) => {
         const roomData = rooms[room];
         if (!roomData) return;
         
-        // Сохраняем объект в комнате
+        // Сохраняем объект
         roomData.objects[objData.id] = {
             type: objData.type,
             lat: objData.lat,
@@ -213,75 +223,75 @@ io.on('connection', (socket) => {
             timestamp: Date.now()
         };
         
-        console.log(`📌 Новый объект в ${room}: ${objData.type} от ${objData.creator}`);
+        console.log(`📌 Объект: ${objData.type} (${objData.id}) в ${room} от ${objData.creator}`);
         
-        // Рассылаем ВСЕМ в комнате (включая отправителя для подтверждения)
+        // Рассылаем ВСЕМ в комнате (включая отправителя)
         io.to(room).emit('draw', objData);
     });
 
     // ===== УДАЛЕНИЕ ОБЪЕКТА =====
     socket.on('delete_obj', (objectId) => {
+        if (!objectId) return;
+        
         const playerInfo = playerSockets[socket.id];
         if (!playerInfo) return;
         
         const { room } = playerInfo;
         const roomData = rooms[room];
-        if (!roomData) return;
+        if (!roomData || !roomData.objects[objectId]) return;
         
-        // Проверяем, что объект существует
-        if (roomData.objects[objectId]) {
-            delete roomData.objects[objectId];
-            console.log(`🗑️ Объект удален в ${room}: ${objectId}`);
-            
-            // Рассылаем всем в комнате
-            io.to(room).emit('remove_obj', objectId);
-        }
+        console.log(`🗑️ Удаление: ${objectId} в ${room}`);
+        
+        delete roomData.objects[objectId];
+        
+        // Рассылаем ВСЕМ
+        io.to(room).emit('remove_obj', objectId);
     });
 
-    // ===== ЧАТ СООБЩЕНИЕ =====
+    // ===== ЧАТ =====
     socket.on('chat_msg', (msgData) => {
         const playerInfo = playerSockets[socket.id];
         if (!playerInfo) return;
         
-        const { room } = playerInfo;
+        const { room, name, color } = playerInfo;
         const roomData = rooms[room];
         if (!roomData) return;
         
         // Формируем сообщение
         const message = {
-            name: msgData.name || playerInfo.name,
+            name: msgData.name || name,
             text: msgData.text || msgData,
-            color: msgData.color || playerInfo.color,
+            color: msgData.color || color,
             timestamp: Date.now()
         };
         
-        console.log(`💬 Чат в ${room}: ${message.name}: ${message.text}`);
+        console.log(`💬 Чат [${room}] ${message.name}: ${message.text}`);
         
-        // Сохраняем в историю (максимум 200 сообщений)
+        // Сохраняем в историю
         roomData.messages.push(message);
         if (roomData.messages.length > 200) {
             roomData.messages = roomData.messages.slice(-200);
         }
         
-        // Рассылаем всем в комнате
+        // Рассылаем ВСЕМ в комнате
         io.to(room).emit('receive_msg', message);
     });
 
     // ===== ОТКЛЮЧЕНИЕ =====
-    socket.on('disconnect', () => {
+    socket.on('disconnect', (reason) => {
         const playerInfo = playerSockets[socket.id];
         if (!playerInfo) return;
         
-        const { room, name, team } = playerInfo;
+        const { room, name } = playerInfo;
         const roomData = rooms[room];
         
-        console.log(`🔌 Отключение: ${name} из комнаты ${room}`);
+        console.log(`🔌 Отключение: ${name} из ${room} [${reason}]`);
         
-        // Удаляем игрока из комнаты
         if (roomData && roomData.players[name]) {
+            // Удаляем игрока
             delete roomData.players[name];
             
-            // Системное сообщение о выходе
+            // Системное сообщение
             const leaveMsg = {
                 name: '⚡СИСТЕМА',
                 text: `Боец ${name} покинул команду`,
@@ -292,74 +302,71 @@ io.on('connection', (socket) => {
             roomData.messages.push(leaveMsg);
             io.to(room).emit('receive_msg', leaveMsg);
             
-            // Уведомляем о выходе игрока
+            // Уведомляем о выходе
             io.to(room).emit('player_left', { name });
             
-            // Если комната пуста, удаляем её через 5 минут
+            console.log(`📊 Игроков в комнате ${room}: ${Object.keys(roomData.players).length}`);
+            
+            // Если комната пуста - удаляем через 5 минут
             if (Object.keys(roomData.players).length === 0) {
-                console.log(`🏚️ Комната ${room} пуста, будет удалена через 5 минут`);
                 setTimeout(() => {
                     if (rooms[room] && Object.keys(rooms[room].players).length === 0) {
                         delete rooms[room];
-                        console.log(`🗑️ Комната ${room} удалена`);
+                        console.log(`🗑️ Комната ${room} удалена (пустая)`);
                     }
-                }, 300000); // 5 минут
+                }, 300000);
             }
         }
         
-        // Удаляем привязку сокета
         delete playerSockets[socket.id];
     });
+});
 
-    // ===== ПЕРЕПОДКЛЮЧЕНИЕ =====
-    socket.on('reconnect_attempt', () => {
-        console.log(`🔄 Попытка переподключения: ${socket.id}`);
+// ==================== МОНИТОРИНГ ====================
+app.get('/api/status', (req, res) => {
+    const totalPlayers = Object.values(rooms).reduce((sum, room) => 
+        sum + Object.keys(room.players).length, 0);
+    const totalObjects = Object.values(rooms).reduce((sum, room) => 
+        sum + Object.keys(room.objects).length, 0);
+    
+    res.json({
+        rooms: Object.keys(rooms).length,
+        totalPlayers,
+        totalObjects,
+        uptime: Math.floor(process.uptime()),
+        roomsList: Object.entries(rooms).map(([name, data]) => ({
+            name,
+            players: Object.keys(data.players),
+            objectsCount: Object.keys(data.objects).length,
+            messagesCount: data.messages.length
+        }))
     });
 });
 
-// ==================== API ДЛЯ МОНИТОРИНГА ====================
-app.get('/api/status', (req, res) => {
-    const status = {
-        rooms: Object.keys(rooms).length,
-        totalPlayers: Object.values(rooms).reduce((sum, room) => sum + Object.keys(room.players).length, 0),
-        totalObjects: Object.values(rooms).reduce((sum, room) => sum + Object.keys(room.objects).length, 0),
-        uptime: process.uptime()
-    };
-    res.json(status);
-});
-
-app.get('/api/rooms', (req, res) => {
-    const roomsInfo = Object.entries(rooms).map(([name, data]) => ({
-        name,
-        players: Object.keys(data.players),
-        objectsCount: Object.keys(data.objects).length,
-        messagesCount: data.messages.length
-    }));
-    res.json(roomsInfo);
-});
-
-// ==================== ЗАПУСК СЕРВЕРА ====================
-server.listen(PORT, () => {
+// ==================== ЗАПУСК ====================
+server.listen(PORT, '0.0.0.0', () => {
     console.log('════════════════════════════════════════');
-    console.log('⚡ SCORPION TACTICAL SERVER ЗАПУЩЕН ⚡');
+    console.log('⚡ SCORPION TACTICAL SERVER v2.0 ⚡');
     console.log('════════════════════════════════════════');
     console.log(`📍 Порт: ${PORT}`);
-    console.log(`🔑 Пароль комнаты: ${ROOM_PASSWORD}`);
+    console.log(`🔑 Пароль: ${ROOM_PASSWORD}`);
     console.log(`🌐 http://localhost:${PORT}`);
+    console.log(`🔍 Статус: http://localhost:${PORT}/api/status`);
     console.log('────────────────────────────────────────');
-    console.log('📡 Ожидание подключений...');
+    console.log('✅ Исправления:');
+    console.log('  - existing_players с реальными координатами');
+    console.log('  - player_joined с начальными координатами');
+    console.log('  - GPS синхронизация работает');
+    console.log('  - Чат синхронизирован');
+    console.log('  - Объекты синхронизированы');
     console.log('════════════════════════════════════════');
 });
 
 // Обработка ошибок
 process.on('uncaughtException', (err) => {
-    console.error('❌ Критическая ошибка:', err);
+    console.error('❌ Ошибка:', err.message);
 });
 
-process.on('SIGTERM', () => {
-    console.log('🛑 Сервер останавливается...');
-    server.close(() => {
-        console.log('👋 Сервер остановлен');
-        process.exit(0);
-    });
+process.on('unhandledRejection', (reason) => {
+    console.error('❌ Promise rejected:', reason);
 });
