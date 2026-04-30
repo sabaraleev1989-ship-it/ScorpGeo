@@ -14,90 +14,65 @@
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Roboto+Condensed:wght@700;900&display=swap');
         
         body { background: #020617; font-family: 'Roboto Condensed', sans-serif; margin: 0; overflow: hidden; color: #e2e8f0; }
-        #map { height: 100vh; width: 100%; z-index: 1; background: #000; }
+        #map { height: 100vh; width: 100%; z-index: 1; background: #000; position: absolute; top: 0; left: 0; }
         .leaflet-control-attribution { display: none !important; }
 
-        /* ТАКТИЧЕСКАЯ ЗАСТАВКА "СКОРПИОН" (ЗЕЛЕНАЯ) */
+        /* ЗАСТАВКА */
         #auth-screen { background: radial-gradient(circle at center, #052e16 0%, #000000 100%); }
-        .auth-card { background: rgba(0, 20, 0, 0.9); border: 2px solid #166534; backdrop-filter: blur(10px); box-shadow: 0 0 50px rgba(22, 101, 52, 0.4); text-shadow: 0 0 10px #22c55e; }
-        
-        /* Компас в заставке */
-        .compass-ui { width: 100px; height: 100px; border: 4px solid #22c55e; border-radius: 50%; position: relative; margin: 0 auto 20px; animation: compass-rot 10s linear infinite; box-shadow: 0 0 15px #166534; }
-        .compass-ui::before { content: 'N'; position: absolute; top: 5px; left: 50%; transform: translateX(-50%); color: #ef4444; font-weight: bold; font-family: 'Orbitron'; }
-        .compass-ui::after { content: ''; position: absolute; top: 50%; left: 50%; width: 2px; height: 40px; background: #22c55e; transform: translate(-50%, -100%); }
+        .auth-card { background: rgba(0, 20, 0, 0.9); border: 2px solid #166534; backdrop-filter: blur(10px); }
+        .compass-ui { width: 80px; height: 80px; border: 3px solid #22c55e; border-radius: 50%; position: relative; margin: 0 auto 15px; animation: compass-rot 10s linear infinite; }
         @keyframes compass-rot { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
-        /* Скорпион */
-        .scorp-logo { font-size: 60px; color: #22c55e; margin-bottom: 10px; animation: pulse-green 2s infinite; }
-        @keyframes pulse-green { 0%, 100% { opacity: 1; filter: drop-shadow(0 0 5px #22c55e); } 50% { opacity: 0.7; filter: drop-shadow(0 0 15px #22c55e); } }
-
-        .auth-input { background: #000; border: 1px solid #166534; color: #22c55e; padding: 14px; border-radius: 4px; text-align: center; font-weight: bold; text-transform: uppercase; width: 100%; outline: none; font-family: monospace; }
-        .auth-input:focus { border-color: #22c55e; box-shadow: 0 0 10px #166534; }
-        .auth-btn { background: #166534; color: white; padding: 16px; border-radius: 4px; font-weight: bold; text-lg w-full transition: all 0.2s; font-family: 'Orbitron'; letter-spacing: 1px; }
-        .auth-btn:hover { background: #15803d; box-shadow: 0 0 20px #22c55e; }
-
-        /* Панель */
-        .side-panel { background: #0f172a; border-right: 2px solid #334155; z-index: 5000; width: 72px; position: fixed; left: 0; top: 0; bottom: 0; display: flex; flex-direction: column; }
-        .tool-btn { width: 72px; height: 62px; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid #1e293b; cursor: pointer; font-size: 26px; transition: 0.2s; color: #94a3b8; }
-        .tool-btn.active { background: #2563eb; color: white; box-shadow: inset 0 0 10px rgba(0,0,0,0.5); }
-        .tool-btn:hover:not(.active) { background: #1e293b; color: white; }
+        /* ПАНЕЛЬ УПРАВЛЕНИЯ */
+        .side-panel { background: rgba(15, 23, 42, 0.9); border-right: 1px solid #334155; z-index: 5000; width: 60px; position: fixed; left: 0; top: 0; bottom: 0; display: flex; flex-direction: column; backdrop-filter: blur(5px); }
+        .tool-btn { width: 60px; height: 55px; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid #1e293b; cursor: pointer; font-size: 22px; color: #94a3b8; }
+        .tool-btn.active { background: #2563eb; color: white; }
         
-        .color-selector { display: flex; flex-direction: column; align-items: center; padding: 12px 0; gap: 12px; border-bottom: 1px solid #1e293b; }
-        .c-dot { width: 30px; height: 30px; border-radius: 4px; border: 3px solid #334155; cursor: pointer; transition: 0.2s; }
-        .c-dot.active { border-color: white; transform: scale(1.15); box-shadow: 0 0 10px rgba(255,255,255,0.5); }
+        .color-selector { display: flex; flex-direction: column; align-items: center; padding: 8px 0; gap: 8px; border-bottom: 1px solid #1e293b; }
+        .c-dot { width: 24px; height: 24px; border-radius: 4px; border: 2px solid #334155; }
+        .c-dot.active { border-color: white; transform: scale(1.1); }
 
-        /* ТАКТИЧЕСКАЯ МЕТКА ДИСТАНЦИИ */
+        /* ТАКТИЧЕСКАЯ МЕТКА */
         .dist-label { 
-            background: #ffffff !important; 
-            color: #000000 !important; 
-            padding: 4px 10px !important; 
-            border: 3px solid #000000 !important; /* Толстая черная рамка */
-            border-radius: 0px !important; 
-            font-weight: 900 !important; 
-            font-size: 16px !important; 
-            white-space: nowrap; 
-            pointer-events: none;
-            margin-top: 48px; /* Смещено вниз */
-            text-align: center;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.7);
+            background: #ffffff !important; color: #000 !important; padding: 2px 6px !important; 
+            border: 2px solid #000 !important; font-weight: 900 !important; font-size: 14px !important; 
+            white-space: nowrap; pointer-events: none; margin-top: 40px; text-align: center;
         }
+        .user-label { background: #2563eb; color: white; padding: 1px 5px; border-radius: 3px; font-weight: bold; border: 1px solid white; font-size: 10px; text-transform: uppercase; }
+        .grid-label { color: rgba(34, 197, 94, 0.7); font-family: monospace; font-size: 10px; font-weight: bold; pointer-events: none; }
+
+        /* ЧАТ (АДАПТИВНЫЙ) */
+        #chat-win { 
+            position: fixed; bottom: 70px; left: 65px; right: 10px; max-width: 350px; height: 50vh; 
+            background: #0f172a; border: 2px solid #334155; border-radius: 8px; z-index: 9000; 
+            display: none; flex-direction: column; box-shadow: 0 10px 30px rgba(0,0,0,0.8); 
+        }
+        .chat-hdr { padding: 10px; background: #1e293b; display: flex; justify-content: space-between; font-size: 11px; font-family: 'Orbitron'; }
+        #chat-msgs { flex: 1; overflow-y: auto; padding: 10px; background: #020617; font-family: monospace; font-size: 12px; color: #10b981; }
+        .chat-ctrl { padding: 8px; background: #0f172a; border-top: 1px solid #334155; display: flex; gap: 5px; }
         
-        .user-label { background: #2563eb; color: white; padding: 2px 8px; border-radius: 4px; font-weight: bold; border: 2px solid white; font-size: 11px; text-transform: uppercase; }
+        /* ВХОД */
+        .auth-input { background: #000; border: 1px solid #166534; color: #22c55e; padding: 12px; border-radius: 4px; text-align: center; width: 100%; outline: none; }
+        .auth-btn { background: #166534; color: white; padding: 14px; border-radius: 4px; font-weight: bold; width: 100%; font-family: 'Orbitron'; }
 
-        /* Сетка MGRS */
-        .grid-label { color: rgba(34, 197, 94, 0.6); font-family: monospace; font-size: 11px; font-weight: bold; pointer-events: none; text-shadow: 0 0 3px #000; }
-
-        /* Чат */
-        #chat-win { position: fixed; bottom: 85px; left: 80px; width: 340px; height: 420px; background: #0f172a; border: 2px solid #334155; border-radius: 8px; z-index: 9000; display: none; flex-direction: column; box-shadow: 0 20px 50px rgba(0,0,0,0.8); }
-        .chat-hdr { padding: 12px; background: #1e293b; border-bottom: 2px solid #334155; display: flex; justify-content: space-between; font-family: 'Orbitron'; font-size: 12px; }
-        #chat-msgs { flex: 1; overflow-y: auto; padding: 15px; background: #020617; font-family: monospace; font-size: 13px; color: #10b981; }
-        .msg-line { margin-bottom: 10px; border-bottom: 1px solid #1e293b; padding-bottom: 6px; }
-        .msg-line b { color: #3b82f6; }
-        #badge { position: absolute; top: 8px; right: 8px; background: #ef4444; width: 20px; height: 20px; border-radius: 50%; font-size: 11px; display: none; align-items: center; justify-content: center; font-weight: bold; border: 2px solid #0f172a; }
-
-        /* Пунктир */
-        .nav-line-b { stroke: #fff; stroke-dasharray: 8, 8; stroke-width: 6; }
-        .nav-line-f { stroke: #ff0000; stroke-dasharray: 8, 8; stroke-width: 4; animation: dash 1s linear infinite; }
+        /* ЛИНИИ */
+        .nav-line-b { stroke: #fff; stroke-dasharray: 8, 8; stroke-width: 5; }
+        .nav-line-f { stroke: #ff0000; stroke-dasharray: 8, 8; stroke-width: 3; animation: dash 1s linear infinite; }
         @keyframes dash { from { stroke-dashoffset: 16; } to { stroke-dashoffset: 0; } }
     </style>
 </head>
 <body>
 
-    <div id="auth-screen" class="fixed inset-0 z-[10000] flex items-center justify-center bg-black p-6">
-        <div class="auth-card p-10 rounded-2xl w-full max-w-sm space-y-6 text-center">
-            
-            <div class="compass-ui"></div> <div class="scorp-logo">🦂</div> <div class="space-y-1">
-                <h1 style="font-family: 'Orbitron', sans-serif;" class="text-3xl font-black text-white italic tracking-tighter">SCORP <span class="text-green-500">GEO</span></h1>
-                <p class="text-[10px] text-green-700 tracking-[5px] uppercase font-bold">Tactical Web Terminal v4.8</p>
-            </div>
-            
-            <div class="space-y-3">
-                <input id="roomInput" type="text" placeholder="ID СЕТИ (ROOM)" class="auth-input">
-                <input id="codeInput" type="password" placeholder="КОД ДОСТУПА" class="auth-input">
+    <div id="auth-screen" class="fixed inset-0 z-[10000] flex items-center justify-center p-4">
+        <div class="auth-card p-8 rounded-xl w-full max-w-xs text-center space-y-4">
+            <div class="compass-ui"></div>
+            <h1 style="font-family: 'Orbitron';" class="text-2xl text-white">SCORP <span class="text-green-500">GEO</span></h1>
+            <div class="space-y-2">
+                <input id="roomInput" type="text" placeholder="ID СЕТИ" class="auth-input">
+                <input id="codeInput" type="password" placeholder="КОД" class="auth-input">
                 <input id="nameInput" type="text" placeholder="ПОЗЫВНОЙ" class="auth-input">
             </div>
-            
-            <button onclick="startApp()" class="auth-btn">ПОДКЛЮЧИТЬСЯ</button>
+            <button onclick="startApp()" class="auth-btn uppercase">Вход в систему</button>
         </div>
     </div>
 
@@ -112,25 +87,25 @@
                 <div onclick="pickColor('#ef4444', this)" class="c-dot bg-red-600"></div>
                 <div onclick="pickColor('#22c55e', this)" class="c-dot bg-green-600"></div>
             </div>
-            <div onclick="toggleChat()" class="tool-btn relative">💬 <div id="badge">0</div></div>
+            <div onclick="toggleChat()" class="tool-btn relative">💬<div id="badge" class="absolute top-1 right-1 bg-red-600 text-[10px] w-4 h-4 rounded-full hidden items-center justify-center">0</div></div>
             <div onclick="undo()" class="tool-btn">↩️</div>
             <div onclick="clearMap()" class="tool-btn text-red-500">🗑️</div>
             <div class="mt-auto">
-                <div onclick="changeMap('sat')" class="tool-btn text-[11px] font-bold">SAT</div>
-                <div onclick="changeMap('map')" class="tool-btn text-[11px] font-bold text-blue-400">MAP</div>
-                <div onclick="logout()" class="tool-btn text-red-600">🚪</div>
+                <div onclick="changeMap('sat')" class="tool-btn text-[10px] font-bold">SAT</div>
+                <div onclick="changeMap('map')" class="tool-btn text-[10px] font-bold text-blue-400">MAP</div>
+                <div onclick="logout()" class="tool-btn">🚪</div>
             </div>
         </div>
 
         <div id="chat-win">
             <div class="chat-hdr">
-                <span class="text-green-500">RADIO CHANNEL [🟢]</span>
-                <button onclick="closeChat()" class="text-gray-500 hover:text-white">[X]</button>
+                <span class="text-green-500">RADIO [ON]</span>
+                <button onclick="toggleChat()" class="text-red-500">[ЗАКРЫТЬ]</button>
             </div>
             <div id="chat-msgs"></div>
-            <div class="p-3 bg-slate-900 border-t border-slate-700 flex gap-2">
-                <input id="chat-input" type="text" class="flex-1 bg-black p-3 rounded text-sm outline-none border border-slate-700 text-green-400 placeholder:text-green-900" placeholder="ENTER MESSAGE...">
-                <button onclick="send()" class="bg-blue-600 px-5 rounded font-bold text-white📡</button>
+            <div class="chat-ctrl">
+                <input id="chat-input" type="text" class="flex-1 bg-black p-2 rounded text-xs border border-slate-700 text-green-400 outline-none" placeholder="СООБЩЕНИЕ...">
+                <button onclick="send()" class="bg-blue-700 px-3 py-1 rounded text-[10px] font-bold">ОТПРАВИТЬ</button>
             </div>
         </div>
 
@@ -140,7 +115,7 @@
     <script>
         const socket = io();
         let map, myMarker, myInfo = { room: '', name: '', code: '', lat: 0, lng: 0 };
-        let markers = {}, tactical = {}, navs = {}, dists = {};
+        let markers = {}, tactical = {}, dists = {}, navs = {};
         let tool = 'move', color = '#2563eb', arrowFrom = null, tempStart = null, unread = 0, chatOpen = false;
         let layers = {}, gridLayer = null;
 
@@ -148,97 +123,58 @@
             myInfo.room = document.getElementById('roomInput').value.toUpperCase().trim();
             myInfo.code = document.getElementById('codeInput').value.trim();
             myInfo.name = document.getElementById('nameInput').value.toUpperCase().trim();
-            
-            if(myInfo.room && myInfo.name && myInfo.code) {
-                socket.emit('join_room', myInfo);
-            } else {
-                alert("КРИТИЧЕСКАЯ ОШИБКА: ЗАПОЛНИТЕ ВСЕ ПОЛЯ");
-            }
+            if(myInfo.room && myInfo.name && myInfo.code) socket.emit('join_room', myInfo);
         }
 
         socket.on('login_success', () => {
-            document.getElementById('auth-screen').classList.add('hidden');
+            document.getElementById('auth-screen').style.display = 'none';
             document.getElementById('ui').classList.remove('hidden');
-            init();
+            initMap();
         });
 
-        function init() {
+        function initMap() {
             layers.map = L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png');
-            layers.sat = L.tileLayer('http://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}',{subdomains:['mt0','mt1','mt2','mt3']});
+            layers.sat = L.tileLayer('http://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}', {subdomains:['mt0','mt1','mt2','mt3']});
             
-            if (!map) {
-                map = L.map('map', { zoomControl: false, attributionControl: false, layers: [layers.map] }).setView([43.58, 39.72], 15);
-                
-                // ТАКТИЧЕСКАЯ СЕТКА (Авто-масштаб)
-                updateGrid();
-                map.on('zoomend', updateGrid); // Перерисовывать при зуме
-
-                map.on('click', (e) => {
-                    if(tool === 'move') return;
-                    const id = 'id' + Date.now();
-                    if(tool === 'arrow') {
-                        if(!arrowFrom) {
-                            arrowFrom = e.latlng;
-                            tempStart = L.circleMarker(e.latlng, { radius: 4, color: color, fillOpacity: 1 }).addTo(map);
-                            return; 
-                        }
-                        if(tempStart) map.removeLayer(tempStart);
-                        socket.emit('new_obj', { id, type: 'arrow', start: arrowFrom, end: e.latlng, color });
-                        arrowFrom = null;
-                    } else {
-                        socket.emit('new_obj', { id, type: tool, lat: e.latlng.lat, lng: e.latlng.lng, color });
-                    }
-                });
-            }
+            map = L.map('map', { zoomControl: false, attributionControl: false, layers: [layers.map] }).setView([43.58, 39.72], 15);
+            
+            updateGrid();
+            map.on('zoomend', updateGrid);
+            map.on('click', onMapClick);
             startGps();
         }
 
-        // Логика динамической сетки
+        function onMapClick(e) {
+            if(tool === 'move') return;
+            const id = 'id' + Date.now();
+            if(tool === 'arrow') {
+                if(!arrowFrom) {
+                    arrowFrom = e.latlng;
+                    tempStart = L.circleMarker(e.latlng, { radius: 4, color: color, fillOpacity: 1 }).addTo(map);
+                } else {
+                    if(tempStart) map.removeLayer(tempStart);
+                    socket.emit('new_obj', { id, type: 'arrow', start: arrowFrom, end: e.latlng, color });
+                    arrowFrom = null;
+                }
+            } else {
+                socket.emit('new_obj', { id, type: tool, lat: e.latlng.lat, lng: e.latlng.lng, color });
+            }
+        }
+
         function updateGrid() {
             if (gridLayer) map.removeLayer(gridLayer);
             gridLayer = L.layerGroup();
-            
             const z = map.getZoom();
-            let step;
-            if (z >= 16) step = 0.001;      // ~100m (Тонкая сетка)
-            else if (z >= 14) step = 0.01;  // ~1km
-            else step = 0.1;               // Большие квадраты
-            
+            let step = z >= 16 ? 0.001 : z >= 14 ? 0.01 : 0.1;
             const b = map.getBounds();
-            const w = b.getWest(), e = b.getEast(), n = b.getNorth(), s = b.getSouth();
             
-            // Вертикальные линии (Буквы)
-            let i = 0;
-            for (let x = Math.floor(w / step) * step; x <= e; x += step) {
-                L.polyline([[s, x], [n, x]], { color: 'rgba(34, 197, 94, 0.2)', weight: 1, pointerEvents: 'none' }).addTo(gridLayer);
-                const label = getChar(i++);
-                L.marker([n, x], { icon: L.divIcon({ className: 'grid-label', html: label, iconAnchor: [-5, 15] }) }).addTo(gridLayer);
+            for (let x = Math.floor(b.getWest() / step) * step; x <= b.getEast(); x += step) {
+                L.polyline([[b.getSouth(), x], [b.getNorth(), x]], { color: 'rgba(34, 197, 94, 0.2)', weight: 1 }).addTo(gridLayer);
             }
-            // Горизонтальные линии (Цифры)
-            let j = 1;
-            for (let y = Math.floor(s / step) * step; y <= n; y += step) {
-                L.polyline([[y, w], [y, e]], { color: 'rgba(34, 197, 94, 0.2)', weight: 1, pointerEvents: 'none' }).addTo(gridLayer);
-                L.marker([y, w], { icon: L.divIcon({ className: 'grid-label', html: j++, iconAnchor: [15, 5] }) }).addTo(gridLayer);
+            for (let y = Math.floor(b.getSouth() / step) * step; y <= b.getNorth(); y += step) {
+                L.polyline([[y, b.getWest()], [y, b.getEast()]], { color: 'rgba(34, 197, 94, 0.2)', weight: 1 }).addTo(gridLayer);
             }
-            
             gridLayer.addTo(map);
-        }
-
-        // Алфавит для сетки
-        function getChar(i) { return String.fromCharCode(1040 + (i % 32)); } // Русский А, Б, В...
-
-        function setTool(t) {
-            tool = (tool === t) ? 'move' : t;
-            arrowFrom = null;
-            if(tempStart) { map.removeLayer(tempStart); tempStart = null; }
-            document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById('t-' + tool).classList.add('active');
-        }
-
-        function pickColor(c, el) {
-            color = c;
-            document.querySelectorAll('.c-dot').forEach(d => d.classList.remove('active'));
-            el.classList.add('active');
         }
 
         socket.on('draw', (m) => {
@@ -246,43 +182,23 @@
             if(m.type === 'arrow') {
                 const l = L.polyline([m.start, m.end], { color: m.color, weight: 3 }).addTo(map);
                 const d = L.circleMarker(m.start, { radius: 3, color: m.color, fillOpacity: 1 }).addTo(map);
-                const h = L.polyline(getHead(m.start, m.end), { color: m.color, weight: 3 }).addTo(map);
-                obj = { layers: [l, d, h], latlng: m.end };
+                obj = { layers: [l, d], latlng: m.end };
                 pos = m.end;
             } else {
                 const ico = m.type === 'enemy' ? '💀' : '🚩';
-                obj = L.marker([m.lat, m.lng], { icon: L.divIcon({ html: `<div style="font-size:32px; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.5));">${ico}</div>`, className: 'dummy', iconAnchor: [16, 16] }) }).addTo(map);
+                obj = L.marker([m.lat, m.lng], { icon: L.divIcon({ html: `<div style="font-size:24px;">${ico}</div>`, className: 'dummy', iconAnchor: [12, 12] }) }).addTo(map);
                 pos = { lat: m.lat, lng: m.lng };
-                // ОБНОВЛЕННАЯ ТАКТИЧЕСКАЯ МЕТКА: Черный на белом в рамке
-                dists[m.id] = L.marker(pos, { icon: L.divIcon({ className: 'dist-label', html: '---', iconAnchor: [28, -18] }) }).addTo(map);
             }
+            dists[m.id] = L.marker(pos, { icon: L.divIcon({ className: 'dist-label', html: '---', iconAnchor: [25, -15] }) }).addTo(map);
             tactical[m.id] = obj;
-            const target = obj.on ? obj : obj.layers[0];
-            target.on('click', () => togglePulse(m.id, pos));
             updateDist();
         });
 
-        function getHead(s, e) {
-            const d = Math.atan2(e.lng - s.lng, e.lat - s.lat);
-            const h = 0.00025; // Компактный наконечник
-            return [[e.lat - h * Math.cos(d - 0.5), e.lng - h * Math.sin(d - 0.5)], [e.lat, e.lng], [e.lat - h * Math.cos(d + 0.5), e.lng - h * Math.sin(d + 0.5)]];
-        }
-
-        function togglePulse(id, pos) {
-            if(navs[id]) { 
-                map.removeLayer(navs[id].b); map.removeLayer(navs[id].f); delete navs[id]; 
-            } else { 
-                const p = [[myInfo.lat, myInfo.lng], pos];
-                navs[id] = { b: L.polyline(p, { className: 'nav-line-b' }).addTo(map), f: L.polyline(p, { className: 'nav-line-f' }).addTo(map) };
-            }
-        }
-
         function updateDist() {
             Object.keys(dists).forEach(id => {
-                const p = tactical[id].getLatLng ? tactical[id].getLatLng() : tactical[id].latlng;
+                const p = tactical[id].latlng || tactical[id].getLatLng();
                 const d = Math.round(map.distance([myInfo.lat, myInfo.lng], p));
-                dists[id].setIcon(L.divIcon({ className: 'dist-label', html: d + 'м', iconAnchor: [28, -18] }));
-                if(navs[id]) { navs[id].b.setLatLngs([[myInfo.lat, myInfo.lng], p]); navs[id].f.setLatLngs([[myInfo.lat, myInfo.lng], p]); }
+                dists[id].setIcon(L.divIcon({ className: 'dist-label', html: d + 'м', iconAnchor: [25, -15] }));
             });
         }
 
@@ -290,7 +206,7 @@
             navigator.geolocation.watchPosition(p => {
                 myInfo.lat = p.coords.latitude; myInfo.lng = p.coords.longitude;
                 if(!myMarker) {
-                    myMarker = L.circleMarker([myInfo.lat, myInfo.lng], { color: '#2563eb', radius: 9, fillOpacity: 1, weight: 3 }).addTo(map);
+                    myMarker = L.circleMarker([myInfo.lat, myInfo.lng], { color: '#2563eb', radius: 8, fillOpacity: 1 }).addTo(map);
                     myMarker.bindTooltip(myInfo.name, { permanent: true, direction: 'top', className: 'user-label' });
                     map.setView([myInfo.lat, myInfo.lng], 17);
                 } else myMarker.setLatLng([myInfo.lat, myInfo.lng]);
@@ -302,57 +218,28 @@
         socket.on('users_sync', (us) => {
             Object.keys(us).forEach(id => {
                 if(id === socket.id) return;
-                const u = us[id];
                 if(!markers[id]) {
-                    markers[id] = L.circleMarker([u.lat, u.lng], { color: '#ef4444', radius: 8, fillOpacity: 1 }).addTo(map);
-                    markers[id].bindTooltip(u.name, { permanent: true, direction: 'top', className: 'user-label' });
-                } else markers[id].setLatLng([u.lat, u.lng]);
+                    markers[id] = L.circleMarker([us[id].lat, us[id].lng], { color: '#ef4444', radius: 7 }).addTo(map);
+                    markers[id].bindTooltip(us[id].name, { permanent: true, className: 'user-label' });
+                } else markers[id].setLatLng([us[id].lat, us[id].lng]);
             });
         });
 
-        function changeMap(t) { map.removeLayer(layers.map); map.removeLayer(layers.sat); map.addLayer(layers[t]); }
-        function undo() { socket.emit('undo'); }
-        function clearMap() { if(confirm("ВНИМАНИЕ: ОЧИСТИТЬ ВСЕ ТАКТИЧЕСКИЕ ДАННЫЕ СЕТИ?")) socket.emit('clear'); }
-        function logout() { location.reload(); }
-        
-        // ЧАТ ЛОГИКА
-        function toggleChat() { chatOpen = !chatOpen; document.getElementById('chat-win').style.display = chatOpen ? 'flex' : 'none'; if(chatOpen) unread = 0; updateBadge(); }
-        function closeChat() { chatOpen = false; document.getElementById('chat-win').style.display = 'none'; }
-        function send() { const i = document.getElementById('chat-input'); if(i.value.trim()) { socket.emit('msg_send', { user: myInfo.name, text: i.value.trim() }); i.value = ''; } }
-
-        socket.on('msg_recv', (d) => {
-            const box = document.getElementById('chat-msgs');
-            const line = document.createElement('div');
-            line.className = 'msg-line';
-            line.innerHTML = `<b>${d.user}:</b> ${d.text}`;
-            box.appendChild(line);
-            box.scrollTop = box.scrollHeight;
-            if(!chatOpen) { unread++; updateBadge(); }
-        });
-
+        function changeMap(t) { 
+            if(t === 'sat') { map.removeLayer(layers.map); layers.sat.addTo(map); }
+            else { map.removeLayer(layers.sat); layers.map.addTo(map); }
+        }
+        function setTool(t) { tool = t; document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active')); document.getElementById('t-'+t).classList.add('active'); }
+        function pickColor(c, el) { color = c; document.querySelectorAll('.c-dot').forEach(d => d.classList.remove('active')); el.classList.add('active'); }
+        function toggleChat() { chatOpen = !chatOpen; document.getElementById('chat-win').style.display = chatOpen ? 'flex' : 'none'; unread = 0; updateBadge(); }
+        function send() { const i = document.getElementById('chat-input'); if(i.value) { socket.emit('msg_send', { user: myInfo.name, text: i.value }); i.value = ''; } }
+        socket.on('msg_recv', (d) => { const box = document.getElementById('chat-msgs'); box.innerHTML += `<div><b>${d.user}:</b> ${d.text}</div>`; box.scrollTop = box.scrollHeight; if(!chatOpen) { unread++; updateBadge(); } });
         function updateBadge() { const b = document.getElementById('badge'); b.innerText = unread; b.style.display = unread > 0 ? 'flex' : 'none'; }
-
-        socket.on('del_obj', (id) => {
-            if(tactical[id]) {
-                const o = tactical[id];
-                if(o.layers) o.layers.forEach(l => map.removeLayer(l)); else map.removeLayer(o);
-                if(dists[id]) map.removeLayer(dists[id]);
-                if(navs[id]) { map.removeLayer(navs[id].b); map.removeLayer(navs[id].f); }
-                delete tactical[id];
-            }
-        });
-
-        socket.on('reset', () => {
-            Object.keys(tactical).forEach(id => {
-                const o = tactical[id];
-                if(o.layers) o.layers.forEach(l => map.removeLayer(l)); else map.removeLayer(o);
-                if(dists[id]) map.removeLayer(dists[id]);
-                if(navs[id]) { map.removeLayer(navs[id].b); map.removeLayer(navs[id].f); }
-            });
-            tactical = {}; dists = {}; navs = {};
-        });
-        
-        document.getElementById('chat-input').addEventListener('keypress', (e) => { if(e.key === 'Enter') send(); });
+        function logout() { location.reload(); }
+        function undo() { socket.emit('undo'); }
+        function clearMap() { if(confirm("ОЧИСТИТЬ?")) socket.emit('clear'); }
+        socket.on('del_obj', id => { if(tactical[id]) { if(tactical[id].layers) tactical[id].layers.forEach(l => map.removeLayer(l)); else map.removeLayer(tactical[id]); map.removeLayer(dists[id]); delete tactical[id]; } });
+        socket.on('reset', () => { location.reload(); });
     </script>
 </body>
 </html>
