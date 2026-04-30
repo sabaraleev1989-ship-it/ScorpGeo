@@ -5,7 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>SCORPION TACTICAL v4.0</title>
+    <meta name="theme-color" content="#000000">
+    <title>SCORPION TACTICAL v5.0</title>
+    
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='192' height='192' viewBox='0 0 192 192'%3E%3Ccircle cx='96' cy='96' r='90' fill='none' stroke='%2300ff00' stroke-width='4'/%3E%3Ctext x='96' y='105' text-anchor='middle' fill='%2300ff00' font-size='14' font-family='monospace' font-weight='bold'%3ESCORPION%3C/text%3E%3C/svg%3E">
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -42,15 +46,13 @@
             overflow: hidden;
         }
         
-        /* Контейнер радара */
         .radar-container {
             position: relative;
-            width: 200px;
-            height: 200px;
-            margin-bottom: 30px;
+            width: 180px;
+            height: 180px;
+            margin-bottom: 25px;
         }
         
-        /* Круг радара */
         .radar-circle {
             position: absolute;
             inset: 0;
@@ -66,20 +68,11 @@
             50% { box-shadow: 0 0 50px rgba(0,255,0,0.5), inset 0 0 50px rgba(0,255,0,0.2); }
         }
         
-        /* Сканирующая линия */
         .radar-scan {
             position: absolute;
             inset: 0;
             border-radius: 50%;
-            background: conic-gradient(
-                from 0deg,
-                transparent 0deg,
-                transparent 30deg,
-                rgba(0,255,0,0.3) 35deg,
-                rgba(0,255,0,0.1) 40deg,
-                transparent 45deg,
-                transparent 360deg
-            );
+            background: conic-gradient(from 0deg, transparent 0deg, transparent 30deg, rgba(0,255,0,0.3) 35deg, rgba(0,255,0,0.1) 40deg, transparent 45deg, transparent 360deg);
             animation: scan 3s linear infinite;
         }
         
@@ -88,7 +81,6 @@
             to { transform: rotate(360deg); }
         }
         
-        /* Сетка внутри радара */
         .radar-grid {
             position: absolute;
             inset: 0;
@@ -101,7 +93,6 @@
                 linear-gradient(90deg, transparent 49%, rgba(0,255,0,0.2) 50%, transparent 51%);
         }
         
-        /* Красные точки на радаре */
         .radar-dot {
             position: absolute;
             width: 6px;
@@ -127,7 +118,6 @@
             50% { opacity: 0.3; transform: scale(1.5); }
         }
         
-        /* Карточка входа */
         .auth-card {
             background: rgba(0,0,0,0.85);
             border: 1px solid #0f0;
@@ -213,7 +203,22 @@
             letter-spacing: 1px;
         }
         
-        /* ========== КАРТА И ИНСТРУМЕНТЫ ========== */
+        /* Сообщение об автовходе */
+        .auto-login-msg {
+            color: #0f0;
+            font-size: 12px;
+            margin-top: 10px;
+            animation: fadeInOut 2s forwards;
+        }
+        
+        @keyframes fadeInOut {
+            0% { opacity: 0; }
+            20% { opacity: 1; }
+            80% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+        
+        /* ========== КАРТА ========== */
         #map {
             position: absolute;
             inset: 0;
@@ -226,7 +231,7 @@
             left: 0;
             top: 0;
             bottom: 0;
-            width: 75px;
+            width: 72px;
             background: rgba(0,0,0,0.96);
             border-right: 2px solid #0f0;
             z-index: 5000;
@@ -237,7 +242,7 @@
         
         .tool-btn {
             width: 100%;
-            min-height: 55px;
+            min-height: 52px;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -245,13 +250,13 @@
             border-bottom: 1px solid #0a0;
             color: #0f0;
             cursor: pointer;
-            font-size: 9px;
+            font-size: 8px;
             font-weight: bold;
-            padding: 5px 2px;
+            padding: 4px 2px;
             transition: all 0.2s;
         }
         
-        .tool-btn b { font-size: 20px; margin-bottom: 3px; }
+        .tool-btn b { font-size: 18px; margin-bottom: 2px; }
         
         .tool-btn.active {
             background: #020;
@@ -264,7 +269,7 @@
             background: #030;
         }
         
-        /* Сетка */
+        /* ========== СЕТКА (ЧЕРНАЯ/СЕРАЯ) ========== */
         #grid-overlay {
             position: fixed;
             inset: 0;
@@ -274,41 +279,39 @@
         
         .grid-letter-top {
             position: absolute;
-            font-size: 13px;
+            font-size: 11px;
             font-weight: 900;
             font-family: 'Courier New', monospace;
-            background: #000;
-            color: #ff0;
-            padding: 3px 7px;
-            border: 1px solid #f80;
+            background: rgba(0,0,0,0.85);
+            color: #ccc;
+            padding: 2px 6px;
+            border: 1px solid #555;
             border-radius: 3px;
             transform: translate(-50%, -50%);
-            text-shadow: 2px 2px 0 rgba(0,0,0,0.8);
             z-index: 950;
         }
         
         .grid-number-right {
             position: absolute;
-            font-size: 13px;
+            font-size: 11px;
             font-weight: 900;
             font-family: 'Courier New', monospace;
-            background: #000;
-            color: #ff0;
-            padding: 3px 7px;
-            border: 1px solid #f80;
+            background: rgba(0,0,0,0.85);
+            color: #ccc;
+            padding: 2px 6px;
+            border: 1px solid #555;
             border-radius: 3px;
             transform: translate(0, -50%);
-            text-shadow: 2px 2px 0 rgba(0,0,0,0.8);
             z-index: 950;
         }
         
-        /* Чат */
+        /* ========== ЧАТ ========== */
         #chat-win {
             position: fixed;
             bottom: 10px;
-            left: 85px;
+            left: 82px;
             right: 10px;
-            height: 180px;
+            height: 170px;
             background: rgba(0,0,0,0.95);
             border: 1px solid #0f0;
             z-index: 6000;
@@ -321,12 +324,12 @@
             flex: 1;
             overflow-y: auto;
             padding: 8px;
-            font-size: 12px;
+            font-size: 11px;
             font-family: 'Courier New', monospace;
         }
         
         .msg-line {
-            margin-bottom: 5px;
+            margin-bottom: 4px;
             padding: 3px 5px;
             border-bottom: 1px solid #0a0;
             word-break: break-word;
@@ -345,11 +348,11 @@
             background: #000;
             color: #0f0;
             border: 1px solid #0f0;
-            padding: 10px;
+            padding: 8px;
             outline: none;
-            font-size: 12px;
+            font-size: 11px;
             font-family: 'Courier New', monospace;
-            margin: 5px;
+            margin: 4px;
             border-radius: 3px;
             flex: 1;
         }
@@ -358,8 +361,8 @@
             background: #000;
             color: #0f0;
             border: 1px solid #0f0;
-            padding: 8px 15px;
-            font-size: 12px;
+            padding: 6px 12px;
+            font-size: 11px;
             font-weight: bold;
             cursor: pointer;
             font-family: 'Courier New', monospace;
@@ -374,13 +377,13 @@
         
         .player-name-tag {
             font-weight: 900;
-            font-size: 11px;
+            font-size: 10px;
             text-shadow: 1px 1px 2px #000;
             white-space: nowrap;
             margin-bottom: 2px;
             background: rgba(0,0,0,0.8);
-            padding: 2px 6px;
-            border-radius: 10px;
+            padding: 2px 5px;
+            border-radius: 8px;
         }
         
         .player-dot {
@@ -404,13 +407,13 @@
         
         #connection-status {
             position: fixed;
-            top: 10px;
-            right: 10px;
-            background: rgba(0,0,0,0.8);
+            top: 8px;
+            right: 8px;
+            background: rgba(0,0,0,0.85);
             color: #0f0;
-            padding: 5px 10px;
-            border-radius: 15px;
-            font-size: 10px;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 9px;
             z-index: 7000;
             display: none;
             font-family: monospace;
@@ -418,12 +421,12 @@
         }
         
         @media (max-width: 640px) {
-            .side-panel { width: 65px; }
-            .tool-btn { min-height: 48px; font-size: 7px; }
-            .tool-btn b { font-size: 18px; }
-            #chat-win { left: 75px; height: 150px; }
-            .radar-container { width: 150px; height: 150px; }
-            .auth-title { font-size: 1.5rem; }
+            .side-panel { width: 60px; }
+            .tool-btn { min-height: 44px; font-size: 7px; }
+            .tool-btn b { font-size: 16px; }
+            #chat-win { left: 70px; height: 140px; }
+            .radar-container { width: 140px; height: 140px; }
+            .auth-title { font-size: 1.4rem; }
         }
     </style>
 </head>
@@ -431,9 +434,8 @@
 
 <div id="connection-status">🟢 ОНЛАЙН</div>
 
-<!-- ========== ЭКРАН ВХОДА С РАДАРОМ ========== -->
+<!-- ========== ЭКРАН ВХОДА ========== -->
 <div id="auth-screen">
-    <!-- Радар -->
     <div class="radar-container">
         <div class="radar-circle"></div>
         <div class="radar-scan"></div>
@@ -448,7 +450,6 @@
         <div class="radar-dot dot8"></div>
     </div>
     
-    <!-- Карточка входа -->
     <div class="auth-card">
         <div class="auth-title">SCORPION</div>
         <div class="auth-subtitle">TACTICAL SYSTEM</div>
@@ -459,7 +460,8 @@
         
         <button onclick="doLogin()" class="auth-btn">⚡ ВОЙТИ ⚡</button>
         
-        <div class="auth-info">ЗАЩИЩЕННЫЙ КАНАЛ • ШИФРОВАНИЕ</div>
+        <div class="auth-info">ЗАЩИЩЕННЫЙ КАНАЛ • АВТОВХОД АКТИВЕН</div>
+        <div id="autoLoginMsg" class="auto-login-msg" style="display:none;"></div>
     </div>
 </div>
 
@@ -485,7 +487,7 @@
 <!-- Чат -->
 <div id="chat-win">
     <div id="chat-messages"></div>
-    <div style="display:flex; gap:5px; padding:5px; background:#000; border-top:1px solid #0a0;">
+    <div style="display:flex; gap:4px; padding:4px; background:#000; border-top:1px solid #0a0;">
         <input id="chat-input" placeholder="Сообщение..." onkeypress="if(event.key==='Enter') sendChatMessage()">
         <button id="send-btn" onclick="sendChatMessage()">📡</button>
     </div>
@@ -519,10 +521,82 @@ let watchId = null;
 let keepAliveInterval = null;
 let distancePopup = null;
 
-const GRID_SIZE = 20;
+// Размер сетки зависит от зума
+function getGridSize() {
+    if (!map) return 20;
+    const zoom = map.getZoom();
+    if (zoom < 14) return 80;      // Очень мелко — большие квадраты
+    if (zoom < 16) return 40;      // Средне
+    if (zoom < 18) return 20;      // Нормально
+    return 20;                      // Крупно
+}
+
 const METERS_PER_DEGREE = 111320;
-const GRID_STEP = (GRID_SIZE / METERS_PER_DEGREE);
 const RUSSIAN_LETTERS = ['А','Б','В','Г','Д','Е','Ё','Ж','З','И','Й','К','Л','М','Н','О','П','Р','С','Т','У','Ф','Х','Ц','Ч','Ш','Щ','Ъ','Ы','Ь','Э','Ю','Я'];
+
+// ==================== АВТОВХОД (LOCALSTORAGE) ====================
+const STORAGE_KEY = 'scorpion_session';
+
+function saveSession() {
+    const session = {
+        team: currentUser.team,
+        name: currentUser.name,
+        color: currentUser.color,
+        timestamp: Date.now()
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+    console.log('💾 Сессия сохранена');
+}
+
+function loadSession() {
+    try {
+        const data = localStorage.getItem(STORAGE_KEY);
+        if (data) {
+            const session = JSON.parse(data);
+            // Сессия действительна 24 часа
+            if (Date.now() - session.timestamp < 86400000) {
+                return session;
+            }
+        }
+    } catch (e) {
+        console.log('Ошибка загрузки сессии');
+    }
+    return null;
+}
+
+function clearSession() {
+    localStorage.removeItem(STORAGE_KEY);
+    console.log('🗑️ Сессия удалена');
+}
+
+// Попытка автовхода при загрузке
+function tryAutoLogin() {
+    const session = loadSession();
+    if (session && session.team && session.name) {
+        console.log('🔄 Автовход:', session.name);
+        
+        currentUser.name = session.name;
+        currentUser.team = session.team;
+        currentUser.color = session.color;
+        
+        // Показываем сообщение
+        const msg = document.getElementById('autoLoginMsg');
+        msg.textContent = `↻ Автовход: ${session.name}`;
+        msg.style.display = 'block';
+        setTimeout(() => msg.style.display = 'none', 2500);
+        
+        // Отправляем на сервер
+        socket.emit('join_room', {
+            room: session.team,
+            name: session.name,
+            team: session.team,
+            pass: '1234' // Сохраненный пароль или дефолтный
+        });
+        
+        return true;
+    }
+    return false;
+}
 
 // ==================== АНТИ-БЛОКИРОВКА ====================
 document.addEventListener('visibilitychange', () => {
@@ -531,7 +605,11 @@ document.addEventListener('visibilitychange', () => {
             socket.connect();
             setTimeout(() => {
                 if (socket.connected) {
-                    socket.emit('rejoin_room', { room: currentUser.team, name: currentUser.name, color: currentUser.color });
+                    socket.emit('rejoin_room', {
+                        room: currentUser.team,
+                        name: currentUser.name,
+                        color: currentUser.color
+                    });
                 }
             }, 1000);
         }
@@ -539,6 +617,13 @@ document.addEventListener('visibilitychange', () => {
         if (socket.connected && currentUser.name) {
             socket.emit('keep_alive', { name: currentUser.name, room: currentUser.team });
         }
+    }
+});
+
+// Before unload — сохраняем сессию
+window.addEventListener('beforeunload', () => {
+    if (currentUser.name) {
+        saveSession();
     }
 });
 
@@ -551,7 +636,7 @@ function startKeepAlive() {
     }, 20000);
 }
 
-// Статус
+// Статус соединения
 socket.on('connect', () => {
     const el = document.getElementById('connection-status');
     el.textContent = '🟢 ОНЛАЙН';
@@ -567,11 +652,9 @@ socket.on('disconnect', () => {
     el.style.display = 'block';
 });
 
-// Полуночная очистка
-socket.on('midnight_clear', (data) => {
-    // Удаляем все объекты с карты
+socket.on('midnight_clear', () => {
     for (const [id, obj] of Object.entries(tacticalObjects)) {
-        obj.layers.forEach(layer => { if (map.hasLayer(layer)) map.removeLayer(layer); });
+        obj.layers.forEach(l => { if (map && map.hasLayer(l)) map.removeLayer(l); });
     }
     tacticalObjects = {};
     myObjects.clear();
@@ -598,6 +681,9 @@ socket.on('login_success', (data) => {
     currentUser.color = data.color;
     playerColors[currentUser.name] = data.color;
     
+    // Сохраняем сессию
+    saveSession();
+    
     document.getElementById('auth-screen').style.display = 'none';
     document.getElementById('ui-panel').style.display = 'flex';
     document.getElementById('chat-win').style.display = 'flex';
@@ -606,10 +692,11 @@ socket.on('login_success', (data) => {
     startGeolocation();
     startKeepAlive();
     
-    addChatMessage('СИСТЕМА', `Вы вошли как ${currentUser.name}. Меток на карте: ${data.objectsCount || 0}`, '#0f0');
+    addChatMessage('СИСТЕМА', `Вы вошли: ${currentUser.name}. Меток: ${data.objectsCount || 0}`, '#0f0');
 });
 
 socket.on('login_failed', (err) => {
+    clearSession();
     alert('Ошибка: ' + (err?.reason || 'Неверные данные'));
 });
 
@@ -655,7 +742,7 @@ socket.on('player_move', (data) => {
 // ==================== ОБЪЕКТЫ ====================
 socket.on('draw', (obj) => {
     if (tacticalObjects[obj.id]) {
-        tacticalObjects[obj.id].layers.forEach(l => { if (map.hasLayer(l)) map.removeLayer(l); });
+        tacticalObjects[obj.id].layers.forEach(l => { if (map && map.hasLayer(l)) map.removeLayer(l); });
         delete tacticalObjects[obj.id];
     }
     
@@ -703,7 +790,7 @@ socket.on('draw', (obj) => {
 
 socket.on('remove_obj', (id) => {
     if (tacticalObjects[id]) {
-        tacticalObjects[id].layers.forEach(l => { if (map.hasLayer(l)) map.removeLayer(l); });
+        tacticalObjects[id].layers.forEach(l => { if (map && map.hasLayer(l)) map.removeLayer(l); });
         delete tacticalObjects[id];
         myObjects.delete(id);
     }
@@ -764,7 +851,7 @@ function updateMyPosition(lat, lng) {
 function createPlayerIcon(name, color) {
     return L.divIcon({
         html: `<div class="player-marker"><div class="player-name-tag" style="color:${color}">${name}</div><div class="player-dot" style="background:${color}"></div></div>`,
-        iconSize: [80, 40], iconAnchor: [40, 30], className: ''
+        iconSize: [70, 36], iconAnchor: [35, 28], className: ''
     });
 }
 
@@ -776,16 +863,13 @@ function updatePlayerMarker(name, lat, lng, color) {
         const icon = createPlayerIcon(name, color || '#fff');
         playersMarkers[name] = L.marker([lat, lng], { icon, zIndexOffset: 900 }).addTo(map);
         
-        // Измерение расстояния при удержании
         const marker = playersMarkers[name];
         let timer, startPos;
-        
         const start = (e) => {
             startPos = e.latlng;
             timer = setTimeout(() => showDist(name, startPos), 500);
         };
         const stop = () => { clearTimeout(timer); hideDist(); };
-        
         marker.on('mousedown', start);
         marker.on('mouseup', stop);
         marker.on('mouseout', stop);
@@ -842,11 +926,19 @@ function deleteMyObjects() {
     myObjects.clear();
 }
 
-// ==================== СЕТКА ====================
+// ==================== СЕТКА (ЧЕРНАЯ, ДИНАМИЧЕСКИЙ РАЗМЕР) ====================
 function drawGrid() {
-    if (!map || map.getZoom() < 14) return;
+    if (!map) return;
+    
     const overlay = document.getElementById('grid-overlay');
     overlay.innerHTML = '';
+    
+    const zoom = map.getZoom();
+    if (zoom < 10) return;
+    
+    const GRID_SIZE = getGridSize();
+    const GRID_STEP = (GRID_SIZE / METERS_PER_DEGREE);
+    
     const bounds = map.getBounds();
     const startLat = Math.floor(bounds.getSouth() / GRID_STEP) * GRID_STEP;
     const endLat = Math.ceil(bounds.getNorth() / GRID_STEP) * GRID_STEP;
@@ -856,34 +948,52 @@ function drawGrid() {
     if (gridLayer) map.removeLayer(gridLayer);
     gridLayer = L.layerGroup().addTo(map);
     
-    for (let lng = startLng; lng <= endLng; lng += GRID_STEP)
-        L.polyline([[startLat, lng], [endLat, lng]], { color: '#0f0', weight: 1, opacity: 0.2 }).addTo(gridLayer);
-    for (let lat = startLat; lat <= endLat; lat += GRID_STEP)
-        L.polyline([[lat, startLng], [lat, endLng]], { color: '#0f0', weight: 1, opacity: 0.2 }).addTo(gridLayer);
+    // Линии сетки — ЧЕРНЫЕ с разной прозрачностью
+    const lineColor = zoom < 16 ? '#333' : '#444';
+    const lineOpacity = zoom < 16 ? 0.5 : 0.4;
+    const lineWeight = zoom < 16 ? 2 : 1.5;
     
+    for (let lng = startLng; lng <= endLng; lng += GRID_STEP) {
+        L.polyline([[startLat, lng], [endLat, lng]], {
+            color: lineColor, weight: lineWeight, opacity: lineOpacity
+        }).addTo(gridLayer);
+    }
+    for (let lat = startLat; lat <= endLat; lat += GRID_STEP) {
+        L.polyline([[lat, startLng], [lat, endLng]], {
+            color: lineColor, weight: lineWeight, opacity: lineOpacity
+        }).addTo(gridLayer);
+    }
+    
+    // Буквы сверху
     let ci = 0;
     for (let lng = startLng; lng <= endLng; lng += GRID_STEP) {
         const p = map.latLngToContainerPoint([bounds.getNorth(), lng + GRID_STEP/2]);
-        if (p.x > 0 && p.x < window.innerWidth) {
+        if (p.x > 20 && p.x < window.innerWidth - 20) {
             const d = document.createElement('div');
             d.className = 'grid-letter-top';
             d.textContent = RUSSIAN_LETTERS[ci % RUSSIAN_LETTERS.length];
             d.style.left = p.x + 'px';
-            d.style.top = Math.max(20, p.y - 15) + 'px';
+            d.style.top = Math.max(18, p.y - 12) + 'px';
+            // Увеличиваем шрифт при отдалении
+            if (zoom < 14) { d.style.fontSize = '16px'; d.style.padding = '4px 10px'; }
+            else if (zoom < 16) { d.style.fontSize = '13px'; d.style.padding = '3px 8px'; }
             overlay.appendChild(d);
         }
         ci++;
     }
     
+    // Цифры справа
     let ri = 0;
     for (let lat = startLat; lat <= endLat; lat += GRID_STEP) {
         const p = map.latLngToContainerPoint([lat + GRID_STEP/2, endLng]);
-        if (p.y > 0 && p.y < window.innerHeight) {
+        if (p.y > 20 && p.y < window.innerHeight - 20) {
             const d = document.createElement('div');
             d.className = 'grid-number-right';
             d.textContent = ri % 100;
-            d.style.right = '10px';
+            d.style.right = '8px';
             d.style.top = p.y + 'px';
+            if (zoom < 14) { d.style.fontSize = '16px'; d.style.padding = '4px 10px'; }
+            else if (zoom < 16) { d.style.fontSize = '13px'; d.style.padding = '3px 8px'; }
             overlay.appendChild(d);
         }
         ri++;
@@ -941,18 +1051,38 @@ function changeMap(type) {
     drawGrid();
 }
 
+// ===== ВЫХОД (только по кнопке) =====
 function exitApp() {
-    if (confirm('Выйти?')) {
+    if (confirm('Выйти из комнаты? Сессия будет удалена.')) {
+        // Очищаем сессию
+        clearSession();
+        
+        // Отключаемся
         if (watchId) navigator.geolocation.clearWatch(watchId);
         if (keepAliveInterval) clearInterval(keepAliveInterval);
         socket.disconnect();
+        
+        // Очищаем данные
+        currentUser = { name: '', team: '', color: '#0f0' };
+        
+        // Перезагружаем страницу
         location.reload();
     }
 }
 
+// ==================== РЕСАЙЗ ====================
 window.addEventListener('resize', () => {
     if (map) setTimeout(() => { map.invalidateSize(); drawGrid(); }, 200);
 });
+
+// ==================== ЗАПУСК ====================
+// Пытаемся автовойти при загрузке
+const autoLoggedIn = tryAutoLogin();
+
+// Если не получилось — показываем экран входа
+if (!autoLoggedIn) {
+    document.getElementById('auth-screen').style.display = 'flex';
+}
 
 // Экспорт
 window.doLogin = doLogin;
@@ -964,7 +1094,22 @@ window.sendChatMessage = sendChatMessage;
 window.deleteMyObjects = deleteMyObjects;
 window.exitApp = exitApp;
 
-console.log('⚡ SCORPION TACTICAL v4.0 — РАДАР АКТИВЕН');
+console.log('⚡ SCORPION TACTICAL v5.0 готов');
+console.log('✅ Сетка: черная/серая');
+console.log('✅ Квадраты: динамический размер');
+console.log('✅ Автовход: активен');
+console.log('✅ Выход: только по кнопке');
+</script>
+
+<!-- Service Worker -->
+<script>
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+            .then(reg => console.log('📱 SW:', reg.scope))
+            .catch(err => console.log('📱 SW error:', err));
+    });
+}
 </script>
 </body>
 </html>
