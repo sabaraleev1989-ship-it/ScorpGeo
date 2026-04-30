@@ -5,34 +5,39 @@ const io = require('socket.io')(http);
 const path = require('path');
 
 const PORT = process.env.PORT || 3000;
-const rooms = {};
+const rooms = {}; 
 
 app.use(express.static(path.join(__dirname, 'public')));
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
 io.on('connection', (socket) => {
     socket.on('join_room', (data) => {
-        if(data.pass !== '1234') return socket.emit('auth_error', 'ОШИБКА ДОСТУПА');
+        const rName = data.room;
+        // Если комнаты нет, создаем её с тем паролем, который ввел первый игрок
+        if (!rooms[rName]) {
+            rooms[rName] = { password: data.pass, objects: [] };
+        }
         
-        socket.join(data.room);
-        socket.room = data.room;
+        if (rooms[rName].password !== data.pass) {
+            return socket.emit('auth_error', 'НЕВЕРНЫЙ ПАРОЛЬ КОМНАТЫ');
+        }
+
+        socket.join(rName);
+        socket.room = rName;
         socket.userName = data.name;
-        // Назначаем уникальный цвет игроку
         socket.userColor = `hsl(${Math.random() * 360}, 100%, 60%)`;
         
-        if (!rooms[data.room]) rooms[data.room] = { objects: [] };
-        rooms[data.room].objects.forEach(obj => socket.emit('draw', obj));
+        rooms[rName].objects.forEach(obj => socket.emit('draw', obj));
         socket.emit('login_success', { color: socket.userColor });
     });
 
     socket.on('gps_sync', (data) => {
-        if (socket.room) {
-            socket.to(socket.room).emit('player_move', { ...data, color: socket.userColor });
-        }
+        if (socket.room) socket.to(socket.room).emit('player_move', { ...data, color: socket.userColor });
     });
 
     socket.on('new_obj', (obj) => {
         if (socket.room) {
+            obj.owner = socket.id; // Помечаем, чей объект
             rooms[socket.room].objects.push(obj);
             io.to(socket.room).emit('draw', obj);
         }
@@ -45,10 +50,11 @@ io.on('connection', (socket) => {
         }
     });
 
-    socket.on('clear', () => {
+    socket.on('clear_my', () => {
         if (socket.room) {
-            rooms[socket.room].objects = [];
-            io.to(socket.room).emit('clear_all');
+            const toRemove = rooms[socket.room].objects.filter(o => o.owner === socket.id);
+            rooms[socket.room].objects = rooms[socket.room].objects.filter(o => o.owner !== socket.id);
+            toRemove.forEach(o => io.to(socket.room).emit('remove_obj', o.id));
         }
     });
 
@@ -57,4 +63,4 @@ io.on('connection', (socket) => {
     });
 });
 
-http.listen(PORT, () => console.log(`SCORPION TACTICAL V17.2 ONLINE`));
+http.listen(PORT, () => console.log('SCORPION V18 START'));
