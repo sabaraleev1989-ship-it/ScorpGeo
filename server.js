@@ -8,13 +8,13 @@ const PORT = process.env.PORT || 3000;
 
 const rooms = {};
 
-// Это заставит сервер отдавать index.html при заходе на главную страницу
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
-});
+// ГЛАВНОЕ ИЗМЕНЕНИЕ: Указываем, что статика лежит в папке 'public'
+app.use(express.static(path.join(__dirname, 'public')));
 
-// Раздача остальных файлов (скриптов, картинок) из текущей папки
-app.use(express.static(__dirname));
+// Если кто-то заходит на главную, отдаем файл из папки public
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 
 io.on('connection', (socket) => {
     socket.on('join_room', (data) => {
@@ -56,4 +56,4 @@ io.on('connection', (socket) => {
     });
 });
 
-http.listen(PORT, () => console.log(`SERVER RUNNING ON PORT ${PORT}`));
+http.listen(PORT, () => console.log(`SCORPION SERVER ACTIVE ON PORT ${PORT}`));
