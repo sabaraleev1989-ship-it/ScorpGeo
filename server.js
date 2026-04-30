@@ -1,11 +1,11 @@
 const express = require('express');
 const http = require('http');
-const socketIo = require('socket.io');
+const { Server } = require('socket.io');
 const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
-const io = socketIo(server, {
+const io = new Server(server, {
     cors: {
         origin: "*",
         methods: ["GET", "POST"]
@@ -13,302 +13,353 @@ const io = socketIo(server, {
     transports: ['websocket', 'polling']
 });
 
-// ========== СТРУКТУРЫ ДАННЫХ ==========
-// Хранилище комнат: roomName -> { password, players: Map(socketId, {name, team, color}), createdAt }
-const rooms = new Map();
+// Настройки
+const PORT = process.env.PORT || 3000;
+const ROOM_PASSWORD = '1234'; // Пароль для входа в комнату
 
-// Хранилище цветов игроков: roomName -> Map(playerName, color)
-const playerColors = new Map();
+// Хранилища данных
+const rooms = {};          // { roomName: { players: {}, objects: {} } }
+const playerSockets = {};  // { socketId: { name, team, room, color } }
 
-// Генерация случайного яркого цвета
+// Раздаём статические файлы (HTML, CSS, JS)
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Главная страница
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// ==================== ГЕНЕРАЦИЯ ЦВЕТОВ ====================
 function getRandomColor() {
-    const hue = Math.floor(Math.random() * 360);
-    // Насыщенность 70-85%, светлота 55-70% для хорошей читаемости
-    const saturation = 70 + Math.floor(Math.random() * 15);
-    const lightness = 55 + Math.floor(Math.random() * 15);
-    return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+    const colors = [
+        '#ff4444', '#44ff44', '#4444ff', '#ffff44', '#ff44ff', '#44ffff',
+        '#ff8844', '#8844ff', '#44ff88', '#ff4488', '#88ff44', '#ffaa00',
+        '#00aaff', '#aa00ff', '#ff00aa', '#00ffaa', '#aaff00'
+    ];
+    return colors[Math.floor(Math.random() * colors.length)];
 }
 
-// Получить или создать цвет для игрока в комнате
-function getPlayerColor(room, playerName) {
-    if (!playerColors.has(room)) {
-        playerColors.set(room, new Map());
+// ==================== РАБОТА С КОМНАТАМИ ====================
+function getOrCreateRoom(roomName) {
+    if (!rooms[roomName]) {
+        rooms[roomName] = {
+            players: {},    // { playerName: { color, lat, lng, socketId } }
+            objects: {},    // { objectId: { type, lat, lng, start, end, creator } }
+            messages: []    // История сообщений (последние 50)
+        };
+        console.log(`🏠 Комната создана: ${roomName}`);
     }
-    const roomColors = playerColors.get(room);
-    if (!roomColors.has(playerName)) {
-        roomColors.set(playerName, getRandomColor());
-    }
-    return roomColors.get(playerName);
+    return rooms[roomName];
 }
 
-// Получить комнату по socket.id
-function getRoomBySocketId(socketId) {
-    for (const [roomName, roomData] of rooms.entries()) {
-        if (roomData.players.has(socketId)) {
-            return roomName;
-        }
-    }
-    return null;
-}
-
-// Получить данные игрока по socket.id
-function getPlayerBySocketId(socketId) {
-    for (const [roomName, roomData] of rooms.entries()) {
-        if (roomData.players.has(socketId)) {
-            return { room: roomName, playerData: roomData.players.get(socketId) };
-        }
-    }
-    return null;
-}
-
-// Очистка неактивных комнат (старше 24 часов)
-setInterval(() => {
-    const now = Date.now();
-    for (const [roomName, roomData] of rooms.entries()) {
-        if (roomData.createdAt && (now - roomData.createdAt) > 24 * 60 * 60 * 1000) {
-            if (roomData.players.size === 0) {
-                rooms.delete(roomName);
-                playerColors.delete(roomName);
-                console.log(`🗑️ Комната ${roomName} удалена (неактивна)`);
-            }
-        }
-    }
-}, 60 * 60 * 1000); // Проверка каждый час
-
-// ========== SOCKET.IO ОБРАБОТЧИКИ ==========
+// ==================== ОБРАБОТЧИКИ SOCKET.IO ====================
 io.on('connection', (socket) => {
     console.log(`🔌 Новое подключение: ${socket.id}`);
-    let currentRoom = null;
-    let currentPlayerName = null;
 
-    // ===== ВХОД В КОМНАТУ =====
+    // ===== АВТОРИЗАЦИЯ =====
     socket.on('join_room', (data) => {
-        const { room, name, pass, team } = data;
+        const { room, name, team, pass } = data;
         
-        // Валидация
-        if (!room || !name || !pass) {
+        console.log(`🔑 Попытка входа: ${name} в комнату ${room}`);
+        
+        // Проверка пароля
+        if (pass !== ROOM_PASSWORD) {
+            socket.emit('login_failed', { reason: 'Неверный пароль' });
+            console.log(`❌ Неверный пароль от ${name}`);
+            return;
+        }
+        
+        // Проверка на пустые поля
+        if (!room || !name || !team) {
             socket.emit('login_failed', { reason: 'Заполните все поля' });
             return;
         }
         
-        const roomName = room.toUpperCase().trim();
-        const playerName = name.toUpperCase().trim();
-        const playerTeam = team ? team.toUpperCase().trim() : playerName;
+        const roomData = getOrCreateRoom(room);
         
-        // Проверка существования комнаты
-        if (!rooms.has(roomName)) {
-            // Создаем новую комнату
-            rooms.set(roomName, {
-                password: pass,
-                players: new Map(),
-                createdAt: Date.now()
+        // Проверка на дубликат позывного
+        if (roomData.players[name]) {
+            // Если игрок с таким позывным уже есть, удаляем старого
+            const oldSocketId = roomData.players[name].socketId;
+            const oldSocket = io.sockets.sockets.get(oldSocketId);
+            if (oldSocket) {
+                oldSocket.emit('force_disconnect', { reason: 'Кто-то вошел с вашим позывным' });
+                oldSocket.disconnect();
+                console.log(`⚠️ Игрок ${name} был отключен (дубликат позывного)`);
+            }
+        }
+        
+        // Генерируем цвет для игрока
+        const playerColor = getRandomColor();
+        
+        // Сохраняем игрока в комнате
+        roomData.players[name] = {
+            color: playerColor,
+            lat: 55.7558,  // По умолчанию Москва
+            lng: 37.6176,
+            socketId: socket.id,
+            team: team
+        };
+        
+        // Сохраняем привязку сокета к игроку
+        playerSockets[socket.id] = { name, team, room, color: playerColor };
+        
+        // Подключаем сокет к комнате
+        socket.join(room);
+        
+        // Отправляем успешный ответ с цветом
+        socket.emit('login_success', {
+            color: playerColor,
+            name: name,
+            room: room
+        });
+        
+        // Отправляем новому игроку список существующих игроков
+        const existingPlayers = Object.entries(roomData.players)
+            .filter(([playerName]) => playerName !== name)
+            .map(([playerName, data]) => ({
+                name: playerName,
+                color: data.color,
+                lat: data.lat,
+                lng: data.lng
+            }));
+        
+        if (existingPlayers.length > 0) {
+            socket.emit('existing_players', existingPlayers);
+        }
+        
+        // Отправляем новому игроку все существующие объекты
+        const allObjects = Object.entries(roomData.objects).map(([id, obj]) => ({
+            id,
+            ...obj
+        }));
+        
+        if (allObjects.length > 0) {
+            allObjects.forEach(obj => {
+                socket.emit('draw', obj);
             });
-            console.log(`📁 Создана комната: ${roomName}`);
         }
         
-        const roomData = rooms.get(roomName);
-        
-        // Проверка пароля
-        if (roomData.password !== pass) {
-            socket.emit('login_failed', { reason: 'Неверный пароль' });
-            console.log(`❌ Отказ в доступе: ${playerName} -> ${roomName} (неверный пароль)`);
-            return;
+        // Отправляем историю чата (последние 50 сообщений)
+        if (roomData.messages.length > 0) {
+            roomData.messages.slice(-50).forEach(msg => {
+                socket.emit('receive_msg', msg);
+            });
         }
         
-        // Проверка уникальности имени в комнате
-        let nameExists = false;
-        let existingPlayerName = '';
-        for (const [_, player] of roomData.players.entries()) {
-            if (player.name === playerName) {
-                nameExists = true;
-                existingPlayerName = player.name;
-                break;
-            }
-        }
-        
-        if (nameExists) {
-            socket.emit('login_failed', { reason: `Позывной "${existingPlayerName}" уже используется в этой комнате` });
-            return;
-        }
-        
-        // Сохраняем данные
-        currentRoom = roomName;
-        currentPlayerName = playerName;
-        
-        const playerColor = getPlayerColor(roomName, playerName);
-        
-        roomData.players.set(socket.id, {
-            name: playerName,
-            team: playerTeam,
+        // Уведомляем всех в комнате о новом игроке
+        socket.to(room).emit('player_joined', {
+            name: name,
             color: playerColor,
-            joinedAt: Date.now()
+            lat: 55.7558,
+            lng: 37.6176
         });
         
-        socket.join(roomName);
-        
-        // Успешный вход
-        socket.emit('login_success', { 
-            color: playerColor,
-            team: playerTeam,
-            room: roomName
-        });
-        
-        console.log(`✅ ${playerName} (${playerTeam}) вошел в комнату ${roomName}`);
-        
-        // Оповестить остальных игроков о новом участнике
-        const otherPlayers = [];
-        for (const [sid, player] of roomData.players.entries()) {
-            if (sid !== socket.id) {
-                otherPlayers.push({
-                    name: player.name,
-                    team: player.team,
-                    color: player.color
-                });
-            }
-        }
-        
-        // Отправить новому игроку список существующих игроков
-        socket.emit('existing_players', otherPlayers);
-        
-        // Оповестить остальных о новом игроке
-        socket.to(roomName).emit('player_joined', {
-            name: playerName,
-            team: playerTeam,
-            color: playerColor
-        });
-    });
-    
-    // ===== ОБНОВЛЕНИЕ GPS =====
-    socket.on('gps_sync', (data) => {
-        if (!currentRoom || !currentPlayerName) return;
-        
-        const { lat, lng, name } = data;
-        const roomData = rooms.get(currentRoom);
-        if (!roomData) return;
-        
-        const color = getPlayerColor(currentRoom, currentPlayerName);
-        
-        // Отправляем всем КРОМЕ отправителя
-        socket.to(currentRoom).emit('player_move', {
-            name: currentPlayerName,
-            lat: lat,
-            lng: lng,
-            color: color
-        });
-    });
-    
-    // ===== СОЗДАНИЕ ТАКТИЧЕСКОГО ОБЪЕКТА =====
-    socket.on('new_obj', (obj) => {
-        if (!currentRoom) return;
-        
-        // Добавляем метаданные для отслеживания создателя (опционально)
-        const enhancedObj = {
-            ...obj,
-            createdBy: currentPlayerName,
+        // Системное сообщение в чат
+        const systemMsg = {
+            name: '⚡СИСТЕМА',
+            text: `Боец ${name} присоединился к команде ${team}`,
+            color: '#ffaa00',
             timestamp: Date.now()
         };
         
-        socket.to(currentRoom).emit('draw', enhancedObj);
-        console.log(`📌 ${currentPlayerName} создал объект: ${obj.type} в комнате ${currentRoom}`);
-    });
-    
-    // ===== УДАЛЕНИЕ ОБЪЕКТА =====
-    socket.on('delete_obj', (id) => {
-        if (!currentRoom) return;
-        socket.to(currentRoom).emit('remove_obj', id);
-        console.log(`🗑️ ${currentPlayerName} удалил объект: ${id}`);
-    });
-    
-    // ===== ЧАТ =====
-    socket.on('chat_msg', (msg) => {
-        if (!currentRoom || !currentPlayerName) return;
+        roomData.messages.push(systemMsg);
+        io.to(room).emit('receive_msg', systemMsg);
         
-        const roomData = rooms.get(currentRoom);
+        console.log(`✅ ${name} вошел в комнату ${room} (цвет: ${playerColor})`);
+    });
+
+    // ===== GPS СИНХРОНИЗАЦИЯ =====
+    socket.on('gps_sync', (data) => {
+        const playerInfo = playerSockets[socket.id];
+        if (!playerInfo) return;
+        
+        const { room, name } = playerInfo;
+        const roomData = rooms[room];
         if (!roomData) return;
         
-        const playerData = roomData.players.get(socket.id);
-        const teamTag = playerData?.team ? `[${playerData.team}]` : '';
-        
-        const formattedMsg = `${teamTag} ${currentPlayerName}: ${msg}`;
-        io.to(currentRoom).emit('receive_msg', formattedMsg);
-        console.log(`💬 ${formattedMsg}`);
+        // Обновляем координаты игрока
+        if (roomData.players[name]) {
+            roomData.players[name].lat = data.lat;
+            roomData.players[name].lng = data.lng;
+            
+            // Рассылаем обновление всем в комнате кроме отправителя
+            socket.to(room).emit('player_move', {
+                name: name,
+                lat: data.lat,
+                lng: data.lng,
+                color: playerInfo.color
+            });
+        }
     });
-    
-    // ===== ЗАПРОС ЦВЕТА (синхронизация) =====
-    socket.on('request_player_color', (data) => {
-        const { playerName } = data;
-        if (!currentRoom) return;
+
+    // ===== НОВЫЙ ТАКТИЧЕСКИЙ ОБЪЕКТ =====
+    socket.on('new_obj', (objData) => {
+        const playerInfo = playerSockets[socket.id];
+        if (!playerInfo) return;
         
-        const color = getPlayerColor(currentRoom, playerName);
-        socket.emit('player_color_response', { playerName, color });
+        const { room } = playerInfo;
+        const roomData = rooms[room];
+        if (!roomData) return;
+        
+        // Сохраняем объект в комнате
+        roomData.objects[objData.id] = {
+            type: objData.type,
+            lat: objData.lat,
+            lng: objData.lng,
+            start: objData.start,
+            end: objData.end,
+            creator: objData.creator,
+            timestamp: Date.now()
+        };
+        
+        console.log(`📌 Новый объект в ${room}: ${objData.type} от ${objData.creator}`);
+        
+        // Рассылаем ВСЕМ в комнате (включая отправителя для подтверждения)
+        io.to(room).emit('draw', objData);
     });
-    
+
+    // ===== УДАЛЕНИЕ ОБЪЕКТА =====
+    socket.on('delete_obj', (objectId) => {
+        const playerInfo = playerSockets[socket.id];
+        if (!playerInfo) return;
+        
+        const { room } = playerInfo;
+        const roomData = rooms[room];
+        if (!roomData) return;
+        
+        // Проверяем, что объект существует
+        if (roomData.objects[objectId]) {
+            delete roomData.objects[objectId];
+            console.log(`🗑️ Объект удален в ${room}: ${objectId}`);
+            
+            // Рассылаем всем в комнате
+            io.to(room).emit('remove_obj', objectId);
+        }
+    });
+
+    // ===== ЧАТ СООБЩЕНИЕ =====
+    socket.on('chat_msg', (msgData) => {
+        const playerInfo = playerSockets[socket.id];
+        if (!playerInfo) return;
+        
+        const { room } = playerInfo;
+        const roomData = rooms[room];
+        if (!roomData) return;
+        
+        // Формируем сообщение
+        const message = {
+            name: msgData.name || playerInfo.name,
+            text: msgData.text || msgData,
+            color: msgData.color || playerInfo.color,
+            timestamp: Date.now()
+        };
+        
+        console.log(`💬 Чат в ${room}: ${message.name}: ${message.text}`);
+        
+        // Сохраняем в историю (максимум 200 сообщений)
+        roomData.messages.push(message);
+        if (roomData.messages.length > 200) {
+            roomData.messages = roomData.messages.slice(-200);
+        }
+        
+        // Рассылаем всем в комнате
+        io.to(room).emit('receive_msg', message);
+    });
+
     // ===== ОТКЛЮЧЕНИЕ =====
     socket.on('disconnect', () => {
-        if (currentRoom && currentPlayerName) {
-            const roomData = rooms.get(currentRoom);
-            if (roomData) {
-                const playerRemoved = roomData.players.get(socket.id);
-                if (playerRemoved) {
-                    roomData.players.delete(socket.id);
-                    console.log(`👋 ${currentPlayerName} покинул комнату ${currentRoom}`);
-                    
-                    // Оповестить остальных
-                    socket.to(currentRoom).emit('player_left', {
-                        name: currentPlayerName,
-                        timestamp: Date.now()
-                    });
-                    
-                    // Если комната пуста, удаляем её (опционально, через 5 минут)
-                    if (roomData.players.size === 0) {
-                        setTimeout(() => {
-                            const checkRoom = rooms.get(currentRoom);
-                            if (checkRoom && checkRoom.players.size === 0) {
-                                rooms.delete(currentRoom);
-                                playerColors.delete(currentRoom);
-                                console.log(`🧹 Комната ${currentRoom} удалена (пуста)`);
-                            }
-                        }, 5 * 60 * 1000); // 5 минут
+        const playerInfo = playerSockets[socket.id];
+        if (!playerInfo) return;
+        
+        const { room, name, team } = playerInfo;
+        const roomData = rooms[room];
+        
+        console.log(`🔌 Отключение: ${name} из комнаты ${room}`);
+        
+        // Удаляем игрока из комнаты
+        if (roomData && roomData.players[name]) {
+            delete roomData.players[name];
+            
+            // Системное сообщение о выходе
+            const leaveMsg = {
+                name: '⚡СИСТЕМА',
+                text: `Боец ${name} покинул команду`,
+                color: '#ff4444',
+                timestamp: Date.now()
+            };
+            
+            roomData.messages.push(leaveMsg);
+            io.to(room).emit('receive_msg', leaveMsg);
+            
+            // Уведомляем о выходе игрока
+            io.to(room).emit('player_left', { name });
+            
+            // Если комната пуста, удаляем её через 5 минут
+            if (Object.keys(roomData.players).length === 0) {
+                console.log(`🏚️ Комната ${room} пуста, будет удалена через 5 минут`);
+                setTimeout(() => {
+                    if (rooms[room] && Object.keys(rooms[room].players).length === 0) {
+                        delete rooms[room];
+                        console.log(`🗑️ Комната ${room} удалена`);
                     }
-                }
+                }, 300000); // 5 минут
             }
         }
-        console.log(`🔌 Отключение: ${socket.id}`);
+        
+        // Удаляем привязку сокета
+        delete playerSockets[socket.id];
     });
-    
-    // ===== ПИНГ ДЛЯ ПОДДЕРЖАНИЯ СОЕДИНЕНИЯ =====
-    socket.on('ping', () => {
-        socket.emit('pong');
+
+    // ===== ПЕРЕПОДКЛЮЧЕНИЕ =====
+    socket.on('reconnect_attempt', () => {
+        console.log(`🔄 Попытка переподключения: ${socket.id}`);
     });
 });
 
-// ========== СТАТИЧЕСКИЕ ФАЙЛЫ ==========
-// Раздаем HTML файл (опционально)
-app.use(express.static(path.join(__dirname, 'public')));
-
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
+// ==================== API ДЛЯ МОНИТОРИНГА ====================
+app.get('/api/status', (req, res) => {
+    const status = {
+        rooms: Object.keys(rooms).length,
+        totalPlayers: Object.values(rooms).reduce((sum, room) => sum + Object.keys(room.players).length, 0),
+        totalObjects: Object.values(rooms).reduce((sum, room) => sum + Object.keys(room.objects).length, 0),
+        uptime: process.uptime()
+    };
+    res.json(status);
 });
 
-// ========== ЗАПУСК СЕРВЕРА ==========
-const PORT = process.env.PORT || 3000;
+app.get('/api/rooms', (req, res) => {
+    const roomsInfo = Object.entries(rooms).map(([name, data]) => ({
+        name,
+        players: Object.keys(data.players),
+        objectsCount: Object.keys(data.objects).length,
+        messagesCount: data.messages.length
+    }));
+    res.json(roomsInfo);
+});
+
+// ==================== ЗАПУСК СЕРВЕРА ====================
 server.listen(PORT, () => {
-    console.log(`
-    ╔════════════════════════════════════════╗
-    ║   SCORPION TACTICAL SERVER V20.0      ║
-    ╠════════════════════════════════════════╣
-    ║   🚀 Запущен на порту: ${PORT}            ║
-    ║   📡 WebSocket: активен               ║
-    ║   🎯 Готов к подключениям             ║
-    ╚════════════════════════════════════════╝
-    `);
+    console.log('════════════════════════════════════════');
+    console.log('⚡ SCORPION TACTICAL SERVER ЗАПУЩЕН ⚡');
+    console.log('════════════════════════════════════════');
+    console.log(`📍 Порт: ${PORT}`);
+    console.log(`🔑 Пароль комнаты: ${ROOM_PASSWORD}`);
+    console.log(`🌐 http://localhost:${PORT}`);
+    console.log('────────────────────────────────────────');
+    console.log('📡 Ожидание подключений...');
+    console.log('════════════════════════════════════════');
 });
 
 // Обработка ошибок
 process.on('uncaughtException', (err) => {
-    console.error('❌ Непойманная ошибка:', err);
+    console.error('❌ Критическая ошибка:', err);
 });
 
-process.on('unhandledRejection', (reason, promise) => {
-    console.error('❌ Необработанное отклонение Promise:', reason);
+process.on('SIGTERM', () => {
+    console.log('🛑 Сервер останавливается...');
+    server.close(() => {
+        console.log('👋 Сервер остановлен');
+        process.exit(0);
+    });
 });
