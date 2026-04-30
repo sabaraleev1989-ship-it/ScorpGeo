@@ -3,64 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SCORPION TACTICAL V17.2</title>
+    <title>SCORPION TACTICAL V18</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
-        body, html { margin: 0; padding: 0; height: 100%; background: #000; overflow: hidden; }
+        body, html { margin:0; padding:0; height:100%; background:#000; overflow:hidden; font-family: sans-serif; }
+        .side-panel { position:fixed; left:0; top:0; bottom:0; width:85px; background:rgba(5,5,5,0.98); border-right:3px solid #166534; z-index:5000; overflow-y:auto; }
+        .tool-btn { width:100%; height:80px; display:flex; flex-direction:column; align-items:center; justify-content:center; border-bottom:1px solid #222; cursor:pointer; color:#16a34a; }
+        .tool-btn b { font-size:28px; }
+        .tool-btn span { font-size:9px; font-weight:bold; margin-top:4px; text-transform:uppercase; }
+        .tool-btn.active { background:#166534; color:#fff; }
         
-        /* ГИГАНТСКАЯ ПАНЕЛЬ С ПРОКРУТКОЙ */
-        .side-panel { 
-            position: fixed; left: 0; top: 0; bottom: 0; width: 85px; 
-            background: rgba(10,10,10,0.98); border-right: 3px solid #166534; 
-            z-index: 5000; overflow-y: auto; display: block;
-        }
-        .tool-btn { 
-            width: 100%; height: 85px; display: flex; flex-direction: column; 
-            align-items: center; justify-content: center; border-bottom: 1px solid #222; 
-            cursor: pointer; color: #16a34a; 
-        }
-        .tool-btn b { font-size: 32px; line-height: 1; }
-        .tool-btn span { font-size: 10px; font-weight: bold; margin-top: 5px; text-transform: uppercase; }
-        .tool-btn.active { background: #166534; color: #fff; }
+        .player-label { text-align:center; font-weight:900; font-size:14px; text-shadow:2px 2px #000; }
+        .player-dot { width:16px; height:16px; border-radius:50%; border:3px solid #fff; margin:0 auto; box-shadow:0 0 10px #000; }
+        
+        #grid-container { position:fixed; inset:0; pointer-events:none; z-index:1000; }
+        .g-line { position:absolute; background:rgba(34,197,94,0.2); }
+        .g-label { position:absolute; color:#22c55e; font-size:11px; font-weight:bold; background:rgba(0,0,0,0.5); padding:2px; }
 
-        /* МЕТКИ ИГРОКОВ */
-        .player-label { 
-            text-align: center; white-space: nowrap; font-weight: 900; 
-            font-size: 14px; text-transform: uppercase; text-shadow: 2px 2px 2px #000; 
-        }
-        .player-dot { 
-            width: 16px; height: 16px; border-radius: 50%; border: 3px solid #fff; 
-            box-shadow: 0 0 10px rgba(0,0,0,1); margin: 0 auto;
-        }
-
-        /* СЕТКА */
-        #grid-container { position: fixed; inset: 0; pointer-events: none; z-index: 1000; }
-        .g-line { position: absolute; background: rgba(34, 197, 94, 0.25); }
-        .g-label { 
-            position: absolute; color: #22c55e; font-size: 12px; font-weight: bold; 
-            background: rgba(0,0,0,0.6); padding: 2px 5px; border-radius: 3px;
-        }
-
-        /* РАДАР И ПРОЧЕЕ */
-        .radar { width: 120px; height: 120px; border: 2px solid #166534; border-radius: 50%; position: relative; background: radial-gradient(circle, #166534 1px, transparent 1px) 0 0 / 20px 20px, #000; overflow: hidden; }
-        .radar::after { content: ''; position: absolute; top: 50%; left: 50%; width: 100%; height: 100%; background: conic-gradient(from 0deg, transparent, rgba(34, 197, 94, 0.4)); transform-origin: top left; animation: scan 3s linear infinite; }
-        @keyframes scan { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        #map { height: 100vh; width: 100%; background: #050505; }
+        #chat-window { position:fixed; bottom:20px; right:20px; width:280px; height:350px; background:rgba(0,0,0,0.95); border:2px solid #16a34a; z-index:6000; display:none; flex-direction:column; }
+        .dist-label { color:#fff !important; font-weight:bold; background:rgba(255,0,0,0.7); padding:2px 5px; border-radius:4px; font-size:12px; }
+        .pulse-line { stroke-dasharray: 8; animation: dash 1s linear infinite; }
+        @keyframes dash { to { stroke-dashoffset: -16; } }
+        #map { height:100vh; width:100%; background:#050505; }
     </style>
 </head>
 <body>
 
-<div id="auth-screen" class="fixed inset-0 z-[9999] bg-black flex flex-col items-center justify-center p-6 text-center">
-    <div class="radar mb-8"></div>
-    <h1 class="text-green-500 font-black text-3xl mb-10 tracking-tighter">SCORPION <span class="text-white">TACTICAL</span></h1>
-    <div class="w-full max-w-xs space-y-4">
-        <input id="roomInput" type="text" placeholder="КОМНАТА" class="w-full bg-zinc-900 border-2 border-green-900 text-white p-5 text-center font-bold outline-none focus:border-green-500">
-        <input id="nameInput" type="text" placeholder="ПОЗЫВНОЙ" class="w-full bg-zinc-900 border-2 border-green-900 text-white p-5 text-center font-bold outline-none focus:border-green-500">
-        <input id="passInput" type="password" placeholder="ПАРОЛЬ" class="w-full bg-zinc-900 border-2 border-green-900 text-white p-5 text-center font-bold outline-none focus:border-green-500">
-        <button onclick="startApp()" class="w-full bg-green-700 text-white p-5 font-black text-lg shadow-xl shadow-green-900/40">В ПОЙЗК</button>
+<div id="auth-screen" class="fixed inset-0 z-[9999] bg-black flex flex-col items-center justify-center p-6">
+    <h1 class="text-green-500 font-black text-3xl mb-8">SCORPION V18</h1>
+    <div class="w-full max-w-xs space-y-3">
+        <input id="roomInput" type="text" placeholder="КОМНАТА" class="w-full bg-zinc-900 border-2 border-green-900 text-white p-4 text-center outline-none">
+        <input id="nameInput" type="text" placeholder="ПОЗЫВНОЙ" class="w-full bg-zinc-900 border-2 border-green-900 text-white p-4 text-center outline-none">
+        <input id="passInput" type="password" placeholder="ПАРОЛЬ" class="w-full bg-zinc-900 border-2 border-green-900 text-white p-4 text-center outline-none">
+        <button onclick="startApp()" class="w-full bg-green-700 text-white p-4 font-black">В БОЙ</button>
     </div>
 </div>
 
@@ -77,16 +55,31 @@
         <div onclick="toggleChat()" class="tool-btn"><b>💬</b><span>СВЯЗЬ</span></div>
         <div onclick="setMap('sat')" id="btn-sat" class="tool-btn"><b>🛰️</b><span>САТ</span></div>
         <div onclick="setMap('map')" id="btn-map" class="tool-btn"><b>🗺️</b><span>КАРТА</span></div>
-        <div onclick="clearMap()" class="tool-btn text-red-600"><b>🗑️</b><span>УБИТЬ ВСЁ</span></div>
+        <div onclick="clearMy()" class="tool-btn text-yellow-500"><b>🗑️</b><span>СБРОС</span></div>
+        <div onclick="location.reload()" class="tool-btn text-red-600"><b>🚪</b><span>ВЫЙТИ</span></div>
     </div>
 
     <div id="map"></div>
+
+    <div id="chat-window">
+        <div class="bg-green-900 p-2 flex justify-between text-white text-xs">
+            <span>РАДИОКАНАЛ</span>
+            <button onclick="toggleChat()">[X]</button>
+        </div>
+        <div id="chat-msgs" class="flex-1 overflow-y-auto p-2 text-green-400 text-xs italic"></div>
+        <div class="p-2 border-t border-green-900 flex">
+            <input id="chatInput" class="flex-1 bg-black text-white p-1 text-xs border border-green-600 outline-none">
+            <button onclick="sendMsg()" class="ml-1 bg-green-700 px-2 text-white text-xs">📡</button>
+        </div>
+    </div>
 </div>
 
 <script>
     const socket = io();
-    let map, myName, myRoom, myColor, tool = 'move', userPos = {lat:0, lng:0}, tacticalItems = {}, clickCount = 0, firstPoint = null;
-    let players = {};
+    let map, myName, myRoom, myColor, tool = 'move', userPos = {lat:0, lng:0};
+    let tacticalItems = {}, players = {}, distLineLayer = null, distLabelLayer = null;
+    let dragLine = null, dragStart = null;
+
     const layers = {
         map: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'),
         sat: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}')
@@ -95,8 +88,8 @@
     function startApp() {
         myRoom = document.getElementById('roomInput').value.toUpperCase();
         myName = document.getElementById('nameInput').value.toUpperCase();
-        const pass = document.getElementById('passInput').value;
-        if(myRoom && myName) socket.emit('join_room', { room: myRoom, name: myName, pass: pass });
+        const p = document.getElementById('passInput').value;
+        if(myRoom && myName) socket.emit('join_room', { room: myRoom, name: myName, pass: p });
     }
 
     socket.on('auth_error', m => alert(m));
@@ -110,7 +103,35 @@
     function initMap() {
         map = L.map('map', { zoomControl: false, attributionControl: false }).setView([43.40, 39.95], 18);
         layers.map.addTo(map);
-        map.on('click', handleMapClick);
+        
+        map.on('mousedown touchstart', e => {
+            if (tool === 'arrow' || tool === 'ruler') {
+                dragStart = e.latlng;
+                dragLine = L.polyline([e.latlng, e.latlng], { color: tool==='arrow'?'red':'white', weight:4, dashArray: '5, 10' }).addTo(map);
+            }
+        });
+
+        map.on('mousemove touchmove', e => {
+            if (dragLine) dragLine.setLatLngs([dragStart, e.latlng]);
+        });
+
+        map.on('mouseup touchend', e => {
+            if (dragLine) {
+                const id = 'obj_' + Date.now();
+                socket.emit('new_obj', { id, type: tool, start: dragStart, end: e.latlng });
+                map.removeLayer(dragLine);
+                dragLine = null;
+                dragStart = null;
+            }
+        });
+
+        map.on('click', e => {
+            if (['enemy','point'].includes(tool)) {
+                const id = 'obj_' + Date.now();
+                socket.emit('new_obj', { id, type: tool, lat: e.latlng.lat, lng: e.latlng.lng });
+            }
+        });
+
         map.on('move zoom', updateGrid);
         updateGrid();
 
@@ -121,76 +142,76 @@
         }, null, { enableHighAccuracy: true });
     }
 
-    // СЕТКА 20x20
     function updateGrid() {
         const cont = document.getElementById('grid-container'); cont.innerHTML = '';
         if (map.getZoom() < 15) return;
-        const b = map.getBounds(); const step = 0.00020; // ~20 метров
+        const b = map.getBounds(); const step = 0.00020; 
         const ru = "АБВГДЕЖЗИКЛМНОПРСТУФХЦЧШЩЭЮЯ";
-        
         for (let x = Math.floor(b.getWest()/step)*step; x <= b.getEast(); x += step) {
             let p = map.latLngToContainerPoint([b.getNorth(), x]);
             let l = document.createElement('div'); l.className='g-line'; l.style.left=p.x+'px'; l.style.top='0'; l.style.bottom='0'; l.style.width='1px';
             cont.appendChild(l);
-            let lbl = document.createElement('div'); lbl.className='g-label'; lbl.style.left=(p.x+2)+'px'; lbl.style.top='10px';
+            let lbl = document.createElement('div'); lbl.className='g-label'; lbl.style.left=(p.x+2)+'px'; lbl.style.top='5px';
             lbl.innerText = ru[Math.abs(Math.round(x/step)) % ru.length]; cont.appendChild(lbl);
         }
-        for (let y = Math.floor(b.getSouth()/step)*step; y <= b.getNorth(); y += step) {
-            let p = map.latLngToContainerPoint([y, b.getWest()]);
-            let l = document.createElement('div'); l.className='g-line'; l.style.top=p.y+'px'; l.style.left='85px'; l.style.right='0'; l.style.height='1px';
-            cont.appendChild(l);
-            let lbl = document.createElement('div'); lbl.className='g-label'; lbl.style.right='10px'; lbl.style.top=(p.y+2)+'px';
-            lbl.innerText = Math.abs(Math.round(y/step)) % 1000; cont.appendChild(lbl);
-        }
-    }
-
-    function handleMapClick(e) {
-        if (tool === 'move' || tool === 'eraser') return;
-        const id = 'obj_' + Date.now();
-        if (tool === 'arrow' || tool === 'ruler') {
-            if (clickCount === 0) { firstPoint = e.latlng; clickCount = 1; }
-            else { socket.emit('new_obj', { id, type: tool, start: firstPoint, end: e.latlng }); clickCount = 0; }
-        } else { socket.emit('new_obj', { id, type: tool, lat: e.latlng.lat, lng: e.latlng.lng }); }
     }
 
     socket.on('draw', m => {
         let items = [];
         if (m.type === 'ruler') {
-            const line = L.polyline([m.start, m.end], { color: '#000', weight: 8 }).addTo(map);
-            const line2 = L.polyline([m.start, m.end], { color: '#fff', weight: 3 }).addTo(map);
-            const dist = Math.round(map.distance(m.start, m.end));
-            const lbl = L.marker(m.end, { icon: L.divIcon({ html: `<div class="dist-label">${dist}м</div>`, iconAnchor: [-10, 20] }) }).addTo(map);
-            items = [line, line2, lbl];
+            const line = L.polyline([m.start, m.end], { color: 'white', weight: 4, stroke: true }).addTo(map);
+            const p1 = L.circleMarker(m.start, {radius:6, color:'white', fillColor:'black', fillOpacity:1}).addTo(map);
+            const p2 = L.circleMarker(m.end, {radius:6, color:'white', fillColor:'black', fillOpacity:1}).addTo(map);
+            const d = Math.round(map.distance(m.start, m.end));
+            const lbl = L.marker(m.end, { icon: L.divIcon({ html: `<div class="dist-label">${d}м</div>`, iconAnchor:[-10,20] }) }).addTo(map);
+            items = [line, p1, p2, lbl];
         } else if (m.type === 'arrow') {
-            const line = L.polyline([m.start, m.end], { color: '#ff0000', weight: 6 }).addTo(map);
-            // Упрощенное острие
-            const head = L.circleMarker(m.end, { radius: 8, color: '#ff0000', fillColor: '#ff0000', fillOpacity: 1 }).addTo(map);
-            items = [line, head];
+            const line = L.polyline([m.start, m.end], { color: 'red', weight: 6 }).addTo(map);
+            const p1 = L.circleMarker(m.start, {radius:4, color:'red', fillColor:'white', fillOpacity:1}).addTo(map);
+            const head = L.circleMarker(m.end, {radius:8, color:'red', fillColor:'red', fillOpacity:1}).addTo(map);
+            items = [line, p1, head];
         } else {
             const icon = m.type === 'enemy' ? '💀' : '🚩';
-            const item = L.marker([m.lat, m.lng], { icon: L.divIcon({ html: `<div style="font-size:35px">${icon}</div>`, iconAnchor:[17,17] }) }).addTo(map);
+            const item = L.marker([m.lat, m.lng], { icon: L.divIcon({ html: `<div style="font-size:30px; cursor:pointer">${icon}</div>`, iconAnchor:[15,15] }) }).addTo(map);
+            item.on('click', (e) => {
+                if (tool === 'eraser') socket.emit('delete_obj', m.id);
+                if (tool === 'move') showDist(m.lat, m.lng);
+                L.DomEvent.stopPropagation(e);
+            });
             items = [item];
         }
         tacticalItems[m.id] = items;
-        items.forEach(i => i.on('click', (e) => { if(tool==='eraser') socket.emit('delete_obj', m.id); L.DomEvent.stopPropagation(e); }));
     });
+
+    function showDist(lat, lng) {
+        if(distLineLayer) map.removeLayer(distLineLayer);
+        if(distLabelLayer) map.removeLayer(distLabelLayer);
+        const target = [lat, lng];
+        distLineLayer = L.polyline([userPos, target], { color: 'red', weight: 3, className: 'pulse-line' }).addTo(map);
+        const d = Math.round(map.distance(userPos, target));
+        distLabelLayer = L.marker([(userPos.lat+lat)/2, (userPos.lng+lng)/2], { icon: L.divIcon({ html: `<div class="dist-label">${d}м</div>` }) }).addTo(map);
+    }
 
     socket.on('remove_obj', id => { if(tacticalItems[id]) { tacticalItems[id].forEach(l => map.removeLayer(l)); delete tacticalItems[id]; } });
     socket.on('clear_all', () => location.reload());
 
     function drawPlayer(name, pos, color) {
-        const html = `<div class="player-label" style="color:${color}">${name}</div><div class="player-dot" style="background:${color}"></div>`;
-        const icon = L.divIcon({ html, iconSize: [100, 40], iconAnchor: [50, 30] });
-        if (!players[name]) players[name] = L.marker([pos.lat, pos.lng], { icon }).addTo(map);
-        else players[name].setLatLng([pos.lat, pos.lng]).setIcon(icon);
+        const icon = L.divIcon({ html: `<div class="player-label" style="color:${color}">${name}</div><div class="player-dot" style="background:${color}"></div>`, iconSize:[100,40], iconAnchor:[50,30] });
+        if (!players[name]) {
+            players[name] = L.marker([pos.lat, pos.lng], { icon }).addTo(map).on('click', () => { if(tool==='move') showDist(pos.lat, pos.lng); });
+        } else {
+            players[name].setLatLng([pos.lat, pos.lng]).setIcon(icon);
+        }
     }
 
     socket.on('player_move', d => drawPlayer(d.name, d, d.color));
-    function setTool(t) { tool = t; clickCount = 0; document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active')); document.getElementById('btn-'+t).classList.add('active'); }
+    function setTool(t) { tool = t; document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active')); document.getElementById('btn-'+t).classList.add('active'); }
     function centerMap() { if(userPos.lat) map.flyTo([userPos.lat, userPos.lng], 18); }
     function setMap(t) { map.removeLayer(layers.map); map.removeLayer(layers.sat); layers[t].addTo(map); }
-    function clearMap() { if(confirm("СТЕРЕТЬ ВСЁ У ВСЕХ?")) socket.emit('clear'); }
-    function toggleChat() { alert("РАДИО В РАЗРАБОТКЕ"); }
+    function clearMy() { if(confirm("УДАЛИТЬ ТОЛЬКО ВАШИ ОБЪЕКТЫ?")) socket.emit('clear_my'); }
+    function toggleChat() { const c = document.getElementById('chat-window'); c.style.display = c.style.display === 'flex' ? 'none' : 'flex'; }
+    function sendMsg() { const i = document.getElementById('chatInput'); if(i.value) { socket.emit('chat_msg', `[${myName}]: ${i.value}`); i.value = ''; } }
+    socket.on('receive_msg', m => { const d = document.getElementById('chat-msgs'); d.innerHTML += `<div>${m}</div>`; d.scrollTop = d.scrollHeight; });
 </script>
 </body>
 </html>
