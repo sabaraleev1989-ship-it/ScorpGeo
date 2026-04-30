@@ -3,14 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>SCORPION TACTICAL V26 — ИСПРАВЛЕНО | РИСОВАНИЕ | СЕТКА | ЧАТ</title>
+    <title>SCORPION TACTICAL V27 — ВСЕ ИСПРАВЛЕНО</title>
     
-    <!-- Сначала загружаем Leaflet и Tailwind -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
-    </script>
-    <script src="https://cdn.tailwindcss.com">
-    </script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
     
     <style>
         * {
@@ -67,6 +65,7 @@
             margin-bottom: 14px;
             text-align: center;
             font-family: monospace;
+            font-size: 14px;
         }
         .auth-btn {
             width: 100%;
@@ -77,6 +76,14 @@
             cursor: pointer;
             border: none;
             font-family: 'Courier New', monospace;
+            font-size: 16px;
+            transition: all 0.2s;
+        }
+        .auth-btn:hover {
+            background: #2a7f3f;
+        }
+        .auth-btn:active {
+            transform: scale(0.98);
         }
         
         /* БОКОВАЯ ПАНЕЛЬ */
@@ -107,6 +114,7 @@
             font-weight: bold;
             padding: 5px 2px;
             transition: all 0.2s;
+            user-select: none;
         }
         .tool-btn b {
             font-size: 20px;
@@ -121,6 +129,9 @@
             transform: scale(0.95);
             background: #1a4a2e;
         }
+        .tool-btn:hover {
+            background: #0d2818;
+        }
         
         /* СЕТКА */
         #grid-overlay {
@@ -134,7 +145,7 @@
             font-size: 14px;
             font-weight: 900;
             font-family: 'Courier New', monospace;
-            background: #000;
+            background: rgba(0,0,0,0.9);
             color: #ffff44;
             padding: 3px 8px;
             border: 2px solid #ffaa00;
@@ -149,7 +160,7 @@
             font-size: 14px;
             font-weight: 900;
             font-family: 'Courier New', monospace;
-            background: #000;
+            background: rgba(0,0,0,0.9);
             color: #ffff44;
             padding: 3px 8px;
             border: 2px solid #ffaa00;
@@ -209,9 +220,8 @@
             font-family: 'Courier New', monospace;
             margin: 5px;
             border-radius: 3px;
+            flex: 1;
         }
-        
-        /* Кнопка отправки чата */
         #send-btn {
             background: #2e7d32;
             color: white;
@@ -221,6 +231,10 @@
             font-weight: bold;
             cursor: pointer;
             font-family: 'Courier New', monospace;
+            border-radius: 3px;
+        }
+        #send-btn:active {
+            background: #1a5a1f;
         }
         
         /* Маркеры игроков */
@@ -235,6 +249,9 @@
             text-shadow: 1px 1px 2px #000, -1px -1px 2px #000;
             white-space: nowrap;
             margin-bottom: 2px;
+            background: rgba(0,0,0,0.7);
+            padding: 2px 6px;
+            border-radius: 10px;
         }
         .player-dot {
             width: 16px;
@@ -242,6 +259,17 @@
             border-radius: 50%;
             border: 2px solid white;
             box-shadow: 0 0 8px rgba(0,0,0,0.7);
+        }
+        
+        /* Тактические иконки */
+        .tactical-icon {
+            filter: drop-shadow(2px 2px 3px black);
+            cursor: pointer;
+            font-size: 34px;
+            transition: transform 0.2s;
+        }
+        .tactical-icon:hover {
+            transform: scale(1.2);
         }
         
         @media (max-width: 640px) {
@@ -263,7 +291,7 @@
         <input type="text" id="playerName" class="auth-input" placeholder="ПОЗЫВНОЙ" maxlength="10" value="WOLF">
         <input type="password" id="password" class="auth-input" placeholder="ПАРОЛЬ" value="1234">
         <button onclick="doLogin()" class="auth-btn">⚔️ ВОЙТИ В БОЙ ⚔️</button>
-        <p style="color:#666; font-size:10px; margin-top:10px;">Сервер: ЛОКАЛЬНЫЙ ТЕСТ</p>
+        <p style="color:#666; font-size:10px; margin-top:10px;">Подключение к серверу...</p>
     </div>
 </div>
 
@@ -324,6 +352,13 @@
 
 <script>
 // ==================== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ====================
+const socket = io({
+    transports: ['websocket', 'polling'],
+    reconnection: true,
+    reconnectionDelay: 1000,
+    reconnectionAttempts: 10
+});
+
 let map;
 let activeTool = 'move';
 let currentUser = {
@@ -332,12 +367,14 @@ let currentUser = {
     color: '#2ecc71'
 };
 
-let playersMarkers = {}; // Маркеры игроков на карте
-let tacticalObjects = {}; // Тактические объекты (враги, цели, линии)
-let myObjects = new Set(); // ID моих объектов
-let rulerPoints = []; // Временные точки для линейки/стрелки
-let gridLayer = null; // Слой сетки
-let tileLayer = null; // Слой карты
+let playersMarkers = {};        // Маркеры игроков на карте { playerName: L.marker }
+let tacticalObjects = {};       // Тактические объекты { objectId: { type, layers, creator } }
+let myObjects = new Set();      // ID моих объектов
+let rulerPoints = [];           // Временные точки для линейки/стрелки
+let gridLayer = null;           // Слой сетки
+let tileLayer = null;           // Слой карты
+let playerColors = {};          // Цвета игроков { playerName: color }
+let watchId = null;             // ID геолокации
 
 // Настройки сетки
 const GRID_SIZE = 20; // метров
@@ -372,29 +409,264 @@ function doLogin() {
     
     currentUser.name = name;
     currentUser.team = team;
-    currentUser.color = getRandomColor();
+    
+    // Отправляем на сервер
+    socket.emit('join_room', {
+        room: team,
+        name: name,
+        team: team,
+        pass: password
+    });
+    
+    console.log(`🔑 Отправлен запрос на вход: ${name} в комнату ${team}`);
+}
+
+// ===== ОТВЕТ ОТ СЕРВЕРА =====
+socket.on('login_success', (data) => {
+    console.log('✅ Авторизация успешна:', data);
+    
+    currentUser.color = data.color;
+    playerColors[currentUser.name] = data.color;
     
     // Скрываем экран входа
     document.getElementById('auth-screen').style.display = 'none';
     document.getElementById('ui-panel').style.display = 'flex';
+    document.getElementById('chat-win').style.display = 'flex';
     
     // Инициализируем карту
     initMap();
     
-    // Показываем чат
-    document.getElementById('chat-win').style.display = 'flex';
+    // Запускаем геолокацию
+    startGeolocation();
     
-    // Добавляем системное сообщение
-    addChatMessage('СИСТЕМА', `Боец ${name} присоединился к команде ${team}`, '#ffaa00');
+    // Системное сообщение
+    addChatMessage('⚡СИСТЕМА', `Вы вошли как ${currentUser.name}`, '#ffaa00');
+});
+
+socket.on('login_failed', (err) => {
+    alert('Ошибка входа: ' + (err?.reason || 'Неизвестная ошибка'));
+    console.error('❌ Ошибка входа:', err);
+});
+
+// ===== ПОЛУЧЕНИЕ СПИСКА ИГРОКОВ =====
+socket.on('existing_players', (players) => {
+    console.log('👥 Существующие игроки:', players);
+    players.forEach(player => {
+        if (player.name !== currentUser.name) {
+            playerColors[player.name] = player.color;
+            updatePlayerMarker(player.name, player.lat, player.lng, player.color);
+            addChatMessage('⚡СИСТЕМА', `Игрок ${player.name} уже на карте`, '#88ff88');
+        }
+    });
+});
+
+// ===== НОВЫЙ ИГРОК ПРИСОЕДИНИЛСЯ =====
+socket.on('player_joined', (data) => {
+    console.log('👤 Новый игрок:', data);
+    if (data.name !== currentUser.name) {
+        playerColors[data.name] = data.color;
+        updatePlayerMarker(data.name, data.lat, data.lng, data.color);
+        addChatMessage('⚡СИСТЕМА', `Боец ${data.name} присоединился`, '#44ff44');
+            }
+        });
+
+// ===== ИГРОК ВЫШЕЛ =====
+socket.on('player_left', (data) => {
+    console.log('👋 Игрок вышел:', data);
+    if (playersMarkers[data.name]) {
+        map.removeLayer(playersMarkers[data.name]);
+        delete playersMarkers[data.name];
+        delete playerColors[data.name];
+        addChatMessage('⚡СИСТЕМА', `Боец ${data.name} покинул команду`, '#ff4444');
+    }
+});
+
+// ===== ПЕРЕМЕЩЕНИЕ ИГРОКА =====
+socket.on('player_move', (data) => {
+    if (data.name !== currentUser.name) {
+        updatePlayerMarker(data.name, data.lat, data.lng, data.color);
+    }
+});
+
+// ===== ПОЛУЧЕНИЕ ОБЪЕКТА =====
+socket.on('draw', (obj) => {
+    console.log('📌 Получен объект:', obj);
+    if (tacticalObjects[obj.id]) {
+        // Удаляем старую версию объекта
+        tacticalObjects[obj.id].layers.forEach(layer => map.removeLayer(layer));
+        delete tacticalObjects[obj.id];
+    }
     
-    console.log(`✅ Авторизация: ${name} (${team})`);
-}
+    let layers = [];
+    
+    if (obj.type === 'enemy' || obj.type === 'target') {
+        const iconHtml = obj.type === 'enemy' ? '💀' : '🎯';
+        const icon = L.divIcon({
+            html: `<div class="tactical-icon" data-object-id="${obj.id}">${iconHtml}</div>`,
+            iconSize: [34, 34],
+            iconAnchor: [17, 17],
+            className: ''
+        });
+        
+        const marker = L.marker([obj.lat, obj.lng], { icon, zIndexOffset: 500 }).addTo(map);
+        
+        // Обработчик клика для стирания
+        marker.on('click', (e) => {
+            if (activeTool === 'eraser') {
+                console.log('🧹 Стирание объекта:', obj.id);
+                socket.emit('delete_obj', obj.id);
+            }
+        });
+        
+        if (obj.type === 'enemy') {
+            marker.bindTooltip('💀 ВРАГ', { permanent: false, direction: 'top' });
+        } else {
+            marker.bindTooltip('🎯 ЦЕЛЬ', { permanent: false, direction: 'top' });
+        }
+        
+        layers.push(marker);
+        
+    } else if (obj.type === 'arrow') {
+        const line = L.polyline([obj.start, obj.end], {
+            color: '#ff4444',
+            weight: 4,
+            opacity: 0.8,
+            interactive: true
+        }).addTo(map);
+        
+        // Наконечник стрелки
+        const angle = Math.atan2(obj.end.lat - obj.start.lat, obj.end.lng - obj.start.lng);
+        const arrowSize = 0.00008;
+        const arrowHead = [
+            obj.end,
+            {
+                lat: obj.end.lat + Math.sin(angle + 2.5) * arrowSize,
+                lng: obj.end.lng + Math.cos(angle + 2.5) * arrowSize
+            },
+            {
+                lat: obj.end.lat + Math.sin(angle - 2.5) * arrowSize,
+                lng: obj.end.lng + Math.cos(angle - 2.5) * arrowSize
+            }
+        ];
+        
+        const head = L.polygon(arrowHead, {
+            color: '#ff4444',
+            fillColor: '#ff4444',
+            fillOpacity: 0.8,
+            interactive: true
+        }).addTo(map);
+        
+        // Обработчик клика для стирания
+        const clickHandler = (e) => {
+            if (activeTool === 'eraser') {
+                console.log('🧹 Стирание стрелки:', obj.id);
+                socket.emit('delete_obj', obj.id);
+            }
+        };
+        line.on('click', clickHandler);
+        head.on('click', clickHandler);
+        
+        layers.push(line, head);
+        
+    } else if (obj.type === 'ruler') {
+        const line = L.polyline([obj.start, obj.end], {
+            color: '#ffcc00',
+            weight: 3,
+            dashArray: '10, 10',
+            interactive: true
+        }).addTo(map);
+        
+        // Расстояние
+        const dist = map.distance([obj.start.lat, obj.start.lng], [obj.end.lat, obj.end.lng]);
+        const distText = dist < 1000 ? `${Math.round(dist)} м` : `${(dist/1000).toFixed(2)} км`;
+        
+        const midLat = (obj.start.lat + obj.end.lat) / 2;
+        const midLng = (obj.start.lng + obj.end.lng) / 2;
+        
+        const labelIcon = L.divIcon({
+            html: `<div style="background:black; color:#ffcc00; padding:4px 8px; border:1px solid #ffcc00; border-radius:12px; font-weight:bold; font-size:12px;">📏 ${distText}</div>`,
+            iconSize: [80, 24],
+            iconAnchor: [40, 12],
+            className: ''
+        });
+        
+        const label = L.marker([midLat, midLng], { icon: labelIcon, interactive: false }).addTo(map);
+        
+        // Обработчик клика для стирания
+        line.on('click', (e) => {
+            if (activeTool === 'eraser') {
+                console.log('🧹 Стирание линейки:', obj.id);
+                socket.emit('delete_obj', obj.id);
+            }
+        });
+        
+        layers.push(line, label);
+    }
+    
+    // Сохраняем объект
+    tacticalObjects[obj.id] = {
+        type: obj.type,
+        layers: layers,
+        creator: obj.creator
+    };
+    
+    if (obj.creator === currentUser.name) {
+        myObjects.add(obj.id);
+    }
+    
+    console.log(`✅ Объект отрисован: ${obj.type} (${obj.id})`);
+});
+
+// ===== УДАЛЕНИЕ ОБЪЕКТА =====
+socket.on('remove_obj', (objectId) => {
+    console.log('🗑️ Удаление объекта:', objectId);
+    if (tacticalObjects[objectId]) {
+        tacticalObjects[objectId].layers.forEach(layer => {
+            if (map && map.hasLayer(layer)) {
+                map.removeLayer(layer);
+            }
+        });
+        delete tacticalObjects[objectId];
+        myObjects.delete(objectId);
+        console.log('✅ Объект удален');
+    }
+});
+
+// ===== СООБЩЕНИЕ В ЧАТ =====
+socket.on('receive_msg', (data) => {
+    console.log('💬 Получено сообщение:', data);
+    let name, text, color;
+    
+    if (typeof data === 'string') {
+        // Пробуем распарсить строку
+        const match = data.match(/^([^:]+):\s*(.+)$/);
+        if (match) {
+            name = match[1];
+            text = match[2];
+        } else {
+            name = 'СИСТЕМА';
+            text = data;
+        }
+        color = playerColors[name] || '#ffffff';
+    } else if (typeof data === 'object') {
+        name = data.name || 'Аноним';
+        text = data.text || '';
+        color = data.color || playerColors[name] || '#ffffff';
+    }
+    
+    addChatMessage(name, text, color);
+});
+
+// ===== ПРИНУДИТЕЛЬНОЕ ОТКЛЮЧЕНИЕ =====
+socket.on('force_disconnect', (data) => {
+    alert('Вас отключили: ' + data.reason);
+    location.reload();
+});
 
 // ==================== ИНИЦИАЛИЗАЦИЯ КАРТЫ ====================
 function initMap() {
     if (map) return;
     
-    // Координаты по умолчанию (Москва)
     const defaultLat = 55.7558;
     const defaultLng = 37.6176;
     
@@ -405,49 +677,16 @@ function initMap() {
         minZoom: 10
     }).setView([defaultLat, defaultLng], 18);
     
-    // Базовый слой карты
     tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 21,
         attribution: '© OpenStreetMap'
     }).addTo(map);
     
-    // Обработчики событий
     map.on('click', handleMapClick);
     map.on('moveend', drawGrid);
     map.on('zoomend', drawGrid);
     
-    // Рисуем сетку
     drawGrid();
-    
-    // Устанавливаем позицию пользователя
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-            (pos) => {
-                const lat = pos.coords.latitude;
-                const lng = pos.coords.longitude;
-                map.setView([lat, lng], 18);
-                updateMyPosition(lat, lng);
-                addChatMessage('СИСТЕМА', '📍 Геопозиция определена', '#00ff00');
-            },
-            (err) => {
-                console.warn('Геолокация недоступна:', err.message);
-                addChatMessage('СИСТЕМА', '⚠️ Геолокация недоступна, используйте карту вручную', '#ff8800');
-                updateMyPosition(defaultLat, defaultLng);
-            },
-            { enableHighAccuracy: true, timeout: 10000 }
-        );
-    }
-    
-    // Отслеживание позиции
-    if (navigator.geolocation) {
-        navigator.geolocation.watchPosition(
-            (pos) => {
-                updateMyPosition(pos.coords.latitude, pos.coords.longitude);
-            },
-            null,
-            { enableHighAccuracy: true, maximumAge: 5000 }
-        );
-    }
     
     setTimeout(() => {
         map.invalidateSize();
@@ -455,11 +694,44 @@ function initMap() {
     }, 500);
 }
 
-// ==================== ПОЗИЦИЯ ИГРОКА ====================
+// ==================== ГЕОЛОКАЦИЯ ====================
+function startGeolocation() {
+    if (!navigator.geolocation) {
+        console.warn('Геолокация не поддерживается');
+        return;
+    }
+    
+    if (watchId) {
+        navigator.geolocation.clearWatch(watchId);
+    }
+    
+    watchId = navigator.geolocation.watchPosition(
+        (pos) => {
+            const lat = pos.coords.latitude;
+            const lng = pos.coords.longitude;
+            
+            updateMyPosition(lat, lng);
+            
+            socket.emit('gps_sync', {
+                lat: lat,
+                lng: lng,
+                name: currentUser.name
+            });
+        },
+        (err) => {
+            console.warn('Ошибка геолокации:', err.message);
+        },
+        {
+            enableHighAccuracy: true,
+            maximumAge: 3000,
+            timeout: 10000
+        }
+    );
+}
+
 function updateMyPosition(lat, lng) {
     if (!map) return;
     
-    // Создаем или обновляем маркер
     if (playersMarkers[currentUser.name]) {
         playersMarkers[currentUser.name].setLatLng([lat, lng]);
     } else {
@@ -468,6 +740,24 @@ function updateMyPosition(lat, lng) {
             icon: icon,
             zIndexOffset: 1000
         }).addTo(map);
+    }
+}
+
+function updatePlayerMarker(name, lat, lng, color) {
+    if (!map || !name || name === currentUser.name) return;
+    
+    if (playersMarkers[name]) {
+        playersMarkers[name].setLatLng([lat, lng]);
+        // Обновляем иконку на случай смены цвета
+        const icon = createPlayerIcon(name, color || playerColors[name] || '#ffffff');
+        playersMarkers[name].setIcon(icon);
+    } else {
+        const icon = createPlayerIcon(name, color || playerColors[name] || '#ffffff');
+        playersMarkers[name] = L.marker([lat, lng], {
+            icon: icon,
+            zIndexOffset: 900
+        }).addTo(map);
+        console.log(`👤 Маркер создан для ${name}`);
     }
 }
 
@@ -487,189 +777,66 @@ function centerOnMe() {
     if (playersMarkers[currentUser.name]) {
         const pos = playersMarkers[currentUser.name].getLatLng();
         map.setView(pos, map.getZoom());
-        addChatMessage('СИСТЕМА', '📍 Позиция отцентрирована', '#00ff00');
     } else {
-        alert('Ваша позиция не определена. Разрешите геолокацию.');
+        alert('Ваша позиция не определена');
     }
 }
 
-// ==================== ТАКТИЧЕСКИЕ ОБЪЕКТЫ ====================
+// ==================== ОБРАБОТКА КЛИКОВ ПО КАРТЕ ====================
 function handleMapClick(e) {
     const { lat, lng } = e.latlng;
-    console.log(`🖱️ Клик по карте: ${activeTool} на [${lat.toFixed(6)}, ${lng.toFixed(6)}]`);
+    console.log(`🖱️ Клик: инструмент=${activeTool}, координаты=[${lat.toFixed(6)}, ${lng.toFixed(6)}]`);
     
-    switch (activeTool) {
-        case 'move':
-            // Просто перемещение, ничего не делаем
-            break;
-            
-        case 'enemy':
-            addTacticalObject('enemy', lat, lng);
-            addChatMessage('СИСТЕМА', `💀 Враг отмечен на позиции`, '#ff4444');
-            break;
-            
-        case 'target':
-            addTacticalObject('target', lat, lng);
-            addChatMessage('СИСТЕМА', `🎯 Цель установлена`, '#44aaff');
-            break;
-            
-        case 'arrow':
-            rulerPoints.push({ lat, lng });
-            if (rulerPoints.length === 2) {
-                addTacticalObject('arrow', rulerPoints[0], rulerPoints[1]);
-                rulerPoints = [];
-                addChatMessage('СИСТЕМА', '➡️ Стрелка удара нарисована', '#ff6644');
-            } else {
-                // Показываем подсказку
-                L.popup()
-                    .setLatLng([lat, lng])
-                    .setContent('<b>👆 Нажмите вторую точку для стрелки</b>')
-                    .openOn(map);
-            }
-            break;
-            
-        case 'ruler':
-            rulerPoints.push({ lat, lng });
-            if (rulerPoints.length === 2) {
-                addTacticalObject('ruler', rulerPoints[0], rulerPoints[1]);
-                rulerPoints = [];
-                addChatMessage('СИСТЕМА', '📏 Измерение выполнено', '#ffcc00');
-            } else {
-                L.popup()
-                    .setLatLng([lat, lng])
-                    .setContent('<b>👆 Нажмите вторую точку для измерения</b>')
-                    .openOn(map);
-            }
-            break;
-            
-        case 'eraser':
-            // Удаление происходит по клику на сам объект (в его обработчике)
-            break;
-    }
-}
-
-function addTacticalObject(type, point1, point2) {
-    const id = `${type}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    let layers = [];
-    
-    if (type === 'enemy' || type === 'target') {
-        const lat = point1.lat || point1;
-        const lng = point1.lng || point1;
-        const iconHtml = type === 'enemy' ? '💀' : '🎯';
-        const icon = L.divIcon({
-            html: `<div style="font-size:32px; filter:drop-shadow(2px 2px 3px black); cursor:pointer;" data-id="${id}">${iconHtml}</div>`,
-            iconSize: [32, 32],
-            iconAnchor: [16, 16]
-        });
+    if (activeTool === 'enemy' || activeTool === 'target') {
+        const id = `${activeTool}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         
-        const marker = L.marker([lat, lng], { icon }).addTo(map);
-        marker.on('click', () => {
-            if (activeTool === 'eraser') {
-                removeTacticalObject(id);
-            }
-        });
+        const objectData = {
+            id: id,
+            type: activeTool,
+            lat: lat,
+            lng: lng,
+            creator: currentUser.name
+        };
         
-        if (type === 'enemy') {
-            marker.bindTooltip('💀 ВРАГ', { permanent: false });
+        console.log('📤 Отправка объекта:', objectData);
+        socket.emit('new_obj', objectData);
+        
+    } else if (activeTool === 'arrow' || activeTool === 'ruler') {
+        rulerPoints.push({ lat, lng });
+        
+        if (rulerPoints.length === 2) {
+            const id = `${activeTool}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            
+            const objectData = {
+                id: id,
+                type: activeTool,
+                start: rulerPoints[0],
+                end: rulerPoints[1],
+                creator: currentUser.name
+            };
+            
+            console.log('📤 Отправка линии:', objectData);
+            socket.emit('new_obj', objectData);
+            rulerPoints = [];
+            
         } else {
-            marker.bindTooltip('🎯 ЦЕЛЬ', { permanent: false });
+            // Показываем подсказку для второй точки
+            L.popup()
+                .setLatLng([lat, lng])
+                .setContent(`<b>👆 Выберите вторую точку для ${activeTool === 'arrow' ? 'стрелки' : 'линейки'}</b>`)
+                .openOn(map);
         }
-        
-        layers.push(marker);
-        
-    } else if (type === 'arrow') {
-        const start = { lat: point1.lat, lng: point1.lng };
-        const end = { lat: point2.lat || point2.start?.lat, lng: point2.lng || point2.start?.lng };
-        
-        // Если point2 это объект с start/end
-        if (point2.lat) {
-            end.lat = point2.lat;
-            end.lng = point2.lng;
-        }
-        
-        const line = L.polyline([start, end], {
-            color: '#ff4444',
-            weight: 4,
-            opacity: 0.8
-        }).addTo(map);
-        
-        // Добавляем наконечник стрелки
-        const angle = Math.atan2(end.lat - start.lat, end.lng - start.lng);
-        const arrowSize = 0.00008;
-        const arrowHead = [
-            end,
-            {
-                lat: end.lat + Math.sin(angle + 2.5) * arrowSize,
-                lng: end.lng + Math.cos(angle + 2.5) * arrowSize
-            },
-            {
-                lat: end.lat + Math.sin(angle - 2.5) * arrowSize,
-                lng: end.lng + Math.cos(angle - 2.5) * arrowSize
-            }
-        ];
-        
-        const head = L.polygon(arrowHead, {
-            color: '#ff4444',
-            fillColor: '#ff4444',
-            fillOpacity: 0.8
-        }).addTo(map);
-        
-        layers.push(line, head);
-        
-    } else if (type === 'ruler') {
-        const start = { lat: point1.lat, lng: point1.lng };
-        const end = { lat: point2.lat, lng: point2.lng };
-        
-        const line = L.polyline([start, end], {
-            color: '#ffcc00',
-            weight: 3,
-            dashArray: '10, 10'
-        }).addTo(map);
-        
-        // Вычисляем расстояние
-        const dist = map.distance([start.lat, start.lng], [end.lat, end.lng]);
-        const distText = dist < 1000 ? `${Math.round(dist)} м` : `${(dist/1000).toFixed(2)} км`;
-        
-        const midLat = (start.lat + end.lat) / 2;
-        const midLng = (start.lng + end.lng) / 2;
-        
-        const labelIcon = L.divIcon({
-            html: `<div style="background:black; color:#ffcc00; padding:4px 8px; border:1px solid #ffcc00; border-radius:12px; font-weight:bold; font-size:12px;">📏 ${distText}</div>`,
-            iconSize: [80, 24],
-            iconAnchor: [40, 12]
-        });
-        
-        const label = L.marker([midLat, midLng], { icon: labelIcon }).addTo(map);
-        layers.push(line, label);
-    }
-    
-    tacticalObjects[id] = {
-        type: type,
-        layers: layers,
-        creator: currentUser.name
-    };
-    
-    myObjects.add(id);
-    console.log(`✅ Объект создан: ${type} (${id})`);
-}
-
-function removeTacticalObject(id) {
-    if (tacticalObjects[id]) {
-        tacticalObjects[id].layers.forEach(layer => map.removeLayer(layer));
-        delete tacticalObjects[id];
-        myObjects.delete(id);
-        console.log(`🗑️ Объект удален: ${id}`);
     }
 }
 
+// ==================== УДАЛЕНИЕ СВОИХ ОБЪЕКТОВ ====================
 function deleteMyObjects() {
     const ids = Array.from(myObjects);
-    ids.forEach(id => removeTacticalObject(id));
-    if (ids.length > 0) {
-        addChatMessage('СИСТЕМА', `🗑️ Удалено объектов: ${ids.length}`, '#ffaa66');
-    } else {
-        alert('У вас нет объектов для удаления');
-    }
+    console.log('🗑️ Удаление моих объектов:', ids);
+    ids.forEach(id => {
+        socket.emit('delete_obj', id);
+    });
+    myObjects.clear();
 }
 
 // ==================== СЕТКА ====================
@@ -680,8 +847,7 @@ function drawGrid() {
     overlay.innerHTML = '';
     
     const zoom = map.getZoom();
-    // ПОКАЗЫВАЕМ СЕТКУ ПРИ ЛЮБОМ ЗУМЕ
-    if (zoom < 10) return; // Но при слишком маленьком зуме не показываем
+    if (zoom < 14) return;
     
     const bounds = map.getBounds();
     const south = bounds.getSouth();
@@ -689,7 +855,6 @@ function drawGrid() {
     const west = bounds.getWest();
     const east = bounds.getEast();
     
-    // Определяем границы сетки
     const startLat = Math.floor(south / GRID_STEP) * GRID_STEP;
     const endLat = Math.ceil(north / GRID_STEP) * GRID_STEP;
     const startLng = Math.floor(west / GRID_STEP) * GRID_STEP;
@@ -701,7 +866,6 @@ function drawGrid() {
     }
     gridLayer = L.layerGroup().addTo(map);
     
-    // Вертикальные линии
     for (let lng = startLng; lng <= endLng; lng += GRID_STEP) {
         L.polyline([[startLat, lng], [endLat, lng]], {
             color: '#40cc70',
@@ -710,7 +874,6 @@ function drawGrid() {
         }).addTo(gridLayer);
     }
     
-    // Горизонтальные линии
     for (let lat = startLat; lat <= endLat; lat += GRID_STEP) {
         L.polyline([[lat, startLng], [lat, endLng]], {
             color: '#40cc70',
@@ -719,7 +882,7 @@ function drawGrid() {
         }).addTo(gridLayer);
     }
     
-    // Расставляем БУКВЫ СВЕРХУ
+    // Буквы сверху
     let colIndex = 0;
     for (let lng = startLng; lng <= endLng; lng += GRID_STEP) {
         const centerLng = lng + GRID_STEP / 2;
@@ -730,13 +893,13 @@ function drawGrid() {
             div.className = 'grid-letter-top';
             div.textContent = getColumnLetter(colIndex);
             div.style.left = point.x + 'px';
-            div.style.top = Math.max(15, point.y - 10) + 'px';
+            div.style.top = Math.max(20, point.y - 15) + 'px';
             overlay.appendChild(div);
         }
         colIndex++;
     }
     
-    // Расставляем ЦИФРЫ СПРАВА
+    // Цифры справа
     let rowIndex = 0;
     for (let lat = startLat; lat <= endLat; lat += GRID_STEP) {
         const centerLat = lat + GRID_STEP / 2;
@@ -761,7 +924,12 @@ function sendChatMessage() {
     
     if (!text) return;
     
-    addChatMessage(currentUser.name, text, currentUser.color);
+    socket.emit('chat_msg', {
+        name: currentUser.name,
+        text: text,
+        color: currentUser.color
+    });
+    
     input.value = '';
     input.focus();
 }
@@ -797,32 +965,26 @@ function setTool(tool) {
     activeTool = tool;
     rulerPoints = [];
     
-    // Обновляем активную кнопку
     document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
     const btn = document.getElementById(`btn-${tool}`);
     if (btn) btn.classList.add('active');
     
-    console.log(`🔧 Инструмент: ${tool}`);
-    
-    // Закрываем все попапы
     if (map) map.closePopup();
+    
+    console.log(`🔧 Инструмент: ${tool}`);
 }
 
 function changeMap(type) {
-    if (tileLayer) {
-        map.removeLayer(tileLayer);
-    }
+    if (tileLayer) map.removeLayer(tileLayer);
     
     if (type === 'sat') {
         tileLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
             maxZoom: 21
         }).addTo(map);
-        addChatMessage('СИСТЕМА', '🛰️ Включен спутниковый слой', '#4488ff');
     } else {
         tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 21
         }).addTo(map);
-        addChatMessage('СИСТЕМА', '🗺️ Включена обычная карта', '#44ff44');
     }
     
     drawGrid();
@@ -830,6 +992,8 @@ function changeMap(type) {
 
 function exitApp() {
     if (confirm('Выйти из приложения?')) {
+        if (watchId) navigator.geolocation.clearWatch(watchId);
+        socket.disconnect();
         location.reload();
     }
 }
@@ -844,19 +1008,7 @@ window.addEventListener('resize', () => {
     }
 });
 
-// ==================== ИНИЦИАЛИЗАЦИЯ ПРИ ЗАГРУЗКЕ ====================
-window.addEventListener('DOMContentLoaded', () => {
-    console.log('⚡ SCORPION TACTICAL V26 загружен');
-    console.log('📋 Возможности:');
-    console.log('  - Рисование врагов, целей, стрелок, линеек');
-    console.log('  - Сетка с русскими буквами (А, Б, В...) и цифрами');
-    console.log('  - Чат для коммуникации');
-    console.log('  - Спутниковые и обычные карты');
-    console.log('  - Геолокация');
-    console.log('👆 Для теста нажмите "ВОЙТИ В БОЙ"');
-});
-
-// Экспорт функций в глобальную область
+// ==================== ЭКСПОРТ ФУНКЦИЙ ====================
 window.doLogin = doLogin;
 window.setTool = setTool;
 window.centerOnMe = centerOnMe;
@@ -865,6 +1017,14 @@ window.toggleChat = toggleChat;
 window.sendChatMessage = sendChatMessage;
 window.deleteMyObjects = deleteMyObjects;
 window.exitApp = exitApp;
+
+console.log('⚡ SCORPION TACTICAL V27 загружен');
+console.log('📋 Исправления:');
+console.log('  ✅ Игроки отображаются друг у друга');
+console.log('  ✅ Чат работает между игроками');
+console.log('  ✅ Череп и флаг добавляются на карту');
+console.log('  ✅ Ластик удаляет все типы объектов');
+console.log('  ✅ Сетка с буквами и цифрами');
 </script>
 </body>
 </html>
