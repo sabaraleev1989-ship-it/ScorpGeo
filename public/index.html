@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SCORPION TACTICAL V13</title>
+    <title>SCORPION TACTICAL V15</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="/socket.io/socket.io.js"></script>
@@ -14,34 +14,30 @@
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap');
         body, html { margin: 0; padding: 0; height: 100%; background: #000; overflow: hidden; font-family: sans-serif; }
         
-        /* СТИЛЬ ТЕКСТА РАССТОЯНИЯ */
         .dist-label { 
-            color: #000; font-weight: 900; font-size: 16px; 
-            text-shadow: -1px -1px 0 #ff0000, 1px -1px 0 #ff0000, -1px 1px 0 #ff0000, 1px 1px 0 #ff0000;
-            white-space: nowrap; pointer-events: none;
+            color: #000 !important; font-weight: 900 !important; font-size: 18px !important; 
+            text-shadow: -2px -2px 0 #ff0000, 2px -2px 0 #ff0000, -2px 2px 0 #ff0000, 2px 2px 0 #ff0000;
+            white-space: nowrap; pointer-events: none; background: none !important; border: none !important;
         }
 
-        /* МАРКЕР ИГРОКА */
         .p-marker { display: flex; flex-direction: column; align-items: center; }
         .p-name { color: #000; font-weight: 900; font-size: 14px; text-shadow: -1px -1px 0 #ff0000, 1px -1px 0 #ff0000, -1px 1px 0 #ff0000, 1px 1px 0 #ff0000; text-transform: uppercase; }
         .p-dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid #fff; }
 
-        /* ИНТЕРФЕЙС */
         .side-panel { position: fixed; left: 0; top: 0; bottom: 0; width: 65px; background: #0a0a0a; border-right: 2px solid #22c55e; z-index: 5000; display: flex; flex-direction: column; }
-        .tool-btn { width: 65px; height: 50px; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid #222; color: #22c55e; font-size: 22px; cursor: pointer; }
+        .tool-btn { width: 65px; height: 48px; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid #222; color: #22c55e; font-size: 22px; cursor: pointer; }
         .tool-btn.active { background: #166534; color: #fff; }
 
-        #map { height: 100vh; width: 100%; background: #000; }
-        
-        /* ПУЛЬСИРУЮЩАЯ ЛИНИЯ */
-        .pulse-line { stroke-dasharray: 10; animation: dash 1s linear infinite; }
+        .pulse-line { stroke-dasharray: 10; animation: dash 1.5s linear infinite; }
         @keyframes dash { to { stroke-dashoffset: -20; } }
+
+        #map { height: 100vh; width: 100%; background: #000; }
     </style>
 </head>
 <body>
 
     <div id="auth-screen" class="fixed inset-0 z-[9999] bg-[#050505] flex flex-col items-center justify-center">
-        <h1 class="text-white font-bold text-2xl mb-6" style="font-family:'Orbitron'">SCORPION <span class="text-green-500">V13</span></h1>
+        <h1 class="text-white font-bold text-2xl mb-6" style="font-family:'Orbitron'">SCORPION <span class="text-green-500">V15</span></h1>
         <input id="roomInput" type="text" placeholder="КОД КОМНАТЫ" class="bg-black border-2 border-green-500 text-green-500 p-4 mb-3 w-72 text-center font-bold">
         <input id="nameInput" type="text" placeholder="ПОЗЫВНОЙ" class="bg-black border-2 border-green-500 text-green-500 p-4 mb-3 w-72 text-center font-bold">
         <button onclick="startApp()" class="bg-green-700 text-white p-4 w-72 font-bold border-2 border-green-500">ВХОД</button>
@@ -49,12 +45,12 @@
 
     <div id="app-ui" style="display:none">
         <div class="side-panel">
-            <div onclick="setTool('move')" id="btn-move" class="tool-btn active" title="Рука">🖐️</div>
-            <div onclick="setTool('enemy')" id="btn-enemy" class="tool-btn" title="Враг">💀</div>
-            <div onclick="setTool('point')" id="btn-point" class="tool-btn" title="Цель">🚩</div>
-            <div onclick="setTool('arrow')" id="btn-arrow" class="tool-btn" title="Удар">➡️</div>
-            <div onclick="setTool('ruler')" id="btn-ruler" class="tool-btn" title="Линейка">📏</div>
-            <div onclick="toggleChat()" class="tool-btn">💬</div>
+            <div onclick="setTool('move')" id="btn-move" class="tool-btn active">🖐️</div>
+            <div onclick="setTool('enemy')" id="btn-enemy" class="tool-btn">💀</div>
+            <div onclick="setTool('point')" id="btn-point" class="tool-btn">🚩</div>
+            <div onclick="setTool('arrow')" id="btn-arrow" class="tool-btn">➡️</div>
+            <div onclick="setTool('ruler')" id="btn-ruler" class="tool-btn">📏</div>
+            <div onclick="setTool('eraser')" id="btn-eraser" class="tool-btn">🧼</div>
             
             <div class="mt-auto"></div>
             <div onclick="setMap('sat')" id="btn-sat" class="tool-btn text-xs">SAT</div>
@@ -68,7 +64,9 @@
     <script>
         const socket = io();
         let map, myName = '', myRoom = '', tool = 'move', userPos = {lat:0, lng:0};
-        let players = {}, tacticalMarkers = [], tempLine = null, clickCount = 0, firstPoint = null;
+        let players = {}, playerDistanceLines = {}; 
+        let tacticalItems = {}; // Теперь храним объекты по ID для точечного удаления
+        let clickCount = 0, firstPoint = null;
 
         const layers = {
             map: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'),
@@ -100,59 +98,79 @@
         }
 
         function handleMapClick(e) {
-            if (tool === 'move') return;
+            if (tool === 'move' || tool === 'eraser') return;
+
+            const id = Date.now() + Math.random().toString(36).substr(2, 9);
 
             if (tool === 'arrow' || tool === 'ruler') {
                 if (clickCount === 0) {
-                    firstPoint = e.latlng;
-                    clickCount = 1;
-                    L.circleMarker(e.latlng, { radius: 4, color: tool === 'arrow' ? 'red' : 'yellow' }).addTo(map);
+                    firstPoint = e.latlng; clickCount = 1;
                 } else {
                     socket.emit('new_obj', { 
-                        type: tool, 
-                        start: firstPoint, 
-                        end: e.latlng, 
+                        id, type: tool, start: firstPoint, end: e.latlng, 
                         color: tool === 'arrow' ? '#ff0000' : '#ffff00' 
                     });
                     resetClicks();
                 }
-            } else if (tool === 'enemy' || tool === 'point') {
-                socket.emit('new_obj', { type: tool, lat: e.latlng.lat, lng: e.latlng.lng });
+            } else {
+                socket.emit('new_obj', { id, type: tool, lat: e.latlng.lat, lng: e.latlng.lng, from: userPos });
             }
         }
 
         socket.on('draw', m => {
-            let item;
+            let layerGroup = [];
+            
             if (m.type === 'arrow' || m.type === 'ruler') {
                 const line = L.polyline([m.start, m.end], { color: m.color, weight: 4 }).addTo(map);
-                if (m.type === 'arrow') {
-                    // Простая отрисовка наконечника через круг для наглядности
-                    const head = L.circleMarker(m.end, { radius: 6, color: m.color, fillOpacity: 1 }).addTo(map);
-                    tacticalMarkers.push(line, head);
-                } else {
-                    const dist = Math.round(map.distance(m.start, m.end));
-                    const label = L.marker(m.end, {
-                        icon: L.divIcon({ html: `${dist}м`, className: 'dist-label', iconAnchor: [20, 20] })
-                    }).addTo(map);
-                    tacticalMarkers.push(line, label);
-                }
-            } else {
-                const icon = m.type === 'enemy' ? '💀' : '🚩';
-                item = L.marker([m.lat, m.lng], { 
-                    icon: L.divIcon({ html: `<div style="font-size:30px cursor:pointer">${icon}</div>`, className: '', iconAnchor:[15,15] }) 
+                const dist = Math.round(map.distance(m.start, m.end));
+                const label = L.marker(m.end, {
+                    icon: L.divIcon({ html: `${dist}м`, className: 'dist-label', iconAnchor: [20, 20] })
                 }).addTo(map);
                 
-                // Клик по объекту в режиме руки
+                [line, label].forEach(l => l.on('click', (e) => handleEraser(m.id, e)));
+                layerGroup = [line, label];
+            } else if (m.type === 'dist_line') {
+                if (playerDistanceLines[m.owner]) {
+                    playerDistanceLines[m.owner].forEach(l => map.removeLayer(l));
+                }
+                const line = L.polyline([m.start, m.end], { color: '#ff0000', weight: 3, className: 'pulse-line' }).addTo(map);
+                const dist = Math.round(map.distance(m.start, m.end));
+                const label = L.marker([(m.start.lat + m.end.lat)/2, (m.start.lng + m.end.lng)/2], {
+                    icon: L.divIcon({ html: `${dist}м`, className: 'dist-label', iconAnchor: [25, 0] })
+                }).addTo(map);
+                playerDistanceLines[m.owner] = [line, label];
+                return; 
+            } else {
+                const icon = m.type === 'enemy' ? '💀' : '🚩';
+                const item = L.marker([m.lat, m.lng], { 
+                    icon: L.divIcon({ html: `<div style="font-size:30px; cursor:pointer">${icon}</div>`, className: '', iconAnchor:[15,15] }) 
+                }).addTo(map);
+                
                 item.on('click', (e) => {
-                    if (tool !== 'move') return;
-                    if (tempLine) map.removeLayer(tempLine);
-                    const d = Math.round(map.distance(userPos, [m.lat, m.lng]));
-                    tempLine = L.polyline([userPos, [m.lat, m.lng]], { color: 'red', weight: 2, className: 'pulse-line' }).addTo(map);
-                    tempLine.bindTooltip(`${d}м`, { permanent: true, direction: 'center', className: 'dist-label' }).openTooltip();
-                    setTimeout(() => { if(tempLine) map.removeLayer(tempLine); tempLine = null; }, 4000);
-                    L.DomEvent.stopPropagation(e);
+                    if (tool === 'eraser') {
+                        handleEraser(m.id, e);
+                    } else if (tool === 'move') {
+                        socket.emit('new_obj', { type: 'dist_line', start: userPos, end: [m.lat, m.lng], owner: myName });
+                        L.DomEvent.stopPropagation(e);
+                    }
                 });
-                tacticalMarkers.push(item);
+                layerGroup = [item];
+            }
+            
+            if (m.id) tacticalItems[m.id] = layerGroup;
+        });
+
+        function handleEraser(id, e) {
+            if (tool === 'eraser') {
+                socket.emit('delete_obj', id);
+                L.DomEvent.stopPropagation(e);
+            }
+        }
+
+        socket.on('remove_obj', id => {
+            if (tacticalItems[id]) {
+                tacticalItems[id].forEach(l => map.removeLayer(l));
+                delete tacticalItems[id];
             }
         });
 
@@ -183,9 +201,16 @@
         }
 
         function resetClicks() { clickCount = 0; firstPoint = null; }
-        function clearMap() { if(confirm("ОЧИСТИТЬ КАРТУ?")) socket.emit('clear'); }
-        socket.on('clear_all', () => { tacticalMarkers.forEach(m => map.removeLayer(m)); tacticalMarkers = []; });
-        function toggleChat() { /* Логика чата из V12 */ }
+        function clearMap() { 
+            if(confirm("УДАЛИТЬ ВСЕ МЕТКИ?")) socket.emit('clear');
+        }
+        
+        socket.on('clear_all', () => { 
+            Object.values(tacticalItems).forEach(group => group.forEach(l => map.removeLayer(l)));
+            tacticalItems = {}; 
+            Object.values(playerDistanceLines).forEach(group => group.forEach(l => map.removeLayer(l)));
+            playerDistanceLines = {};
+        });
     </script>
 </body>
 </html>
