@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SCORPION TACTICAL V7</title>
+    <title>SCORPION ELITE V11</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="/socket.io/socket.io.js"></script>
@@ -11,198 +11,135 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Roboto+Condensed:wght@700&display=swap');
-        body, html { margin: 0; padding: 0; height: 100%; background: #000; color: #22c55e; font-family: 'Roboto Condensed', sans-serif; overflow: hidden; }
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap');
+        body, html { margin: 0; padding: 0; height: 100%; background: #000; overflow: hidden; font-family: 'Roboto Condensed', sans-serif; }
+        
+        /* УВЕДОМЛЕНИЕ О НОВОМ БОЙЦЕ */
+        #notify-box { position: fixed; top: 10px; left: 50%; transform: translateX(-50%); z-index: 10000; pointer-events: none; }
+        .alert-new { background: rgba(22, 101, 52, 0.9); color: #fff; padding: 10px 20px; border: 2px solid #22c55e; border-radius: 5px; font-family: 'Orbitron'; font-size: 14px; animation: slideDown 0.5s ease-out; }
+        @keyframes slideDown { from { transform: translateY(-50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
-        /* РАДАР НА ВХОДЕ */
-        #login-screen { position: fixed; inset: 0; z-index: 9999; background: #050505; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        .entry-radar { width: 280px; height: 120px; border: 2px solid #22c55e; position: relative; margin-bottom: 20px; overflow: hidden; background: radial-gradient(circle, #062b06 0%, #000 70%); }
-        .radar-sweep { position: absolute; width: 100%; height: 3px; background: #22c55e; box-shadow: 0 0 15px #22c55e; animation: scan 2s linear infinite; }
-        @keyframes scan { 0% { top: 0; } 100% { top: 100%; } }
-
-        /* ИНТЕРФЕЙС И КНОПКИ */
-        .side-panel { position: fixed; left: 0; top: 0; bottom: 0; width: 65px; background: #0a0a0a; border-right: 2px solid #22c55e; z-index: 5000; display: flex; flex-direction: column; }
-        .tool-btn { width: 65px; height: 55px; display: flex; flex-direction: column; align-items: center; justify-content: center; border-bottom: 1px solid #222; cursor: pointer; font-size: 20px; }
-        .tool-btn span { font-size: 10px; font-weight: bold; margin-top: 2px; }
-        .tool-btn.active { background: #166534; box-shadow: inset 0 0 10px #22c55e; }
-
-        /* СЕТКА ПОВЕРХ */
-        #grid-layer { position: fixed; inset: 0; pointer-events: none; z-index: 1000; }
-        .grid-v, .grid-h { position: absolute; background: rgba(34, 197, 94, 0.4); }
-        .grid-v { width: 1px; top: 0; bottom: 0; }
-        .grid-h { height: 1px; left: 0; right: 0; }
-        .grid-label { position: absolute; color: #22c55e; font-size: 14px; font-weight: bold; text-shadow: 1px 1px 2px #000; pointer-events: none; }
-
-        /* ТАКТИЧЕСКИЕ МЕТКИ */
-        .tactical-label { 
-            background: rgba(255,255,255,0.95) !important; 
-            border: 2px solid #000 !important; 
-            color: #ff0000 !important; 
-            font-weight: 900 !important; 
-            padding: 1px 5px !important;
-            border-radius: 3px;
-            font-size: 16px !important;
+        /* МАРКЕР ИГРОКА */
+        .player-icon-container { display: flex; flex-direction: column; align-items: center; }
+        .player-label { 
+            color: #000; 
+            font-weight: 900; 
+            font-size: 14px; 
+            text-transform: uppercase;
+            text-shadow: -1px -1px 0 #ff0000, 1px -1px 0 #ff0000, -1px 1px 0 #ff0000, 1px 1px 0 #ff0000;
+            white-space: nowrap;
+            margin-bottom: 2px;
         }
+        .player-dot { width: 12px; height: 12px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 5px rgba(0,0,0,0.5); }
 
-        #map { height: 100vh; width: 100%; z-index: 1; background: #000; }
+        /* ИНТЕРФЕЙС */
+        #auth { position: fixed; inset: 0; z-index: 9999; background: #050505; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .side-bar { position: fixed; left: 0; top: 0; bottom: 0; width: 70px; background: #0a0a0a; border-right: 2px solid #22c55e; z-index: 5000; display: flex; flex-direction: column; }
+        .btn { width: 70px; height: 55px; border-bottom: 1px solid #222; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #22c55e; cursor: pointer; }
+        .btn.active { background: #166534; color: #fff; }
+
+        #map { height: 100vh; width: 100%; background: #000; }
     </style>
 </head>
 <body>
 
-    <div id="login-screen">
-        <h1 style="font-family:'Orbitron'; color:white; font-size:24px; margin-bottom:15px;">SCORPION <span style="color:#22c55e">V7</span></h1>
-        <div class="entry-radar"><div class="radar-sweep"></div></div>
-        <input id="roomIn" type="text" placeholder="ID КОМАНДЫ" style="background:#000; border:1px solid #22c55e; color:#22c55e; padding:12px; margin-bottom:10px; width:260px; text-align:center;">
-        <input id="nameIn" type="text" placeholder="ПОЗЫВНОЙ" style="background:#000; border:1px solid #22c55e; color:#22c55e; padding:12px; margin-bottom:10px; width:260px; text-align:center;">
-        <button onclick="connect()" style="background:#166534; color:white; padding:15px; width:260px; font-weight:bold; border:1px solid #22c55e;">ВХОД В СИСТЕМУ</button>
+    <div id="notify-box"></div>
+
+    <div id="auth">
+        <h1 style="color:white; font-family:'Orbitron'; font-size:22px; margin-bottom:20px;">SCORPION <span style="color:#22c55e">TACTICAL V11</span></h1>
+        <input id="roomIn" type="text" placeholder="ID КОМНАТЫ" style="background:#000; border:2px solid #22c55e; color:#22c55e; padding:15px; margin-bottom:10px; width:280px; text-align:center;">
+        <input id="nameIn" type="text" placeholder="ПОЗЫВНОЙ" style="background:#000; border:2px solid #22c55e; color:#22c55e; padding:15px; margin-bottom:10px; width:280px; text-align:center;">
+        <button onclick="connect()" style="background:#166534; color:white; padding:15px; width:280px; font-weight:bold; border:1px solid #22c55e;">ВХОД</button>
     </div>
 
-    <div id="ui" style="display:none">
-        <div id="grid-layer"></div>
-
-        <div class="side-panel">
-            <div onclick="setTool('move')" id="t-move" class="tool-btn active">🖐️<span>РУКА</span></div>
-            <div onclick="centerMe()" class="tool-btn text-blue-400">🎯<span>ГДЕ Я</span></div>
-            <div onclick="setTool('enemy')" id="t-enemy" class="tool-btn">💀<span>ВРАГ</span></div>
-            <div onclick="setTool('point')" id="t-point" class="tool-btn">🚩<span>ЦЕЛЬ</span></div>
-            <div onclick="setTool('arrow')" id="t-arrow" class="tool-btn">➡️<span>УДАР</span></div>
-            
+    <div id="main" style="display:none">
+        <div class="side-bar">
+            <div onclick="setTool('move')" id="t-move" class="btn active">🖐️</div>
+            <div onclick="centerMe()" class="btn" style="color:#60a5fa">🎯</div>
+            <div onclick="setTool('enemy')" id="t-enemy" class="btn">💀</div>
+            <div onclick="setTool('point')" id="t-point" class="btn">🚩</div>
+            <div onclick="setTool('arrow')" id="t-arrow" class="btn">➡️</div>
+            <div onclick="toggleChat()" class="btn">💬</div>
             <div style="margin-top:auto"></div>
-            
-            <div onclick="setLayer('sat')" id="layer-sat" class="tool-btn">🛰️<span>SAT</span></div>
-            <div onclick="setLayer('map')" id="layer-map" class="tool-btn active">🗺️<span>MAP</span></div>
-            
-            <div onclick="clearMap()" class="tool-btn text-red-500">🗑️<span>ОЧИСТИТЬ</span></div>
+            <div onclick="clearAll()" class="btn" style="color:#ef4444">🗑️</div>
         </div>
-
         <div id="map"></div>
     </div>
 
     <script>
         const socket = io();
-        let map, userMarker, tool = 'move', userPos = { lat:0, lng:0 };
-        let tacticalLayers = [];
-        
-        const layers = {
-            map: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'),
-            sat: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}')
-        };
+        let map, myName = '', myRoom = '', tool = 'move', userPos = {lat:0, lng:0};
+        let otherPlayers = {}; // Хранилище для маркеров других бойцов
 
         function connect() {
-            const name = document.getElementById('nameIn').value.toUpperCase();
-            const room = document.getElementById('roomIn').value.toUpperCase();
-            if(room && name) {
-                userPos.name = name;
-                socket.emit('join_room', { room, name });
-            }
+            myRoom = document.getElementById('roomIn').value.toUpperCase();
+            myName = document.getElementById('nameIn').value.toUpperCase();
+            if(myRoom && myName) socket.emit('join_room', { room: myRoom, name: myName });
         }
 
         socket.on('login_success', () => {
-            document.getElementById('login-screen').style.display = 'none';
-            document.getElementById('ui').style.display = 'block';
+            document.getElementById('auth').style.display = 'none';
+            document.getElementById('main').style.display = 'block';
             initMap();
+        });
+
+        // УВЕДОМЛЕНИЕ О НОВОМ БОЙЦЕ
+        socket.on('player_joined', (data) => {
+            if(data.name !== myName) {
+                const box = document.getElementById('notify-box');
+                const el = document.createElement('div');
+                el.className = 'alert-new';
+                el.innerText = `ЗАХОДИТ: ${data.name}`;
+                box.appendChild(el);
+                setTimeout(() => el.remove(), 5000);
+            }
         });
 
         function initMap() {
             map = L.map('map', { zoomControl: false, attributionControl: false }).setView([43.40, 39.95], 18);
-            layers.map.addTo(map);
+            L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}').addTo(map);
 
-            map.on('move zoom', updateGrid);
-            map.on('click', onMapClick);
-            
-            // Синий маркер игрока
-            userMarker = L.marker([0,0], {
-                icon: L.divIcon({
-                    html: `<div style="background:#2563eb; color:white; padding:2px 8px; border-radius:5px; border:2px solid white; font-weight:bold; white-space:nowrap;">ХАН</div>`,
-                    className: '', iconAnchor: [20, 10]
-                })
-            }).addTo(map);
-
-            updateGrid();
-            startGps();
-        }
-
-        function setLayer(type) {
-            map.removeLayer(layers.map);
-            map.removeLayer(layers.sat);
-            layers[type].addTo(map);
-            document.getElementById('layer-sat').classList.toggle('active', type==='sat');
-            document.getElementById('layer-map').classList.toggle('active', type==='map');
-        }
-
-        function updateGrid() {
-            const container = document.getElementById('grid-layer');
-            container.innerHTML = '';
-            
-            // СКРЫВАЕМ СЕТКУ ПРИ ОТДАЛЕНИИ (меньше 16 зума)
-            if (map.getZoom() < 16) return;
-
-            const b = map.getBounds();
-            const STEP = 0.0005; // Фиксированный шаг для стабильности
-
-            for (let x = Math.floor(b.getWest()/STEP)*STEP; x <= b.getEast(); x += STEP) {
-                let p = map.latLngToContainerPoint([b.getNorth(), x]);
-                let l = document.createElement('div'); l.className = 'grid-v';
-                l.style.left = p.x + 'px'; container.appendChild(l);
-            }
-            for (let y = Math.floor(b.getSouth()/STEP)*STEP; y <= b.getNorth(); y += STEP) {
-                let p = map.latLngToContainerPoint([y, b.getWest()]);
-                let l = document.createElement('div'); l.className = 'grid-h';
-                l.style.top = p.y + 'px'; container.appendChild(l);
-            }
-        }
-
-        function centerMe() {
-            if (userPos.lat !== 0) {
-                map.flyTo([userPos.lat, userPos.lng], 19);
-            } else {
-                alert("Ожидание GPS...");
-            }
-        }
-
-        function startGps() {
             navigator.geolocation.watchPosition(p => {
-                userPos.lat = p.coords.latitude;
-                userPos.lng = p.coords.longitude;
-                userMarker.setLatLng([userPos.lat, userPos.lng]);
-                socket.emit('gps_sync', { lat: userPos.lat, lng: userPos.lng });
+                userPos = { lat: p.coords.latitude, lng: p.coords.longitude };
+                socket.emit('gps_sync', { ...userPos, name: myName });
+                updatePlayerMarker(myName, userPos, '#2563eb'); // Твой цвет - синий
             }, null, { enableHighAccuracy: true });
         }
 
-        function onMapClick(e) {
-            if(tool === 'move') return;
-            const id = 'id' + Date.now();
-            socket.emit('new_obj', { id, type:tool, lat:e.latlng.lat, lng:e.latlng.lng, from:[userPos.lat, userPos.lng] });
-        }
-
-        socket.on('draw', m => {
-            const ico = m.type === 'enemy' ? '💀' : '🚩';
-            const marker = L.marker([m.lat, m.lng], { 
-                icon: L.divIcon({ html: `<div style="font-size:30px">${ico}</div>`, className:'dummy', iconAnchor:[15,15] })
-            }).addTo(map);
-
-            const dist = Math.round(map.distance(m.from, [m.lat, m.lng]));
-            const label = L.marker([m.lat, m.lng], {
-                icon: L.divIcon({ className: 'tactical-label', html: `${dist}м`, iconAnchor: [20, -20] })
-            }).addTo(map);
-
-            tacticalLayers.push(marker, label);
+        // ОБНОВЛЕНИЕ МАРКЕРОВ ВСЕХ ИГРОКОВ
+        socket.on('presence_update', (users) => {
+            Object.keys(users).forEach(id => {
+                const u = users[id];
+                if(u.name) {
+                    // Генерируем цвет на основе имени, чтобы он был постоянным для игрока
+                    const hue = [...u.name].reduce((acc, char) => acc + char.charCodeAt(0), 0) % 360;
+                    const color = `hsl(${hue}, 80%, 50%)`;
+                    updatePlayerMarker(u.name, {lat: u.lat, lng: u.lng}, color);
+                }
+            });
         });
 
-        function setTool(t) {
-            tool = t;
-            document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById('t-'+t).classList.add('active');
+        function updatePlayerMarker(name, pos, color) {
+            if (!otherPlayers[name]) {
+                const icon = L.divIcon({
+                    className: '',
+                    html: `
+                        <div class="player-icon-container">
+                            <div class="player-label">${name}</div>
+                            <div class="player-dot" style="background-color: ${color}"></div>
+                        </div>`,
+                    iconSize: [100, 40],
+                    iconAnchor: [50, 35]
+                });
+                otherPlayers[name] = L.marker([pos.lat, pos.lng], { icon }).addTo(map);
+            } else {
+                otherPlayers[name].setLatLng([pos.lat, pos.lng]);
+            }
         }
 
-        function clearMap() {
-            if(confirm("УДАЛИТЬ ВСЕ МЕТКИ?")) socket.emit('clear');
-        }
-
-        socket.on('clear_all', () => {
-            tacticalLayers.forEach(l => map.removeLayer(l));
-            tacticalLayers = [];
-        });
+        function centerMe() { if(userPos.lat) map.flyTo([userPos.lat, userPos.lng], 19); }
+        function setTool(t) { tool = t; }
+        function clearAll() { if(confirm("СБРОС?")) socket.emit('clear'); }
     </script>
 </body>
 </html>
