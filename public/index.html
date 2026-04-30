@@ -17,416 +17,93 @@
     <script src="https://cdn.tailwindcss.com"></script>
     
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
-            -webkit-user-select: none;
-            user-select: none;
-        }
-        body, html {
-            width: 100%;
-            height: 100%;
-            background: #000;
-            overflow: hidden;
-            font-family: 'Courier New', monospace;
-        }
+        * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; -webkit-user-select:none; user-select:none; }
+        body,html { width:100%; height:100%; background:#000; overflow:hidden; font-family:'Courier New',monospace; }
         
-        /* ========== ЭКРАН ВХОДА ========== */
         #auth-screen {
-            position: fixed;
-            inset: 0;
-            z-index: 10000;
-            background: radial-gradient(ellipse at center, #0a1a0a 0%, #010101 100%);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
+            position:fixed; inset:0; z-index:10000;
+            background:radial-gradient(ellipse at center,#0a1a0a 0%,#010101 100%);
+            display:flex; flex-direction:column; align-items:center; justify-content:center; overflow:hidden;
         }
-        
-        .radar-container {
-            position: relative;
-            width: 180px;
-            height: 180px;
-            margin-bottom: 25px;
-        }
-        
+        .radar-container { position:relative; width:180px; height:180px; margin-bottom:25px; }
         .radar-circle {
-            position: absolute;
-            inset: 0;
-            border: 2px solid #0f0;
-            border-radius: 50%;
-            box-shadow: 0 0 30px rgba(0,255,0,0.3), inset 0 0 30px rgba(0,255,0,0.1);
-            background: radial-gradient(circle at center, rgba(0,20,0,0.9) 0%, rgba(0,40,0,0.7) 50%, rgba(0,0,0,0.9) 100%);
-            animation: pulse 2s infinite;
+            position:absolute; inset:0; border:2px solid #0f0; border-radius:50%;
+            box-shadow:0 0 30px rgba(0,255,0,0.3),inset 0 0 30px rgba(0,255,0,0.1);
+            background:radial-gradient(circle at center,rgba(0,20,0,0.9) 0%,rgba(0,40,0,0.7) 50%,rgba(0,0,0,0.9) 100%);
+            animation:pulse 2s infinite;
         }
-        
         @keyframes pulse {
-            0%, 100% { box-shadow: 0 0 30px rgba(0,255,0,0.3), inset 0 0 30px rgba(0,255,0,0.1); }
-            50% { box-shadow: 0 0 50px rgba(0,255,0,0.5), inset 0 0 50px rgba(0,255,0,0.2); }
+            0%,100% { box-shadow:0 0 30px rgba(0,255,0,0.3),inset 0 0 30px rgba(0,255,0,0.1); }
+            50% { box-shadow:0 0 50px rgba(0,255,0,0.5),inset 0 0 50px rgba(0,255,0,0.2); }
         }
-        
         .radar-scan {
-            position: absolute;
-            inset: 0;
-            border-radius: 50%;
-            background: conic-gradient(from 0deg, transparent 0deg, transparent 30deg, rgba(0,255,0,0.3) 35deg, rgba(0,255,0,0.1) 40deg, transparent 45deg, transparent 360deg);
-            animation: scan 3s linear infinite;
+            position:absolute; inset:0; border-radius:50%;
+            background:conic-gradient(from 0deg,transparent 0deg,transparent 30deg,rgba(0,255,0,0.3) 35deg,rgba(0,255,0,0.1) 40deg,transparent 45deg,transparent 360deg);
+            animation:scan 3s linear infinite;
         }
-        
-        @keyframes scan {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-        
+        @keyframes scan { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
         .radar-grid {
-            position: absolute;
-            inset: 0;
-            border-radius: 50%;
-            background: 
-                radial-gradient(circle at center, transparent 24%, rgba(0,255,0,0.15) 25%, transparent 26%),
-                radial-gradient(circle at center, transparent 49%, rgba(0,255,0,0.15) 50%, transparent 51%),
-                radial-gradient(circle at center, transparent 74%, rgba(0,255,0,0.15) 75%, transparent 76%),
-                linear-gradient(transparent 49%, rgba(0,255,0,0.2) 50%, transparent 51%),
-                linear-gradient(90deg, transparent 49%, rgba(0,255,0,0.2) 50%, transparent 51%);
+            position:absolute; inset:0; border-radius:50%;
+            background:radial-gradient(circle at center,transparent 24%,rgba(0,255,0,0.15) 25%,transparent 26%),
+                       radial-gradient(circle at center,transparent 49%,rgba(0,255,0,0.15) 50%,transparent 51%),
+                       radial-gradient(circle at center,transparent 74%,rgba(0,255,0,0.15) 75%,transparent 76%),
+                       linear-gradient(transparent 49%,rgba(0,255,0,0.2) 50%,transparent 51%),
+                       linear-gradient(90deg,transparent 49%,rgba(0,255,0,0.2) 50%,transparent 51%);
         }
+        .radar-dot { position:absolute; width:6px; height:6px; background:#f00; border-radius:50%; box-shadow:0 0 10px #f00,0 0 20px #f00; animation:blink 1.5s infinite; z-index:10; }
+        .dot1{top:30%;left:25%;animation-delay:0s} .dot2{top:60%;left:70%;animation-delay:0.5s}
+        .dot3{top:25%;left:65%;animation-delay:1s} .dot4{top:70%;left:20%;animation-delay:0.8s}
+        .dot5{top:45%;left:50%;animation-delay:0.3s} .dot6{top:80%;left:55%;animation-delay:1.2s}
+        .dot7{top:15%;left:45%;animation-delay:0.7s} .dot8{top:55%;left:35%;animation-delay:1.5s}
+        @keyframes blink { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.3;transform:scale(1.5)} }
         
-        .radar-dot {
-            position: absolute;
-            width: 6px;
-            height: 6px;
-            background: #ff0000;
-            border-radius: 50%;
-            box-shadow: 0 0 10px #ff0000, 0 0 20px #ff0000;
-            animation: blink 1.5s infinite;
-            z-index: 10;
-        }
+        .auth-card { background:rgba(0,0,0,0.85); border:1px solid #0f0; box-shadow:0 0 30px rgba(0,255,0,0.2); padding:30px 25px; width:90%; max-width:360px; text-align:center; z-index:10001; }
+        .auth-title { font-size:2rem; font-weight:900; color:#0f0; margin-bottom:5px; text-shadow:0 0 20px rgba(0,255,0,0.5); letter-spacing:3px; }
+        .auth-subtitle { font-size:10px; color:#0a0; margin-bottom:25px; letter-spacing:5px; }
+        .auth-input { width:100%; background:#000; border:1px solid #0f0; color:#0f0; padding:14px; margin-bottom:12px; font-family:'Courier New',monospace; font-size:14px; text-align:center; outline:none; transition:all 0.3s; }
+        .auth-input:focus { border-color:#0f0; box-shadow:0 0 15px rgba(0,255,0,0.3); background:#020; }
+        .auth-input::placeholder { color:#050; letter-spacing:2px; }
+        .auth-btn { width:100%; background:#000; color:#0f0; border:2px solid #0f0; padding:14px; font-weight:bold; font-size:16px; cursor:pointer; font-family:'Courier New',monospace; letter-spacing:3px; transition:all 0.3s; margin-top:10px; }
+        .auth-btn:hover { background:#0f0; color:#000; box-shadow:0 0 30px rgba(0,255,0,0.5); }
+        .auth-btn:active { transform:scale(0.97); }
+        .auth-info { color:#050; font-size:9px; margin-top:15px; letter-spacing:1px; }
+        .auto-login-msg { color:#0f0; font-size:12px; margin-top:10px; animation:fadeInOut 2s forwards; }
+        @keyframes fadeInOut { 0%{opacity:0} 20%{opacity:1} 80%{opacity:1} 100%{opacity:0} }
         
-        .dot1 { top: 30%; left: 25%; animation-delay: 0s; }
-        .dot2 { top: 60%; left: 70%; animation-delay: 0.5s; }
-        .dot3 { top: 25%; left: 65%; animation-delay: 1s; }
-        .dot4 { top: 70%; left: 20%; animation-delay: 0.8s; }
-        .dot5 { top: 45%; left: 50%; animation-delay: 0.3s; }
-        .dot6 { top: 80%; left: 55%; animation-delay: 1.2s; }
-        .dot7 { top: 15%; left: 45%; animation-delay: 0.7s; }
-        .dot8 { top: 55%; left: 35%; animation-delay: 1.5s; }
+        #map { position:absolute; inset:0; z-index:1; background:#1a1e1a; }
+        .side-panel { position:fixed; left:0; top:0; bottom:0; width:72px; background:rgba(0,0,0,0.96); border-right:2px solid #0f0; z-index:5000; display:none; flex-direction:column; overflow-y:auto; }
+        .tool-btn { width:100%; min-height:52px; display:flex; flex-direction:column; align-items:center; justify-content:center; border-bottom:1px solid #0a0; color:#0f0; cursor:pointer; font-size:8px; font-weight:bold; padding:4px 2px; transition:all 0.2s; }
+        .tool-btn b { font-size:18px; margin-bottom:2px; }
+        .tool-btn.active { background:#020; color:#fff; border-left:3px solid #0f0; }
+        .tool-btn:active { transform:scale(0.95); background:#030; }
         
-        @keyframes blink {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.3; transform: scale(1.5); }
-        }
+        #grid-overlay { position:fixed; inset:0; pointer-events:none; z-index:900; }
+        .grid-letter-top { position:absolute; font-size:11px; font-weight:900; font-family:'Courier New',monospace; background:rgba(0,0,0,0.85); color:#ccc; padding:2px 6px; border:1px solid #555; border-radius:3px; transform:translate(-50%,-50%); z-index:950; }
+        .grid-number-right { position:absolute; font-size:11px; font-weight:900; font-family:'Courier New',monospace; background:rgba(0,0,0,0.85); color:#ccc; padding:2px 6px; border:1px solid #555; border-radius:3px; transform:translate(0,-50%); z-index:950; }
         
-        .auth-card {
-            background: rgba(0,0,0,0.85);
-            border: 1px solid #0f0;
-            box-shadow: 0 0 30px rgba(0,255,0,0.2);
-            padding: 30px 25px;
-            width: 90%;
-            max-width: 360px;
-            text-align: center;
-            position: relative;
-            z-index: 10001;
-        }
+        #chat-win { position:fixed; bottom:10px; left:82px; right:10px; height:170px; background:rgba(0,0,0,0.95); border:1px solid #0f0; z-index:6000; display:none; flex-direction:column; border-radius:5px; }
+        #chat-messages { flex:1; overflow-y:auto; padding:8px; font-size:11px; font-family:'Courier New',monospace; }
+        .msg-line { margin-bottom:4px; padding:3px 5px; border-bottom:1px solid #0a0; word-break:break-word; animation:fadeIn 0.3s; }
+        @keyframes fadeIn { from{opacity:0;transform:translateY(5px)} to{opacity:1;transform:translateY(0)} }
+        .msg-name { font-weight:900; margin-right:5px; }
+        .msg-text { color:#ccc; }
+        #chat-input { background:#000; color:#0f0; border:1px solid #0f0; padding:8px; outline:none; font-size:11px; font-family:'Courier New',monospace; margin:4px; border-radius:3px; flex:1; }
+        #send-btn { background:#000; color:#0f0; border:1px solid #0f0; padding:6px 12px; font-size:11px; font-weight:bold; cursor:pointer; font-family:'Courier New',monospace; }
         
-        .auth-title {
-            font-size: 2rem;
-            font-weight: 900;
-            color: #0f0;
-            margin-bottom: 5px;
-            text-shadow: 0 0 20px rgba(0,255,0,0.5);
-            letter-spacing: 3px;
-        }
+        .player-marker { display:flex; flex-direction:column; align-items:center; }
+        .player-name-tag { font-weight:900; font-size:10px; text-shadow:1px 1px 2px #000; white-space:nowrap; margin-bottom:2px; background:rgba(0,0,0,0.8); padding:2px 5px; border-radius:8px; }
+        .player-dot { width:14px; height:14px; border-radius:50%; border:2px solid #fff; box-shadow:0 0 8px rgba(0,0,0,0.7); }
         
-        .auth-subtitle {
-            font-size: 10px;
-            color: #0a0;
-            margin-bottom: 25px;
-            letter-spacing: 5px;
-        }
+        .distance-tooltip { background:rgba(0,0,0,0.9)!important; border:1px solid #f80!important; color:#ff0!important; font-family:'Courier New',monospace!important; font-size:16px!important; font-weight:900!important; padding:8px 12px!important; border-radius:8px!important; }
         
-        .auth-input {
-            width: 100%;
-            background: #000;
-            border: 1px solid #0f0;
-            color: #0f0;
-            padding: 14px;
-            margin-bottom: 12px;
-            font-family: 'Courier New', monospace;
-            font-size: 14px;
-            text-align: center;
-            outline: none;
-            transition: all 0.3s;
-        }
+        /* Подсказка автора метки */
+        .creator-tooltip { background:rgba(0,0,0,0.9)!important; border:1px solid #0f0!important; color:#0f0!important; font-family:'Courier New',monospace!important; font-size:12px!important; padding:5px 10px!important; border-radius:6px!important; }
         
-        .auth-input:focus {
-            border-color: #0f0;
-            box-shadow: 0 0 15px rgba(0,255,0,0.3);
-            background: #020;
-        }
+        #connection-status { position:fixed; top:8px; right:8px; background:rgba(0,0,0,0.85); color:#0f0; padding:4px 8px; border-radius:12px; font-size:9px; z-index:7000; display:none; font-family:monospace; border:1px solid #0f0; }
         
-        .auth-input::placeholder {
-            color: #050;
-            letter-spacing: 2px;
-        }
-        
-        .auth-btn {
-            width: 100%;
-            background: #000;
-            color: #0f0;
-            border: 2px solid #0f0;
-            padding: 14px;
-            font-weight: bold;
-            font-size: 16px;
-            cursor: pointer;
-            font-family: 'Courier New', monospace;
-            letter-spacing: 3px;
-            transition: all 0.3s;
-            margin-top: 10px;
-        }
-        
-        .auth-btn:hover {
-            background: #0f0;
-            color: #000;
-            box-shadow: 0 0 30px rgba(0,255,0,0.5);
-        }
-        
-        .auth-btn:active {
-            transform: scale(0.97);
-        }
-        
-        .auth-info {
-            color: #050;
-            font-size: 9px;
-            margin-top: 15px;
-            letter-spacing: 1px;
-        }
-        
-        /* Сообщение об автовходе */
-        .auto-login-msg {
-            color: #0f0;
-            font-size: 12px;
-            margin-top: 10px;
-            animation: fadeInOut 2s forwards;
-        }
-        
-        @keyframes fadeInOut {
-            0% { opacity: 0; }
-            20% { opacity: 1; }
-            80% { opacity: 1; }
-            100% { opacity: 0; }
-        }
-        
-        /* ========== КАРТА ========== */
-        #map {
-            position: absolute;
-            inset: 0;
-            z-index: 1;
-            background: #1a1e1a;
-        }
-        
-        .side-panel {
-            position: fixed;
-            left: 0;
-            top: 0;
-            bottom: 0;
-            width: 72px;
-            background: rgba(0,0,0,0.96);
-            border-right: 2px solid #0f0;
-            z-index: 5000;
-            display: none;
-            flex-direction: column;
-            overflow-y: auto;
-        }
-        
-        .tool-btn {
-            width: 100%;
-            min-height: 52px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            border-bottom: 1px solid #0a0;
-            color: #0f0;
-            cursor: pointer;
-            font-size: 8px;
-            font-weight: bold;
-            padding: 4px 2px;
-            transition: all 0.2s;
-        }
-        
-        .tool-btn b { font-size: 18px; margin-bottom: 2px; }
-        
-        .tool-btn.active {
-            background: #020;
-            color: #fff;
-            border-left: 3px solid #0f0;
-        }
-        
-        .tool-btn:active {
-            transform: scale(0.95);
-            background: #030;
-        }
-        
-        /* ========== СЕТКА (ЧЕРНАЯ/СЕРАЯ) ========== */
-        #grid-overlay {
-            position: fixed;
-            inset: 0;
-            pointer-events: none;
-            z-index: 900;
-        }
-        
-        .grid-letter-top {
-            position: absolute;
-            font-size: 11px;
-            font-weight: 900;
-            font-family: 'Courier New', monospace;
-            background: rgba(0,0,0,0.85);
-            color: #ccc;
-            padding: 2px 6px;
-            border: 1px solid #555;
-            border-radius: 3px;
-            transform: translate(-50%, -50%);
-            z-index: 950;
-        }
-        
-        .grid-number-right {
-            position: absolute;
-            font-size: 11px;
-            font-weight: 900;
-            font-family: 'Courier New', monospace;
-            background: rgba(0,0,0,0.85);
-            color: #ccc;
-            padding: 2px 6px;
-            border: 1px solid #555;
-            border-radius: 3px;
-            transform: translate(0, -50%);
-            z-index: 950;
-        }
-        
-        /* ========== ЧАТ ========== */
-        #chat-win {
-            position: fixed;
-            bottom: 10px;
-            left: 82px;
-            right: 10px;
-            height: 170px;
-            background: rgba(0,0,0,0.95);
-            border: 1px solid #0f0;
-            z-index: 6000;
-            display: none;
-            flex-direction: column;
-            border-radius: 5px;
-        }
-        
-        #chat-messages {
-            flex: 1;
-            overflow-y: auto;
-            padding: 8px;
-            font-size: 11px;
-            font-family: 'Courier New', monospace;
-        }
-        
-        .msg-line {
-            margin-bottom: 4px;
-            padding: 3px 5px;
-            border-bottom: 1px solid #0a0;
-            word-break: break-word;
-            animation: fadeIn 0.3s;
-        }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(5px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        .msg-name { font-weight: 900; margin-right: 5px; }
-        .msg-text { color: #ccc; }
-        
-        #chat-input {
-            background: #000;
-            color: #0f0;
-            border: 1px solid #0f0;
-            padding: 8px;
-            outline: none;
-            font-size: 11px;
-            font-family: 'Courier New', monospace;
-            margin: 4px;
-            border-radius: 3px;
-            flex: 1;
-        }
-        
-        #send-btn {
-            background: #000;
-            color: #0f0;
-            border: 1px solid #0f0;
-            padding: 6px 12px;
-            font-size: 11px;
-            font-weight: bold;
-            cursor: pointer;
-            font-family: 'Courier New', monospace;
-        }
-        
-        /* Маркеры */
-        .player-marker {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        
-        .player-name-tag {
-            font-weight: 900;
-            font-size: 10px;
-            text-shadow: 1px 1px 2px #000;
-            white-space: nowrap;
-            margin-bottom: 2px;
-            background: rgba(0,0,0,0.8);
-            padding: 2px 5px;
-            border-radius: 8px;
-        }
-        
-        .player-dot {
-            width: 14px;
-            height: 14px;
-            border-radius: 50%;
-            border: 2px solid #fff;
-            box-shadow: 0 0 8px rgba(0,0,0,0.7);
-        }
-        
-        .distance-tooltip {
-            background: rgba(0,0,0,0.9) !important;
-            border: 1px solid #f80 !important;
-            color: #ff0 !important;
-            font-family: 'Courier New', monospace !important;
-            font-size: 16px !important;
-            font-weight: 900 !important;
-            padding: 8px 12px !important;
-            border-radius: 8px !important;
-        }
-        
-        #connection-status {
-            position: fixed;
-            top: 8px;
-            right: 8px;
-            background: rgba(0,0,0,0.85);
-            color: #0f0;
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 9px;
-            z-index: 7000;
-            display: none;
-            font-family: monospace;
-            border: 1px solid #0f0;
-        }
-        
-        @media (max-width: 640px) {
-            .side-panel { width: 60px; }
-            .tool-btn { min-height: 44px; font-size: 7px; }
-            .tool-btn b { font-size: 16px; }
-            #chat-win { left: 70px; height: 140px; }
-            .radar-container { width: 140px; height: 140px; }
-            .auth-title { font-size: 1.4rem; }
+        @media(max-width:640px) {
+            .side-panel{width:60px} .tool-btn{min-height:44px;font-size:7px} .tool-btn b{font-size:16px}
+            #chat-win{left:70px;height:140px} .radar-container{width:140px;height:140px} .auth-title{font-size:1.4rem}
         }
     </style>
 </head>
@@ -434,38 +111,28 @@
 
 <div id="connection-status">🟢 ОНЛАЙН</div>
 
-<!-- ========== ЭКРАН ВХОДА ========== -->
 <div id="auth-screen">
     <div class="radar-container">
         <div class="radar-circle"></div>
         <div class="radar-scan"></div>
         <div class="radar-grid"></div>
-        <div class="radar-dot dot1"></div>
-        <div class="radar-dot dot2"></div>
-        <div class="radar-dot dot3"></div>
-        <div class="radar-dot dot4"></div>
-        <div class="radar-dot dot5"></div>
-        <div class="radar-dot dot6"></div>
-        <div class="radar-dot dot7"></div>
-        <div class="radar-dot dot8"></div>
+        <div class="radar-dot dot1"></div><div class="radar-dot dot2"></div>
+        <div class="radar-dot dot3"></div><div class="radar-dot dot4"></div>
+        <div class="radar-dot dot5"></div><div class="radar-dot dot6"></div>
+        <div class="radar-dot dot7"></div><div class="radar-dot dot8"></div>
     </div>
-    
     <div class="auth-card">
         <div class="auth-title">SCORPION</div>
         <div class="auth-subtitle">TACTICAL SYSTEM</div>
-        
         <input type="text" id="teamName" class="auth-input" placeholder="КОМАНДА" maxlength="10" autocomplete="off">
         <input type="text" id="playerName" class="auth-input" placeholder="ПОЗЫВНОЙ" maxlength="10" autocomplete="off">
         <input type="password" id="password" class="auth-input" placeholder="ПАРОЛЬ" maxlength="20" autocomplete="off">
-        
         <button onclick="doLogin()" class="auth-btn">⚡ ВОЙТИ ⚡</button>
-        
-        <div class="auth-info">ЗАЩИЩЕННЫЙ КАНАЛ • АВТОВХОД АКТИВЕН</div>
+        <div class="auth-info">ЗАЩИЩЕННЫЙ КАНАЛ • АВТОВХОД</div>
         <div id="autoLoginMsg" class="auto-login-msg" style="display:none;"></div>
     </div>
 </div>
 
-<!-- ========== ПАНЕЛЬ ИНСТРУМЕНТОВ ========== -->
 <div class="side-panel" id="ui-panel">
     <div onclick="setTool('move')" id="btn-move" class="tool-btn active"><b>🖐️</b><span>Рука</span></div>
     <div onclick="centerOnMe()" class="tool-btn"><b>📍</b><span>Я тут</span></div>
@@ -484,516 +151,272 @@
 <div id="map"></div>
 <div id="grid-overlay"></div>
 
-<!-- Чат -->
 <div id="chat-win">
     <div id="chat-messages"></div>
-    <div style="display:flex; gap:4px; padding:4px; background:#000; border-top:1px solid #0a0;">
-        <input id="chat-input" placeholder="Сообщение..." onkeypress="if(event.key==='Enter') sendChatMessage()">
+    <div style="display:flex;gap:4px;padding:4px;background:#000;border-top:1px solid #0a0;">
+        <input id="chat-input" placeholder="Сообщение..." onkeypress="if(event.key==='Enter')sendChatMessage()">
         <button id="send-btn" onclick="sendChatMessage()">📡</button>
     </div>
 </div>
 
 <script>
-// ==================== SOCKET.IO ====================
-const socket = io({
-    transports: ['websocket', 'polling'],
-    reconnection: true,
-    reconnectionDelay: 1000,
-    reconnectionDelayMax: 5000,
-    reconnectionAttempts: Infinity,
-    timeout: 20000,
-    pingInterval: 25000,
-    pingTimeout: 60000,
-    autoConnect: true
-});
+const socket = io({ transports:['websocket','polling'], reconnection:true, reconnectionDelay:1000, reconnectionDelayMax:5000, reconnectionAttempts:Infinity, timeout:20000, pingInterval:25000, pingTimeout:60000, autoConnect:true });
 
-let map;
-let activeTool = 'move';
-let currentUser = { name: '', team: '', color: '#0f0' };
-let playersMarkers = {};
-let tacticalObjects = {};
-let myObjects = new Set();
-let rulerPoints = [];
-let gridLayer = null;
-let tileLayer = null;
-let playerColors = {};
-let watchId = null;
-let keepAliveInterval = null;
-let distancePopup = null;
+let map, activeTool='move', currentUser={name:'',team:'',color:'#0f0'};
+let playersMarkers={}, tacticalObjects={}, myObjects=new Set(), rulerPoints=[], gridLayer=null, tileLayer=null, playerColors={}, watchId=null, keepAliveInterval=null, distancePopup=null, distanceTimer=null;
 
-// Размер сетки зависит от зума
-function getGridSize() {
-    if (!map) return 20;
-    const zoom = map.getZoom();
-    if (zoom < 14) return 80;      // Очень мелко — большие квадраты
-    if (zoom < 16) return 40;      // Средне
-    if (zoom < 18) return 20;      // Нормально
-    return 20;                      // Крупно
-}
+const METERS_PER_DEGREE=111320;
+const RUSSIAN_LETTERS=['А','Б','В','Г','Д','Е','Ё','Ж','З','И','Й','К','Л','М','Н','О','П','Р','С','Т','У','Ф','Х','Ц','Ч','Ш','Щ','Ъ','Ы','Ь','Э','Ю','Я'];
 
-const METERS_PER_DEGREE = 111320;
-const RUSSIAN_LETTERS = ['А','Б','В','Г','Д','Е','Ё','Ж','З','И','Й','К','Л','М','Н','О','П','Р','С','Т','У','Ф','Х','Ц','Ч','Ш','Щ','Ъ','Ы','Ь','Э','Ю','Я'];
+// ==================== АВТОВХОД ====================
+const STORAGE_KEY='scorpion_session';
+function saveSession(){ const s={team:currentUser.team,name:currentUser.name,color:currentUser.color,timestamp:Date.now()}; localStorage.setItem(STORAGE_KEY,JSON.stringify(s)); }
+function loadSession(){ try{ const d=localStorage.getItem(STORAGE_KEY); if(d){ const s=JSON.parse(d); if(Date.now()-s.timestamp<86400000) return s; } }catch(e){} return null; }
+function clearSession(){ localStorage.removeItem(STORAGE_KEY); }
 
-// ==================== АВТОВХОД (LOCALSTORAGE) ====================
-const STORAGE_KEY = 'scorpion_session';
-
-function saveSession() {
-    const session = {
-        team: currentUser.team,
-        name: currentUser.name,
-        color: currentUser.color,
-        timestamp: Date.now()
-    };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
-    console.log('💾 Сессия сохранена');
-}
-
-function loadSession() {
-    try {
-        const data = localStorage.getItem(STORAGE_KEY);
-        if (data) {
-            const session = JSON.parse(data);
-            // Сессия действительна 24 часа
-            if (Date.now() - session.timestamp < 86400000) {
-                return session;
-            }
-        }
-    } catch (e) {
-        console.log('Ошибка загрузки сессии');
-    }
-    return null;
-}
-
-function clearSession() {
-    localStorage.removeItem(STORAGE_KEY);
-    console.log('🗑️ Сессия удалена');
-}
-
-// Попытка автовхода при загрузке
-function tryAutoLogin() {
-    const session = loadSession();
-    if (session && session.team && session.name) {
-        console.log('🔄 Автовход:', session.name);
-        
-        currentUser.name = session.name;
-        currentUser.team = session.team;
-        currentUser.color = session.color;
-        
-        // Показываем сообщение
-        const msg = document.getElementById('autoLoginMsg');
-        msg.textContent = `↻ Автовход: ${session.name}`;
-        msg.style.display = 'block';
-        setTimeout(() => msg.style.display = 'none', 2500);
-        
-        // Отправляем на сервер
-        socket.emit('join_room', {
-            room: session.team,
-            name: session.name,
-            team: session.team,
-            pass: '1234' // Сохраненный пароль или дефолтный
-        });
-        
+function tryAutoLogin(){
+    const s=loadSession();
+    if(s&&s.team&&s.name){
+        currentUser.name=s.name; currentUser.team=s.team; currentUser.color=s.color;
+        const msg=document.getElementById('autoLoginMsg');
+        msg.textContent=`↻ Автовход: ${s.name}`; msg.style.display='block';
+        setTimeout(()=>msg.style.display='none',2500);
+        socket.emit('join_room',{room:s.team,name:s.name,team:s.team,pass:'1234'});
         return true;
     }
     return false;
 }
 
 // ==================== АНТИ-БЛОКИРОВКА ====================
-document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') {
-        if (socket.disconnected && currentUser.name) {
+document.addEventListener('visibilitychange',()=>{
+    if(document.visibilityState==='visible'){
+        if(socket.disconnected&&currentUser.name){
             socket.connect();
-            setTimeout(() => {
-                if (socket.connected) {
-                    socket.emit('rejoin_room', {
-                        room: currentUser.team,
-                        name: currentUser.name,
-                        color: currentUser.color
-                    });
-                }
-            }, 1000);
+            setTimeout(()=>{ if(socket.connected) socket.emit('rejoin_room',{room:currentUser.team,name:currentUser.name,color:currentUser.color}); },1000);
         }
-    } else {
-        if (socket.connected && currentUser.name) {
-            socket.emit('keep_alive', { name: currentUser.name, room: currentUser.team });
-        }
-    }
+    }else{ if(socket.connected&&currentUser.name) socket.emit('keep_alive',{name:currentUser.name,room:currentUser.team}); }
 });
+window.addEventListener('beforeunload',()=>{ if(currentUser.name) saveSession(); });
+function startKeepAlive(){ if(keepAliveInterval)clearInterval(keepAliveInterval); keepAliveInterval=setInterval(()=>{ if(socket.connected&&currentUser.name) socket.emit('keep_alive',{name:currentUser.name,room:currentUser.team}); },20000); }
 
-// Before unload — сохраняем сессию
-window.addEventListener('beforeunload', () => {
-    if (currentUser.name) {
-        saveSession();
-    }
-});
-
-function startKeepAlive() {
-    if (keepAliveInterval) clearInterval(keepAliveInterval);
-    keepAliveInterval = setInterval(() => {
-        if (socket.connected && currentUser.name) {
-            socket.emit('keep_alive', { name: currentUser.name, room: currentUser.team });
-        }
-    }, 20000);
-}
-
-// Статус соединения
-socket.on('connect', () => {
-    const el = document.getElementById('connection-status');
-    el.textContent = '🟢 ОНЛАЙН';
-    el.style.color = '#0f0';
-    el.style.display = 'block';
-    setTimeout(() => el.style.display = 'none', 3000);
-});
-
-socket.on('disconnect', () => {
-    const el = document.getElementById('connection-status');
-    el.textContent = '🔴 ОФЛАЙН';
-    el.style.color = '#f00';
-    el.style.display = 'block';
-});
-
-socket.on('midnight_clear', () => {
-    for (const [id, obj] of Object.entries(tacticalObjects)) {
-        obj.layers.forEach(l => { if (map && map.hasLayer(l)) map.removeLayer(l); });
-    }
-    tacticalObjects = {};
-    myObjects.clear();
-    addChatMessage('🕛 СИСТЕМА', 'Все метки очищены (полночь)', '#ffaa00');
-});
+socket.on('connect',()=>{ const el=document.getElementById('connection-status'); el.textContent='🟢 ОНЛАЙН'; el.style.color='#0f0'; el.style.display='block'; setTimeout(()=>el.style.display='none',3000); });
+socket.on('disconnect',()=>{ const el=document.getElementById('connection-status'); el.textContent='🔴 ОФЛАЙН'; el.style.color='#f00'; el.style.display='block'; });
+socket.on('midnight_clear',()=>{ for(const[id,obj]of Object.entries(tacticalObjects)){ obj.layers.forEach(l=>{ if(map&&map.hasLayer(l)) map.removeLayer(l); }); } tacticalObjects={}; myObjects.clear(); addChatMessage('🕛 СИСТЕМА','Все метки очищены (полночь)','#ffaa00'); });
 
 // ==================== АВТОРИЗАЦИЯ ====================
-function doLogin() {
-    const team = document.getElementById('teamName').value.trim().toUpperCase();
-    const name = document.getElementById('playerName').value.trim().toUpperCase();
-    const password = document.getElementById('password').value;
-    
-    if (!team) { alert('Введите название команды!'); return; }
-    if (!name) { alert('Введите позывной!'); return; }
-    if (!password) { alert('Введите пароль!'); return; }
-    
-    currentUser.name = name;
-    currentUser.team = team;
-    
-    socket.emit('join_room', { room: team, name: name, team: team, pass: password });
+function doLogin(){
+    const team=document.getElementById('teamName').value.trim().toUpperCase();
+    const name=document.getElementById('playerName').value.trim().toUpperCase();
+    const pass=document.getElementById('password').value;
+    if(!team){alert('Введите команду!');return;} if(!name){alert('Введите позывной!');return;} if(!pass){alert('Введите пароль!');return;}
+    currentUser.name=name; currentUser.team=team;
+    socket.emit('join_room',{room:team,name,team,pass});
 }
-
-socket.on('login_success', (data) => {
-    currentUser.color = data.color;
-    playerColors[currentUser.name] = data.color;
-    
-    // Сохраняем сессию
-    saveSession();
-    
-    document.getElementById('auth-screen').style.display = 'none';
-    document.getElementById('ui-panel').style.display = 'flex';
-    document.getElementById('chat-win').style.display = 'flex';
-    
-    initMap();
-    startGeolocation();
-    startKeepAlive();
-    
-    addChatMessage('СИСТЕМА', `Вы вошли: ${currentUser.name}. Меток: ${data.objectsCount || 0}`, '#0f0');
+socket.on('login_success',(data)=>{
+    currentUser.color=data.color; playerColors[currentUser.name]=data.color; saveSession();
+    document.getElementById('auth-screen').style.display='none';
+    document.getElementById('ui-panel').style.display='flex';
+    document.getElementById('chat-win').style.display='flex';
+    initMap(); startGeolocation(); startKeepAlive();
+    addChatMessage('СИСТЕМА',`${currentUser.name} на связи. Меток: ${data.objectsCount||0}`,'#0f0');
 });
-
-socket.on('login_failed', (err) => {
-    clearSession();
-    alert('Ошибка: ' + (err?.reason || 'Неверные данные'));
-});
+socket.on('login_failed',(err)=>{ clearSession(); alert('Ошибка: '+(err?.reason||'Неверные данные')); });
 
 // ==================== ИГРОКИ ====================
-socket.on('existing_players', (players) => {
-    players.forEach(p => {
-        if (p.name !== currentUser.name) {
-            playerColors[p.name] = p.color;
-            updatePlayerMarker(p.name, p.lat, p.lng, p.color);
-        }
-    });
-});
+socket.on('existing_players',(p)=>p.forEach(x=>{ if(x.name!==currentUser.name){ playerColors[x.name]=x.color; updatePlayerMarker(x.name,x.lat,x.lng,x.color); } }));
+socket.on('player_joined',(d)=>{ if(d.name!==currentUser.name){ playerColors[d.name]=d.color; updatePlayerMarker(d.name,d.lat,d.lng,d.color); addChatMessage('СИСТЕМА','→ '+d.name+' на связи','#0f0'); } });
+socket.on('player_reconnected',(d)=>{ if(d.name!==currentUser.name) addChatMessage('СИСТЕМА','↻ '+d.name+' восстановился','#0af'); });
+socket.on('player_left',(d)=>{ if(playersMarkers[d.name]){ map.removeLayer(playersMarkers[d.name]); delete playersMarkers[d.name]; delete playerColors[d.name]; addChatMessage('СИСТЕМА','← '+d.name+' отключился','#f44'); } });
+socket.on('player_move',(d)=>{ if(d.name!==currentUser.name) updatePlayerMarker(d.name,d.lat,d.lng,d.color); });
 
-socket.on('player_joined', (data) => {
-    if (data.name !== currentUser.name) {
-        playerColors[data.name] = data.color;
-        updatePlayerMarker(data.name, data.lat, data.lng, data.color);
-        addChatMessage('СИСТЕМА', `→ ${data.name} на связи`, '#0f0');
-    }
-});
-
-socket.on('player_reconnected', (data) => {
-    if (data.name !== currentUser.name) {
-        addChatMessage('СИСТЕМА', `↻ ${data.name} восстановился`, '#0af');
-    }
-});
-
-socket.on('player_left', (data) => {
-    if (playersMarkers[data.name]) {
-        map.removeLayer(playersMarkers[data.name]);
-        delete playersMarkers[data.name];
-        delete playerColors[data.name];
-        addChatMessage('СИСТЕМА', `← ${data.name} отключился`, '#f44');
-    }
-});
-
-socket.on('player_move', (data) => {
-    if (data.name !== currentUser.name) {
-        updatePlayerMarker(data.name, data.lat, data.lng, data.color);
-    }
-});
-
-// ==================== ОБЪЕКТЫ ====================
-socket.on('draw', (obj) => {
-    if (tacticalObjects[obj.id]) {
-        tacticalObjects[obj.id].layers.forEach(l => { if (map && map.hasLayer(l)) map.removeLayer(l); });
-        delete tacticalObjects[obj.id];
-    }
+// ==================== ОБЪЕКТЫ (С ПОКАЗОМ АВТОРА) ====================
+socket.on('draw',(obj)=>{
+    if(tacticalObjects[obj.id]){ tacticalObjects[obj.id].layers.forEach(l=>{ if(map&&map.hasLayer(l)) map.removeLayer(l); }); delete tacticalObjects[obj.id]; }
+    let layers=[];
+    const creatorName=obj.creator||'Неизвестный';
     
-    let layers = [];
-    
-    if (obj.type === 'enemy' || obj.type === 'target') {
-        const iconHtml = obj.type === 'enemy' ? '💀' : '🎯';
-        const icon = L.divIcon({
-            html: `<div style="font-size:34px; filter:drop-shadow(2px 2px 3px black); cursor:pointer;">${iconHtml}</div>`,
-            iconSize: [34, 34], iconAnchor: [17, 17], className: ''
+    if(obj.type==='enemy'||obj.type==='target'){
+        const iconHtml=obj.type==='enemy'?'💀':'🎯';
+        const icon=L.divIcon({ html:`<div style="font-size:34px;filter:drop-shadow(2px 2px 3px black);cursor:pointer;">${iconHtml}</div>`, iconSize:[34,34], iconAnchor:[17,17], className:'' });
+        const marker=L.marker([obj.lat,obj.lng],{icon,zIndexOffset:500}).addTo(map);
+        
+        // Показываем автора при клике
+        marker.on('click',()=>{
+            if(activeTool==='eraser'){ socket.emit('delete_obj',obj.id); return; }
+            const tip=L.popup({closeButton:false,className:'creator-tooltip',autoClose:true,closeOnClick:true})
+                .setLatLng([obj.lat,obj.lng])
+                .setContent(`👤 <b>${creatorName}</b>`)
+                .openOn(map);
+            setTimeout(()=>{ if(map.hasLayer(tip)) map.removeLayer(tip); },3000);
         });
-        const marker = L.marker([obj.lat, obj.lng], { icon, zIndexOffset: 500 }).addTo(map);
-        marker.on('click', () => { if (activeTool === 'eraser') socket.emit('delete_obj', obj.id); });
+        
         layers.push(marker);
     }
-    else if (obj.type === 'arrow') {
-        const line = L.polyline([obj.start, obj.end], { color: '#f44', weight: 4, opacity: 0.8, interactive: true }).addTo(map);
-        const angle = Math.atan2(obj.end.lat - obj.start.lat, obj.end.lng - obj.start.lng);
-        const head = L.polygon([
-            obj.end,
-            { lat: obj.end.lat + Math.sin(angle + 2.5) * 8e-5, lng: obj.end.lng + Math.cos(angle + 2.5) * 8e-5 },
-            { lat: obj.end.lat + Math.sin(angle - 2.5) * 8e-5, lng: obj.end.lng + Math.cos(angle - 2.5) * 8e-5 }
-        ], { color: '#f44', fillColor: '#f44', fillOpacity: 0.8, interactive: true }).addTo(map);
-        const erase = () => { if (activeTool === 'eraser') socket.emit('delete_obj', obj.id); };
-        line.on('click', erase);
-        head.on('click', erase);
-        layers.push(line, head);
+    else if(obj.type==='arrow'){
+        const line=L.polyline([obj.start,obj.end],{color:'#f44',weight:4,opacity:0.8,interactive:true}).addTo(map);
+        const angle=Math.atan2(obj.end.lat-obj.start.lat,obj.end.lng-obj.start.lng);
+        const head=L.polygon([obj.end,{lat:obj.end.lat+Math.sin(angle+2.5)*8e-5,lng:obj.end.lng+Math.cos(angle+2.5)*8e-5},{lat:obj.end.lat+Math.sin(angle-2.5)*8e-5,lng:obj.end.lng+Math.cos(angle-2.5)*8e-5}],{color:'#f44',fillColor:'#f44',fillOpacity:0.8,interactive:true}).addTo(map);
+        
+        const showCreator=(e)=>{
+            if(activeTool==='eraser'){ socket.emit('delete_obj',obj.id); return; }
+            L.popup({closeButton:false,className:'creator-tooltip',autoClose:true})
+                .setLatLng(e.latlng)
+                .setContent(`👤 <b>${creatorName}</b>`)
+                .openOn(map);
+        };
+        line.on('click',showCreator); head.on('click',showCreator);
+        layers.push(line,head);
     }
-    else if (obj.type === 'ruler') {
-        const line = L.polyline([obj.start, obj.end], { color: '#ff0', weight: 3, dashArray: '10,10', interactive: true }).addTo(map);
-        const dist = map.distance([obj.start.lat, obj.start.lng], [obj.end.lat, obj.end.lng]);
-        const txt = dist < 1000 ? `${Math.round(dist)} м` : `${(dist/1000).toFixed(1)} км`;
-        const mid = { lat: (obj.start.lat + obj.end.lat) / 2, lng: (obj.start.lng + obj.end.lng) / 2 };
-        const label = L.marker([mid.lat, mid.lng], {
-            icon: L.divIcon({ html: `<div style="background:#000; color:#ff0; padding:4px 8px; border:1px solid #ff0; border-radius:12px; font-size:12px; font-weight:bold;">📏 ${txt}</div>`, iconSize: [80, 24], iconAnchor: [40, 12], className: '' }),
-            interactive: false
-        }).addTo(map);
-        line.on('click', () => { if (activeTool === 'eraser') socket.emit('delete_obj', obj.id); });
-        layers.push(line, label);
+    else if(obj.type==='ruler'){
+        const line=L.polyline([obj.start,obj.end],{color:'#ff0',weight:3,dashArray:'10,10',interactive:true}).addTo(map);
+        const dist=map.distance([obj.start.lat,obj.start.lng],[obj.end.lat,obj.end.lng]);
+        const txt=dist<1000?`${Math.round(dist)} м`:`${(dist/1000).toFixed(1)} км`;
+        const mid={lat:(obj.start.lat+obj.end.lat)/2,lng:(obj.start.lng+obj.end.lng)/2};
+        const label=L.marker([mid.lat,mid.lng],{icon:L.divIcon({html:`<div style="background:#000;color:#ff0;padding:4px 8px;border:1px solid #ff0;border-radius:12px;font-size:12px;font-weight:bold;">📏 ${txt}</div>`,iconSize:[80,24],iconAnchor:[40,12],className:''}),interactive:false}).addTo(map);
+        
+        line.on('click',(e)=>{
+            if(activeTool==='eraser'){ socket.emit('delete_obj',obj.id); return; }
+            L.popup({closeButton:false,className:'creator-tooltip',autoClose:true})
+                .setLatLng(e.latlng)
+                .setContent(`👤 <b>${creatorName}</b>`)
+                .openOn(map);
+        });
+        layers.push(line,label);
     }
     
-    tacticalObjects[obj.id] = { type: obj.type, layers, creator: obj.creator };
-    if (obj.creator === currentUser.name) myObjects.add(obj.id);
+    tacticalObjects[obj.id]={type:obj.type,layers,creator:creatorName};
+    if(obj.creator===currentUser.name) myObjects.add(obj.id);
 });
 
-socket.on('remove_obj', (id) => {
-    if (tacticalObjects[id]) {
-        tacticalObjects[id].layers.forEach(l => { if (map && map.hasLayer(l)) map.removeLayer(l); });
-        delete tacticalObjects[id];
-        myObjects.delete(id);
-    }
-});
+socket.on('remove_obj',(id)=>{ if(tacticalObjects[id]){ tacticalObjects[id].layers.forEach(l=>{ if(map&&map.hasLayer(l)) map.removeLayer(l); }); delete tacticalObjects[id]; myObjects.delete(id); } });
 
 // ==================== ЧАТ ====================
-socket.on('receive_msg', (data) => {
-    let name, text, color;
-    if (typeof data === 'string') {
-        const m = data.match(/^([^:]+):\s*(.+)$/);
-        name = m ? m[1] : 'СИСТЕМА';
-        text = m ? m[2] : data;
-        color = playerColors[name] || '#ccc';
-    } else {
-        name = data.name || 'Аноним';
-        text = data.text || '';
-        color = data.color || playerColors[name] || '#ccc';
-    }
-    addChatMessage(name, text, color);
+socket.on('receive_msg',(data)=>{
+    let name,text,color;
+    if(typeof data==='string'){ const m=data.match(/^([^:]+):\s*(.+)$/); name=m?m[1]:'СИСТЕМА'; text=m?m[2]:data; color=playerColors[name]||'#ccc'; }
+    else{ name=data.name||'Аноним'; text=data.text||''; color=data.color||playerColors[name]||'#ccc'; }
+    addChatMessage(name,text,color);
 });
 
 // ==================== КАРТА ====================
-function initMap() {
-    if (map) return;
-    map = L.map('map', { zoomControl: true, attributionControl: false, maxZoom: 21, minZoom: 10, tap: true })
-        .setView([55.7558, 37.6176], 18);
-    tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 21 }).addTo(map);
-    map.on('click', handleMapClick);
-    map.on('moveend', drawGrid);
-    map.on('zoomend', drawGrid);
-    drawGrid();
-    setTimeout(() => { map.invalidateSize(); drawGrid(); }, 500);
+function initMap(){
+    if(map)return;
+    map=L.map('map',{zoomControl:true,attributionControl:false,maxZoom:21,minZoom:10,tap:true}).setView([55.7558,37.6176],18);
+    tileLayer=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:21}).addTo(map);
+    map.on('click',handleMapClick); map.on('moveend',drawGrid); map.on('zoomend',drawGrid);
+    drawGrid(); setTimeout(()=>{map.invalidateSize();drawGrid();},500);
 }
 
-function startGeolocation() {
-    if (!navigator.geolocation) return;
-    if (watchId) navigator.geolocation.clearWatch(watchId);
-    watchId = navigator.geolocation.watchPosition(
-        pos => {
-            updateMyPosition(pos.coords.latitude, pos.coords.longitude);
-            socket.emit('gps_sync', { lat: pos.coords.latitude, lng: pos.coords.longitude });
-        },
-        err => console.warn('GPS:', err.message),
-        { enableHighAccuracy: true, maximumAge: 3000, timeout: 10000 }
-    );
+function startGeolocation(){
+    if(!navigator.geolocation)return; if(watchId)navigator.geolocation.clearWatch(watchId);
+    watchId=navigator.geolocation.watchPosition(pos=>{updateMyPosition(pos.coords.latitude,pos.coords.longitude);socket.emit('gps_sync',{lat:pos.coords.latitude,lng:pos.coords.longitude});},err=>console.warn('GPS:',err.message),{enableHighAccuracy:true,maximumAge:3000,timeout:10000});
 }
 
-function updateMyPosition(lat, lng) {
-    if (!map) return;
-    if (playersMarkers[currentUser.name]) {
-        playersMarkers[currentUser.name].setLatLng([lat, lng]);
-    } else {
-        const icon = createPlayerIcon(currentUser.name, currentUser.color);
-        playersMarkers[currentUser.name] = L.marker([lat, lng], { icon, zIndexOffset: 1000 }).addTo(map);
+function updateMyPosition(lat,lng){
+    if(!map)return;
+    if(playersMarkers[currentUser.name]){ playersMarkers[currentUser.name].setLatLng([lat,lng]); }
+    else{ playersMarkers[currentUser.name]=L.marker([lat,lng],{icon:createPlayerIcon(currentUser.name,currentUser.color),zIndexOffset:1000}).addTo(map); }
+}
+
+function createPlayerIcon(name,color){
+    return L.divIcon({html:`<div class="player-marker"><div class="player-name-tag" style="color:${color}">${name}</div><div class="player-dot" style="background:${color}"></div></div>`,iconSize:[70,36],iconAnchor:[35,28],className:''});
+}
+
+function updatePlayerMarker(name,lat,lng,color){
+    if(!map||!name||name===currentUser.name)return;
+    if(playersMarkers[name]){ playersMarkers[name].setLatLng([lat,lng]); }
+    else{
+        const icon=createPlayerIcon(name,color||'#fff');
+        playersMarkers[name]=L.marker([lat,lng],{icon,zIndexOffset:900}).addTo(map);
+        const marker=playersMarkers[name];
+        let timer,startPos;
+        const start=(e)=>{ startPos=e.latlng; timer=setTimeout(()=>showDist(name,startPos),500); };
+        const stop=()=>{ clearTimeout(timer); };
+        marker.on('mousedown',start); marker.on('mouseup',stop); marker.on('mouseout',stop);
+        marker.on('touchstart',start); marker.on('touchend',stop);
     }
 }
 
-function createPlayerIcon(name, color) {
-    return L.divIcon({
-        html: `<div class="player-marker"><div class="player-name-tag" style="color:${color}">${name}</div><div class="player-dot" style="background:${color}"></div></div>`,
-        iconSize: [70, 36], iconAnchor: [35, 28], className: ''
-    });
-}
-
-function updatePlayerMarker(name, lat, lng, color) {
-    if (!map || !name || name === currentUser.name) return;
-    if (playersMarkers[name]) {
-        playersMarkers[name].setLatLng([lat, lng]);
-    } else {
-        const icon = createPlayerIcon(name, color || '#fff');
-        playersMarkers[name] = L.marker([lat, lng], { icon, zIndexOffset: 900 }).addTo(map);
-        
-        const marker = playersMarkers[name];
-        let timer, startPos;
-        const start = (e) => {
-            startPos = e.latlng;
-            timer = setTimeout(() => showDist(name, startPos), 500);
-        };
-        const stop = () => { clearTimeout(timer); hideDist(); };
-        marker.on('mousedown', start);
-        marker.on('mouseup', stop);
-        marker.on('mouseout', stop);
-        marker.on('touchstart', start);
-        marker.on('touchend', stop);
-    }
-}
-
-function showDist(name, pos) {
-    if (!playersMarkers[currentUser.name]) return;
-    const myPos = playersMarkers[currentUser.name].getLatLng();
-    const d = map.distance(myPos, pos);
-    const txt = d < 1000 ? `${Math.round(d)} м` : `${(d/1000).toFixed(1)} км`;
-    if (distancePopup) map.removeLayer(distancePopup);
-    distancePopup = L.popup({ closeButton: false, className: 'distance-tooltip', autoClose: false })
+function showDist(name,pos){
+    if(!playersMarkers[currentUser.name])return;
+    const myPos=playersMarkers[currentUser.name].getLatLng();
+    const d=map.distance(myPos,pos);
+    const txt=d<1000?`${Math.round(d)} м`:`${(d/1000).toFixed(1)} км`;
+    if(distancePopup) map.removeLayer(distancePopup);
+    if(distanceTimer) clearTimeout(distanceTimer);
+    distancePopup=L.popup({closeButton:false,className:'distance-tooltip',autoClose:false})
         .setLatLng(pos).setContent(`📏 <b>${name}: ${txt}</b>`).openOn(map);
+    // Исчезает через 5 секунд
+    distanceTimer=setTimeout(()=>{ if(distancePopup){ map.removeLayer(distancePopup); distancePopup=null; } },5000);
 }
 
-function hideDist() {
-    if (distancePopup) { map.removeLayer(distancePopup); distancePopup = null; }
-}
-
-function centerOnMe() {
-    if (playersMarkers[currentUser.name]) {
-        map.setView(playersMarkers[currentUser.name].getLatLng(), map.getZoom());
-    } else { alert('Позиция не определена'); }
+function centerOnMe(){
+    if(playersMarkers[currentUser.name]){ map.setView(playersMarkers[currentUser.name].getLatLng(),map.getZoom()); }
+    else{alert('Позиция не определена');}
 }
 
 // ==================== КЛИКИ ====================
-function handleMapClick(e) {
-    const { lat, lng } = e.latlng;
-    if (activeTool === 'enemy' || activeTool === 'target') {
-        socket.emit('new_obj', {
-            id: `${activeTool}_${Date.now()}_${Math.random().toString(36).substr(2,9)}`,
-            type: activeTool, lat, lng, creator: currentUser.name
-        });
-    } else if (activeTool === 'arrow' || activeTool === 'ruler') {
-        rulerPoints.push({ lat, lng });
-        if (rulerPoints.length === 2) {
-            socket.emit('new_obj', {
-                id: `${activeTool}_${Date.now()}_${Math.random().toString(36).substr(2,9)}`,
-                type: activeTool, start: rulerPoints[0], end: rulerPoints[1], creator: currentUser.name
-            });
-            rulerPoints = [];
-        } else {
-            L.popup().setLatLng([lat, lng]).setContent(`<b>👆 Вторая точка</b>`).openOn(map);
-        }
+function handleMapClick(e){
+    const{lat,lng}=e.latlng;
+    if(activeTool==='enemy'||activeTool==='target'){
+        socket.emit('new_obj',{id:`${activeTool}_${Date.now()}_${Math.random().toString(36).substr(2,9)}`,type:activeTool,lat,lng,creator:currentUser.name});
+    }else if(activeTool==='arrow'||activeTool==='ruler'){
+        rulerPoints.push({lat,lng});
+        if(rulerPoints.length===2){
+            socket.emit('new_obj',{id:`${activeTool}_${Date.now()}_${Math.random().toString(36).substr(2,9)}`,type:activeTool,start:rulerPoints[0],end:rulerPoints[1],creator:currentUser.name});
+            rulerPoints=[];
+        }else{ L.popup().setLatLng([lat,lng]).setContent('<b>👆 Вторая точка</b>').openOn(map); }
     }
 }
 
-function deleteMyObjects() {
-    const ids = Array.from(myObjects);
-    ids.forEach(id => socket.emit('delete_obj', id));
-    myObjects.clear();
-}
+function deleteMyObjects(){ const ids=Array.from(myObjects); ids.forEach(id=>socket.emit('delete_obj',id)); myObjects.clear(); }
 
-// ==================== СЕТКА (ЧЕРНАЯ, ДИНАМИЧЕСКИЙ РАЗМЕР) ====================
-function drawGrid() {
-    if (!map) return;
+// ==================== СЕТКА (ТОЛЬКО ПРИ ПРИБЛИЖЕНИИ) ====================
+function drawGrid(){
+    if(!map)return;
+    const overlay=document.getElementById('grid-overlay');
+    overlay.innerHTML='';
+    const zoom=map.getZoom();
     
-    const overlay = document.getElementById('grid-overlay');
-    overlay.innerHTML = '';
-    
-    const zoom = map.getZoom();
-    if (zoom < 10) return;
-    
-    const GRID_SIZE = getGridSize();
-    const GRID_STEP = (GRID_SIZE / METERS_PER_DEGREE);
-    
-    const bounds = map.getBounds();
-    const startLat = Math.floor(bounds.getSouth() / GRID_STEP) * GRID_STEP;
-    const endLat = Math.ceil(bounds.getNorth() / GRID_STEP) * GRID_STEP;
-    const startLng = Math.floor(bounds.getWest() / GRID_STEP) * GRID_STEP;
-    const endLng = Math.ceil(bounds.getEast() / GRID_STEP) * GRID_STEP;
-    
-    if (gridLayer) map.removeLayer(gridLayer);
-    gridLayer = L.layerGroup().addTo(map);
-    
-    // Линии сетки — ЧЕРНЫЕ с разной прозрачностью
-    const lineColor = zoom < 16 ? '#333' : '#444';
-    const lineOpacity = zoom < 16 ? 0.5 : 0.4;
-    const lineWeight = zoom < 16 ? 2 : 1.5;
-    
-    for (let lng = startLng; lng <= endLng; lng += GRID_STEP) {
-        L.polyline([[startLat, lng], [endLat, lng]], {
-            color: lineColor, weight: lineWeight, opacity: lineOpacity
-        }).addTo(gridLayer);
-    }
-    for (let lat = startLat; lat <= endLat; lat += GRID_STEP) {
-        L.polyline([[lat, startLng], [lat, endLng]], {
-            color: lineColor, weight: lineWeight, opacity: lineOpacity
-        }).addTo(gridLayer);
+    // Сетка только при zoom >= 16
+    if(zoom<16){
+        if(gridLayer){ map.removeLayer(gridLayer); gridLayer=null; }
+        return;
     }
     
-    // Буквы сверху
-    let ci = 0;
-    for (let lng = startLng; lng <= endLng; lng += GRID_STEP) {
-        const p = map.latLngToContainerPoint([bounds.getNorth(), lng + GRID_STEP/2]);
-        if (p.x > 20 && p.x < window.innerWidth - 20) {
-            const d = document.createElement('div');
-            d.className = 'grid-letter-top';
-            d.textContent = RUSSIAN_LETTERS[ci % RUSSIAN_LETTERS.length];
-            d.style.left = p.x + 'px';
-            d.style.top = Math.max(18, p.y - 12) + 'px';
-            // Увеличиваем шрифт при отдалении
-            if (zoom < 14) { d.style.fontSize = '16px'; d.style.padding = '4px 10px'; }
-            else if (zoom < 16) { d.style.fontSize = '13px'; d.style.padding = '3px 8px'; }
+    const GRID_SIZE=20;
+    const GRID_STEP=(GRID_SIZE/METERS_PER_DEGREE);
+    const bounds=map.getBounds();
+    const startLat=Math.floor(bounds.getSouth()/GRID_STEP)*GRID_STEP;
+    const endLat=Math.ceil(bounds.getNorth()/GRID_STEP)*GRID_STEP;
+    const startLng=Math.floor(bounds.getWest()/GRID_STEP)*GRID_STEP;
+    const endLng=Math.ceil(bounds.getEast()/GRID_STEP)*GRID_STEP;
+    
+    if(gridLayer) map.removeLayer(gridLayer);
+    gridLayer=L.layerGroup().addTo(map);
+    
+    for(let lng=startLng;lng<=endLng;lng+=GRID_STEP)
+        L.polyline([[startLat,lng],[endLat,lng]],{color:'#444',weight:1.5,opacity:0.4}).addTo(gridLayer);
+    for(let lat=startLat;lat<=endLat;lat+=GRID_STEP)
+        L.polyline([[lat,startLng],[lat,endLng]],{color:'#444',weight:1.5,opacity:0.4}).addTo(gridLayer);
+    
+    let ci=0;
+    for(let lng=startLng;lng<=endLng;lng+=GRID_STEP){
+        const p=map.latLngToContainerPoint([bounds.getNorth(),lng+GRID_STEP/2]);
+        if(p.x>20&&p.x<window.innerWidth-20){
+            const d=document.createElement('div'); d.className='grid-letter-top';
+            d.textContent=RUSSIAN_LETTERS[ci%RUSSIAN_LETTERS.length];
+            d.style.left=p.x+'px'; d.style.top=Math.max(18,p.y-12)+'px';
             overlay.appendChild(d);
         }
         ci++;
     }
-    
-    // Цифры справа
-    let ri = 0;
-    for (let lat = startLat; lat <= endLat; lat += GRID_STEP) {
-        const p = map.latLngToContainerPoint([lat + GRID_STEP/2, endLng]);
-        if (p.y > 20 && p.y < window.innerHeight - 20) {
-            const d = document.createElement('div');
-            d.className = 'grid-number-right';
-            d.textContent = ri % 100;
-            d.style.right = '8px';
-            d.style.top = p.y + 'px';
-            if (zoom < 14) { d.style.fontSize = '16px'; d.style.padding = '4px 10px'; }
-            else if (zoom < 16) { d.style.fontSize = '13px'; d.style.padding = '3px 8px'; }
+    let ri=0;
+    for(let lat=startLat;lat<=endLat;lat+=GRID_STEP){
+        const p=map.latLngToContainerPoint([lat+GRID_STEP/2,endLng]);
+        if(p.y>20&&p.y<window.innerHeight-20){
+            const d=document.createElement('div'); d.className='grid-number-right';
+            d.textContent=ri%100; d.style.right='8px'; d.style.top=p.y+'px';
             overlay.appendChild(d);
         }
         ri++;
@@ -1001,114 +424,60 @@ function drawGrid() {
 }
 
 // ==================== ЧАТ ====================
-function sendChatMessage() {
-    const input = document.getElementById('chat-input');
-    const text = input.value.trim();
-    if (!text) return;
-    socket.emit('chat_msg', { name: currentUser.name, text, color: currentUser.color });
-    input.value = '';
-    input.focus();
+function sendChatMessage(){
+    const input=document.getElementById('chat-input'); const text=input.value.trim();
+    if(!text)return;
+    socket.emit('chat_msg',{name:currentUser.name,text,color:currentUser.color});
+    input.value=''; input.focus();
 }
-
-function addChatMessage(name, text, color) {
-    const c = document.getElementById('chat-messages');
-    const d = document.createElement('div');
-    d.className = 'msg-line';
-    d.innerHTML = `<span class="msg-name" style="color:${color}">${esc(name)}:</span><span class="msg-text">${esc(text)}</span>`;
-    c.appendChild(d);
-    c.scrollTop = c.scrollHeight;
+function addChatMessage(name,text,color){
+    const c=document.getElementById('chat-messages'); const d=document.createElement('div');
+    d.className='msg-line'; d.innerHTML=`<span class="msg-name" style="color:${color}">${esc(name)}:</span><span class="msg-text">${esc(text)}</span>`;
+    c.appendChild(d); c.scrollTop=c.scrollHeight;
 }
-
-function esc(t) {
-    const d = document.createElement('div');
-    d.textContent = t;
-    return d.innerHTML;
-}
-
-function toggleChat() {
-    const c = document.getElementById('chat-win');
-    c.style.display = c.style.display === 'flex' ? 'none' : 'flex';
-    if (c.style.display === 'flex') document.getElementById('chat-input').focus();
-}
+function esc(t){ const d=document.createElement('div'); d.textContent=t; return d.innerHTML; }
+function toggleChat(){ const c=document.getElementById('chat-win'); c.style.display=c.style.display==='flex'?'none':'flex'; if(c.style.display==='flex')document.getElementById('chat-input').focus(); }
 
 // ==================== ИНСТРУМЕНТЫ ====================
-function setTool(t) {
-    activeTool = t;
-    rulerPoints = [];
-    hideDist();
-    document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
-    const btn = document.getElementById(`btn-${t}`);
-    if (btn) btn.classList.add('active');
-    if (map) map.closePopup();
+function setTool(t){
+    activeTool=t; rulerPoints=[];
+    if(distanceTimer){ clearTimeout(distanceTimer); distanceTimer=null; }
+    if(distancePopup){ map.removeLayer(distancePopup); distancePopup=null; }
+    document.querySelectorAll('.tool-btn').forEach(b=>b.classList.remove('active'));
+    const btn=document.getElementById(`btn-${t}`); if(btn)btn.classList.add('active');
+    if(map)map.closePopup();
 }
-
-function changeMap(type) {
-    if (tileLayer) map.removeLayer(tileLayer);
-    tileLayer = L.tileLayer(
-        type === 'sat' ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}' : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-        { maxZoom: 21 }
-    ).addTo(map);
+function changeMap(type){
+    if(tileLayer)map.removeLayer(tileLayer);
+    tileLayer=L.tileLayer(type==='sat'?'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}':'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:21}).addTo(map);
     drawGrid();
 }
-
-// ===== ВЫХОД (только по кнопке) =====
-function exitApp() {
-    if (confirm('Выйти из комнаты? Сессия будет удалена.')) {
-        // Очищаем сессию
+function exitApp(){
+    if(confirm('Выйти? Сессия удалится.')){
         clearSession();
-        
-        // Отключаемся
-        if (watchId) navigator.geolocation.clearWatch(watchId);
-        if (keepAliveInterval) clearInterval(keepAliveInterval);
+        if(watchId)navigator.geolocation.clearWatch(watchId);
+        if(keepAliveInterval)clearInterval(keepAliveInterval);
         socket.disconnect();
-        
-        // Очищаем данные
-        currentUser = { name: '', team: '', color: '#0f0' };
-        
-        // Перезагружаем страницу
+        currentUser={name:'',team:'',color:'#0f0'};
         location.reload();
     }
 }
 
-// ==================== РЕСАЙЗ ====================
-window.addEventListener('resize', () => {
-    if (map) setTimeout(() => { map.invalidateSize(); drawGrid(); }, 200);
-});
+window.addEventListener('resize',()=>{ if(map)setTimeout(()=>{map.invalidateSize();drawGrid();},200); });
 
-// ==================== ЗАПУСК ====================
-// Пытаемся автовойти при загрузке
-const autoLoggedIn = tryAutoLogin();
+const autoLoggedIn=tryAutoLogin();
+if(!autoLoggedIn) document.getElementById('auth-screen').style.display='flex';
 
-// Если не получилось — показываем экран входа
-if (!autoLoggedIn) {
-    document.getElementById('auth-screen').style.display = 'flex';
-}
+window.doLogin=doLogin; window.setTool=setTool; window.centerOnMe=centerOnMe;
+window.changeMap=changeMap; window.toggleChat=toggleChat; window.sendChatMessage=sendChatMessage;
+window.deleteMyObjects=deleteMyObjects; window.exitApp=exitApp;
 
-// Экспорт
-window.doLogin = doLogin;
-window.setTool = setTool;
-window.centerOnMe = centerOnMe;
-window.changeMap = changeMap;
-window.toggleChat = toggleChat;
-window.sendChatMessage = sendChatMessage;
-window.deleteMyObjects = deleteMyObjects;
-window.exitApp = exitApp;
-
-console.log('⚡ SCORPION TACTICAL v5.0 готов');
-console.log('✅ Сетка: черная/серая');
-console.log('✅ Квадраты: динамический размер');
-console.log('✅ Автовход: активен');
-console.log('✅ Выход: только по кнопке');
+console.log('⚡ SCORPION v5.0 — Сетка при zoom≥16, Расстояние 5 сек, Автор меток');
 </script>
 
-<!-- Service Worker -->
 <script>
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js')
-            .then(reg => console.log('📱 SW:', reg.scope))
-            .catch(err => console.log('📱 SW error:', err));
-    });
+if('serviceWorker' in navigator){
+    window.addEventListener('load',()=>{ navigator.serviceWorker.register('/sw.js').then(r=>console.log('📱 SW:',r.scope)).catch(e=>console.log('📱 SW:',e)); });
 }
 </script>
 </body>
