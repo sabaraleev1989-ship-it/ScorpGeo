@@ -3,42 +3,51 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SCORPION V18.2</title>
+    <title>SCORPION V18.3</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
         body, html { margin:0; padding:0; height:100%; background:#000; overflow:hidden; }
-        .side-panel { position:fixed; left:0; top:0; bottom:0; width:85px; background:rgba(10,10,10,0.98); border-right:3px solid #16a34a; z-index:5000; overflow-y:auto; }
-        .tool-btn { width:100%; height:80px; display:flex; flex-direction:column; align-items:center; justify-content:center; border-bottom:1px solid #222; cursor:pointer; color:#16a34a; pointer-events: auto; }
+        .side-panel { position:fixed; left:0; top:0; bottom:0; width:85px; background:rgba(10,10,10,0.98); border-right:3px solid #16a34a; z-index:5000; }
+        .tool-btn { width:100%; height:75px; display:flex; flex-direction:column; align-items:center; justify-content:center; border-bottom:1px solid #222; cursor:pointer; color:#16a34a; }
         .tool-btn.active { background:#166534; color:#fff; }
         
-        /* ПОЗЫВНОЙ БЕЗ ВСЕГО ЛИШНЕГО */
+        /* УЛЬТРА-ЧИСТЫЙ ПОЗЫВНОЙ */
+        .leaflet-tooltip-pane .p-label { background: none !important; border: none !important; box-shadow: none !important; }
         .p-label { 
-            text-align:center; font-weight:900; font-size:16px; 
-            text-shadow: 2px 2px 2px #000, -2px -2px 2px #000, 2px -2px 2px #000, -2px 2px 2px #000;
+            text-align:center; font-weight:900; font-size:16px; color: #fff;
+            text-shadow: 2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 0 2px 0 #000, 0 -2px 0 #000, 2px 0 0 #000, -2px 0 0 #000;
             white-space:nowrap; pointer-events: none;
         }
-        .p-dot { width:18px; height:18px; border-radius:50%; border:2px solid #fff; margin:0 auto; box-shadow:0 0 10px #000; }
+        .p-dot { width:16px; height:16px; border-radius:50%; border:2px solid #fff; margin:0 auto; box-shadow:0 0 8px #000; }
         
-        #grid-cont { position:fixed; inset:0; pointer-events:none; z-index:1000; }
-        .g-l { position:absolute; background:rgba(34,197,94,0.15); }
-        .g-t { position:absolute; color:#22c55e; font-size:12px; font-weight:bold; }
+        /* КОНТРАСТНАЯ СЕТКА */
+        .g-l { position:absolute; background:rgba(0,0,0,0.3); }
+        .g-t { 
+            position:absolute; color:#000; font-size:13px; font-weight:900; 
+            text-shadow: 1px 1px 0 #fff, -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff; 
+        }
 
-        #chat-win { position:fixed; bottom:15px; left:95px; right:15px; height:250px; background:rgba(0,0,0,0.95); border:2px solid #16a34a; z-index:6000; display:none; flex-direction:column; border-radius:10px; }
-        #map { height:100vh; width:100%; background:#050505; z-index: 1; }
-        .dist-label { color:#fff; font-weight:bold; background:rgba(255,0,0,0.9); padding:2px 6px; border-radius:4px; border:1px solid #fff; }
+        #chat-win { position:fixed; bottom:15px; left:95px; right:15px; height:220px; background:rgba(0,0,0,0.92); border:2px solid #16a34a; z-index:6000; display:none; flex-direction:column; border-radius:10px; }
+        .dist-label { color:#fff; font-weight:bold; background:#ff0000; padding:2px 6px; border-radius:4px; border:1px solid #fff; font-size:12px; }
+        .pulse-line { stroke-dasharray: 8; animation: dash 1s linear infinite; }
+        @keyframes dash { to { stroke-dashoffset: -16; } }
+        #map { height:100vh; width:100%; background:#050505; }
+        
+        /* Исправление для иконок Leaflet, чтобы не было белых квадратов */
+        .leaflet-marker-icon { background: none !important; border: none !important; }
     </style>
 </head>
 <body>
 
-<div id="auth-screen" class="fixed inset-0 z-[9999] bg-black flex flex-col items-center justify-center p-6 text-center">
+<div id="auth-screen" class="fixed inset-0 z-[9999] bg-black flex flex-col items-center justify-center p-6">
     <h1 class="text-green-500 font-black text-4xl mb-10 italic">SCORPION</h1>
     <div class="w-full max-w-xs space-y-4">
-        <input id="roomIn" type="text" placeholder="КОМНАТА" class="w-full bg-zinc-900 border-2 border-green-900 text-white p-4 text-center font-bold">
-        <input id="nameIn" type="text" placeholder="ПОЗЫВНОЙ" class="w-full bg-zinc-900 border-2 border-green-900 text-white p-4 text-center font-bold">
-        <input id="passIn" type="password" placeholder="ПАРОЛЬ" class="w-full bg-zinc-900 border-2 border-green-900 text-white p-4 text-center font-bold">
+        <input id="roomIn" type="text" placeholder="КОМНАТА" class="w-full bg-zinc-900 border-2 border-green-900 text-white p-4 text-center font-bold outline-none">
+        <input id="nameIn" type="text" placeholder="ПОЗЫВНОЙ" class="w-full bg-zinc-900 border-2 border-green-900 text-white p-4 text-center font-bold outline-none">
+        <input id="passIn" type="password" placeholder="ПАРОЛЬ" class="w-full bg-zinc-900 border-2 border-green-900 text-white p-4 text-center font-bold outline-none">
         <button onclick="startApp()" class="w-full bg-green-700 text-white p-5 font-black text-xl">ВХОД</button>
     </div>
 </div>
@@ -46,31 +55,31 @@
 <div id="app-ui" style="display:none">
     <div id="grid-cont"></div>
     <div class="side-panel">
-        <div onclick="setT('move')" id="b-move" class="tool-btn active"><b>🖐️</b><span>РУКА</span></div>
-        <div onclick="centerM()" class="tool-btn"><b>🎯</b><span>Я ТУТ</span></div>
-        <div onclick="setT('enemy')" id="b-enemy" class="tool-btn"><b>💀</b><span>ВРАГ</span></div>
-        <div onclick="setT('point')" id="b-point" class="tool-btn"><b>🚩</b><span>ЦЕЛЬ</span></div>
-        <div onclick="setT('arrow')" id="b-arrow" class="tool-btn"><b>➡️</b><span>УДАР</span></div>
-        <div onclick="setT('ruler')" id="b-ruler" class="tool-btn"><b>📏</b><span>МЕРКА</span></div>
-        <div onclick="setT('eraser')" id="b-eraser" class="tool-btn"><b>🧼</b><span>СТЕРКА</span></div>
-        <div onclick="toggleC()" class="tool-btn"><b>💬</b><span>СВЯЗЬ</span></div>
-        <div onclick="setM('sat')" class="tool-btn"><b>🛰️</b><span>САТ</span></div>
-        <div onclick="setM('map')" class="tool-btn"><b>🗺️</b><span>КАРТА</span></div>
-        <div onclick="clearM()" class="tool-btn text-yellow-500"><b>🗑️</b><span>СБРОС</span></div>
-        <div onclick="location.reload()" class="tool-btn text-red-600 border-t-2 border-red-900"><b>🚪</b><span>ВЫЙТИ</span></div>
+        <div onclick="setT('move')" id="b-move" class="tool-btn active"><b>🖐️</b><span class="text-[10px]">РУКА</span></div>
+        <div onclick="centerM()" class="tool-btn"><b>🎯</b><span class="text-[10px]">ГДЕ Я</span></div>
+        <div onclick="setT('enemy')" id="b-enemy" class="tool-btn"><b>💀</b><span class="text-[10px]">ВРАГ</span></div>
+        <div onclick="setT('point')" id="b-point" class="tool-btn"><b>🚩</b><span class="text-[10px]">ЦЕЛЬ</span></div>
+        <div onclick="setT('arrow')" id="b-arrow" class="tool-btn"><b>➡️</b><span class="text-[10px]">УДАР</span></div>
+        <div onclick="setT('ruler')" id="b-ruler" class="tool-btn"><b>📏</b><span class="text-[10px]">МЕРКА</span></div>
+        <div onclick="setT('eraser')" id="b-eraser" class="tool-btn"><b>🧼</b><span class="text-[10px]">СТЕРКА</span></div>
+        <div onclick="toggleC()" class="tool-btn"><b>💬</b><span class="text-[10px]">СВЯЗЬ</span></div>
+        <div onclick="setM('sat')" class="tool-btn"><b>🛰️</b><span class="text-[10px]">САТ</span></div>
+        <div onclick="setM('map')" class="tool-btn"><b>🗺️</b><span class="text-[10px]">КАРТА</span></div>
+        <div onclick="clearM()" class="tool-btn text-yellow-500"><b>🗑️</b><span class="text-[10px]">СБРОС</span></div>
+        <div onclick="location.reload()" class="tool-btn text-red-600 border-t-2 border-red-950"><b>🚪</b><span class="text-[10px]">ВЫЙТИ</span></div>
     </div>
 
     <div id="map"></div>
 
     <div id="chat-win">
-        <div class="bg-green-800 p-2 flex justify-between text-white font-bold text-sm rounded-t-lg">
-            <span>РАДИОСВЯЗЬ</span>
+        <div class="bg-green-800 p-2 flex justify-between text-white font-bold text-xs rounded-t-lg">
+            <span>РАДИОКАНАЛ</span>
             <button onclick="toggleC()">[X]</button>
         </div>
-        <div id="chat-m" class="flex-1 overflow-y-auto p-3 text-green-300 text-sm bg-black"></div>
-        <div class="p-2 border-t border-green-900 flex bg-zinc-900">
-            <input id="chatI" class="flex-1 bg-black text-white p-2 text-sm border border-green-700 outline-none rounded">
-            <button onclick="sendM()" class="ml-2 bg-green-700 px-6 text-white font-bold rounded">📡</button>
+        <div id="chat-m" class="flex-1 overflow-y-auto p-2 text-green-400 text-xs font-mono"></div>
+        <div class="p-2 border-t border-green-900 flex bg-black">
+            <input id="chatI" class="flex-1 bg-zinc-900 text-white p-2 text-xs border border-green-700 outline-none">
+            <button onclick="sendM()" class="ml-2 bg-green-700 px-4 text-white font-bold text-xs">📡</button>
         </div>
     </div>
 </div>
@@ -78,7 +87,8 @@
 <script>
     const socket = io();
     let map, myName, myColor, tool = 'move', userPos = {lat:0, lng:0};
-    let tacticalItems = {}, players = {}, dragL = null, dragS = null;
+    let tacticalItems = {}, players = {}, distL = null, distT = null;
+    let dragL = null, dragS = null;
 
     const baseL = {
         map: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'),
@@ -100,13 +110,15 @@
     });
 
     function initMap() {
-        map = L.map('map', { zoomControl: false, attributionControl: false }).setView([43.40, 39.95], 17);
+        map = L.map('map', { zoomControl: false, attributionControl: false, zoomSnap: 0.1 }).setView([43.40, 39.95], 17);
         baseL.map.addTo(map);
 
+        // МЕХАНИКА РИСОВАНИЯ (Drag and Drop)
         map.on('mousedown touchstart', e => {
             if (['arrow','ruler'].includes(tool)) {
                 dragS = e.latlng;
-                dragL = L.polyline([dragS, dragS], { color: tool==='arrow'?'red':'white', weight:5 }).addTo(map);
+                dragL = L.polyline([dragS, dragS], { color: tool==='arrow'?'red':'yellow', weight:4, dashArray: '5, 10' }).addTo(map);
+                map.dragging.disable();
             }
         });
 
@@ -116,6 +128,7 @@
             if (dragL) {
                 socket.emit('new_obj', { id: 'obj_'+Date.now(), type: tool, start: dragS, end: e.latlng });
                 map.removeLayer(dragL); dragL = null; dragS = null;
+                map.dragging.enable();
             }
         });
 
@@ -137,9 +150,10 @@
 
     function updateG() {
         const c = document.getElementById('grid-cont'); c.innerHTML = '';
-        if (map.getZoom() < 15) return;
-        const b = map.getBounds(); const step = 0.00020;
+        if (map.getZoom() < 14) return;
+        const b = map.getBounds(); const step = 0.00025;
         const ru = "АБВГДЕЖЗИКЛМНОПРСТУФХЦЧШЩЭЮЯ";
+        
         for (let x = Math.floor(b.getWest()/step)*step; x <= b.getEast(); x += step) {
             let p = map.latLngToContainerPoint([b.getNorth(), x]);
             if(p.x < 85) continue;
@@ -158,24 +172,35 @@
     }
 
     socket.on('draw', m => {
-        let list = [];
+        let items = [];
         if (m.type === 'ruler') {
-            const l = L.polyline([m.start, m.end], { color: 'white', weight: 4 }).addTo(map);
+            const l = L.polyline([m.start, m.end], { color: 'yellow', weight: 4 }).addTo(map);
             const d = Math.round(map.distance(m.start, m.end));
-            const lbl = L.marker(m.end, { icon: L.divIcon({ html: `<div class="dist-label">${d}м</div>`, iconAnchor:[-10,20] }) }).addTo(map);
-            list = [l, lbl];
+            const lbl = L.marker(m.end, { icon: L.divIcon({ html: `<div class="dist-label">${d}м</div>`, iconAnchor:[-5,20] }) }).addTo(map);
+            items = [l, lbl];
         } else if (m.type === 'arrow') {
-            const l = L.polyline([m.start, m.end], { color: 'red', weight: 6 }).addTo(map);
-            const h = L.circleMarker(m.end, {radius:8, color:'red', fillColor:'red', fillOpacity:1}).addTo(map);
-            list = [l, h];
+            const l = L.polyline([m.start, m.end], { color: 'red', weight: 5 }).addTo(map);
+            const head = L.circleMarker(m.end, {radius:6, color:'red', fillColor:'red', fillOpacity:1}).addTo(map);
+            items = [l, head];
         } else {
             const ico = m.type === 'enemy' ? '💀' : '🚩';
-            const it = L.marker([m.lat, m.lng], { icon: L.divIcon({ html: `<div style="font-size:35px; filter: drop-shadow(2px 2px 2px black);">${ico}</div>`, iconAnchor:[17,17] }) }).addTo(map);
-            it.on('click', () => { if (tool === 'eraser') socket.emit('delete_obj', m.id); });
-            list = [it];
+            const it = L.marker([m.lat, m.lng], { icon: L.divIcon({ html: `<div style="font-size:32px; text-shadow: 2px 2px #000;">${ico}</div>`, iconAnchor:[16,16] }) }).addTo(map);
+            it.on('click', (e) => {
+                if (tool === 'eraser') socket.emit('delete_obj', m.id);
+                if (tool === 'move') showD(m.lat, m.lng);
+                L.DomEvent.stopPropagation(e);
+            });
+            items = [it];
         }
-        tacticalItems[m.id] = list;
+        tacticalItems[m.id] = items;
     });
+
+    function showD(lat, lng) {
+        if(distL) map.removeLayer(distL); if(distT) map.removeLayer(distT);
+        distL = L.polyline([userPos, [lat, lng]], { color: 'red', weight: 3, className: 'pulse-line' }).addTo(map);
+        const d = Math.round(map.distance(userPos, [lat, lng]));
+        distT = L.marker([(userPos.lat+lat)/2, (userPos.lng+lng)/2], { icon: L.divIcon({ html: `<div class="dist-label">${d}м</div>` }) }).addTo(map);
+    }
 
     socket.on('remove_obj', id => { if(tacticalItems[id]) { tacticalItems[id].forEach(i => map.removeLayer(i)); delete tacticalItems[id]; } });
 
@@ -184,8 +209,9 @@
             html: `<div class="p-label" style="color:${col}">${name}</div><div class="p-dot" style="background:${col}"></div>`, 
             iconSize:[120,50], iconAnchor:[60,40] 
         });
-        if (!players[name]) players[name] = L.marker([pos.lat, pos.lng], { icon }).addTo(map);
-        else players[name].setLatLng([pos.lat, pos.lng]).setIcon(icon);
+        if (!players[name]) {
+            players[name] = L.marker([pos.lat, pos.lng], { icon }).addTo(map).on('click', () => { if(tool==='move') showD(pos.lat, pos.lng); });
+        } else { players[name].setLatLng([pos.lat, pos.lng]).setIcon(icon); }
     }
 
     socket.on('player_move', d => drawP(d.name, d, d.color));
@@ -194,7 +220,7 @@
     function setM(t) { map.removeLayer(baseL.map); map.removeLayer(baseL.sat); baseL[t].addTo(map); }
     function clearM() { if(confirm("УДАЛИТЬ ТОЛЬКО ВАШИ ОБЪЕКТЫ?")) socket.emit('clear_my'); }
     function toggleC() { const w = document.getElementById('chat-win'); w.style.display = w.style.display === 'flex' ? 'none' : 'flex'; }
-    function sendM() { const i = document.getElementById('chatI'); if(i.value) { socket.emit('chat_msg', `<b>${myName}</b>: ${i.value}`); i.value = ''; } }
+    function sendM() { const i = document.getElementById('chatI'); if(i.value) { socket.emit('chat_msg', `[${myName}]: ${i.value}`); i.value = ''; } }
     socket.on('receive_msg', m => { const d = document.getElementById('chat-m'); d.innerHTML += `<div>${m}</div>`; d.scrollTop = d.scrollHeight; });
 </script>
 </body>
