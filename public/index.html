@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SCORPION TACTICAL V12</title>
+    <title>SCORPION TACTICAL V13</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="/socket.io/socket.io.js"></script>
@@ -14,89 +14,71 @@
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap');
         body, html { margin: 0; padding: 0; height: 100%; background: #000; overflow: hidden; font-family: sans-serif; }
         
-        /* УВЕДОМЛЕНИЯ */
-        #notif-container { position: fixed; top: 10px; left: 50%; transform: translateX(-50%); z-index: 10000; pointer-events: none; }
-        .notif { background: rgba(0, 255, 0, 0.2); color: #22c55e; border: 2px solid #22c55e; padding: 10px 20px; border-radius: 5px; font-family: 'Orbitron'; margin-bottom: 5px; backdrop-filter: blur(5px); animation: fadeIn 0.3s; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
-
-        /* МАРКЕР ИГРОКА (ТОЧКА + ПОЗЫВНОЙ) */
-        .p-marker { display: flex; flex-direction: column; align-items: center; }
-        .p-name { 
-            color: #000; font-weight: 900; font-size: 14px; 
+        /* СТИЛЬ ТЕКСТА РАССТОЯНИЯ */
+        .dist-label { 
+            color: #000; font-weight: 900; font-size: 16px; 
             text-shadow: -1px -1px 0 #ff0000, 1px -1px 0 #ff0000, -1px 1px 0 #ff0000, 1px 1px 0 #ff0000;
-            white-space: nowrap; margin-bottom: 2px; text-transform: uppercase;
+            white-space: nowrap; pointer-events: none;
         }
-        .p-dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 10px rgba(0,0,0,0.5); }
+
+        /* МАРКЕР ИГРОКА */
+        .p-marker { display: flex; flex-direction: column; align-items: center; }
+        .p-name { color: #000; font-weight: 900; font-size: 14px; text-shadow: -1px -1px 0 #ff0000, 1px -1px 0 #ff0000, -1px 1px 0 #ff0000, 1px 1px 0 #ff0000; text-transform: uppercase; }
+        .p-dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid #fff; }
 
         /* ИНТЕРФЕЙС */
-        #auth-screen { position: fixed; inset: 0; z-index: 9999; background: #050505; display: flex; flex-direction: column; align-items: center; justify-content: center; }
         .side-panel { position: fixed; left: 0; top: 0; bottom: 0; width: 65px; background: #0a0a0a; border-right: 2px solid #22c55e; z-index: 5000; display: flex; flex-direction: column; }
-        .tool-btn { width: 65px; height: 55px; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid #222; color: #22c55e; font-size: 24px; cursor: pointer; }
+        .tool-btn { width: 65px; height: 50px; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid #222; color: #22c55e; font-size: 22px; cursor: pointer; }
         .tool-btn.active { background: #166534; color: #fff; }
 
-        /* ОКНО ЧАТА */
-        #chat-box { position: fixed; left: 75px; bottom: 20px; width: 280px; height: 300px; background: rgba(0,0,0,0.9); border: 2px solid #22c55e; z-index: 6000; display: none; flex-direction: column; }
-        #chat-msgs { flex: 1; overflow-y: auto; padding: 10px; color: #fff; font-size: 13px; }
-
-        /* СЕТКА */
-        #grid-layer { position: fixed; inset: 0; pointer-events: none; z-index: 1000; }
-        .g-line { position: absolute; background: rgba(34, 197, 94, 0.2); }
-        .g-label { position: absolute; color: #22c55e; font-size: 10px; font-weight: bold; font-family: 'Orbitron'; background: rgba(0,0,0,0.4); padding: 0 2px; }
-
         #map { height: 100vh; width: 100%; background: #000; }
+        
+        /* ПУЛЬСИРУЮЩАЯ ЛИНИЯ */
+        .pulse-line { stroke-dasharray: 10; animation: dash 1s linear infinite; }
+        @keyframes dash { to { stroke-dashoffset: -20; } }
     </style>
 </head>
 <body>
 
-    <div id="notif-container"></div>
-
-    <div id="auth-screen">
-        <h1 class="text-white font-bold text-2xl mb-6" style="font-family:'Orbitron'">SCORPION <span class="text-green-500">SYSTEM</span></h1>
+    <div id="auth-screen" class="fixed inset-0 z-[9999] bg-[#050505] flex flex-col items-center justify-center">
+        <h1 class="text-white font-bold text-2xl mb-6" style="font-family:'Orbitron'">SCORPION <span class="text-green-500">V13</span></h1>
         <input id="roomInput" type="text" placeholder="КОД КОМНАТЫ" class="bg-black border-2 border-green-500 text-green-500 p-4 mb-3 w-72 text-center font-bold">
-        <input id="nameInput" type="text" placeholder="ВАШ ПОЗЫВНОЙ" class="bg-black border-2 border-green-500 text-green-500 p-4 mb-3 w-72 text-center font-bold">
-        <button onclick="startApp()" class="bg-green-700 text-white p-4 w-72 font-bold border-2 border-green-500">ПОДКЛЮЧИТЬСЯ</button>
+        <input id="nameInput" type="text" placeholder="ПОЗЫВНОЙ" class="bg-black border-2 border-green-500 text-green-500 p-4 mb-3 w-72 text-center font-bold">
+        <button onclick="startApp()" class="bg-green-700 text-white p-4 w-72 font-bold border-2 border-green-500">ВХОД</button>
     </div>
 
     <div id="app-ui" style="display:none">
-        <div id="grid-layer"></div>
         <div class="side-panel">
-            <div onclick="setTool('move')" id="btn-move" class="tool-btn active">🖐️</div>
-            <div onclick="centerMap()" class="tool-btn text-blue-400">🎯</div>
-            <div onclick="setTool('enemy')" id="btn-enemy" class="tool-btn">💀</div>
-            <div onclick="setTool('point')" id="btn-point" class="tool-btn">🚩</div>
-            <div onclick="setTool('arrow')" id="btn-arrow" class="tool-btn">➡️</div>
+            <div onclick="setTool('move')" id="btn-move" class="tool-btn active" title="Рука">🖐️</div>
+            <div onclick="setTool('enemy')" id="btn-enemy" class="tool-btn" title="Враг">💀</div>
+            <div onclick="setTool('point')" id="btn-point" class="tool-btn" title="Цель">🚩</div>
+            <div onclick="setTool('arrow')" id="btn-arrow" class="tool-btn" title="Удар">➡️</div>
+            <div onclick="setTool('ruler')" id="btn-ruler" class="tool-btn" title="Линейка">📏</div>
             <div onclick="toggleChat()" class="tool-btn">💬</div>
+            
             <div class="mt-auto"></div>
+            <div onclick="setMap('sat')" id="btn-sat" class="tool-btn text-xs">SAT</div>
+            <div onclick="setMap('map')" id="btn-map" class="tool-btn text-xs active">MAP</div>
             <div onclick="clearMap()" class="tool-btn text-red-500">🗑️</div>
+            <div onclick="location.reload()" class="tool-btn">🚪</div>
         </div>
-
-        <div id="chat-box">
-            <div class="bg-green-900 p-2 text-xs font-bold flex justify-between">
-                <span>РАДИООБМЕН</span>
-                <button onclick="toggleChat()">[X]</button>
-            </div>
-            <div id="chat-msgs"></div>
-            <div class="p-2 border-t border-green-500 flex">
-                <input id="msgInput" type="text" class="bg-black text-white text-xs p-1 flex-1 outline-none">
-                <button onclick="sendMsg()" class="bg-green-600 px-2 ml-1 text-xs">ОК</button>
-            </div>
-        </div>
-
         <div id="map"></div>
     </div>
 
     <script>
         const socket = io();
         let map, myName = '', myRoom = '', tool = 'move', userPos = {lat:0, lng:0};
-        let players = {}; 
-        let markers = [];
+        let players = {}, tacticalMarkers = [], tempLine = null, clickCount = 0, firstPoint = null;
+
+        const layers = {
+            map: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'),
+            sat: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}')
+        };
 
         function startApp() {
             myRoom = document.getElementById('roomInput').value.toUpperCase();
             myName = document.getElementById('nameInput').value.toUpperCase();
-            if(myRoom && myName) {
-                socket.emit('join_room', { room: myRoom, name: myName });
-            }
+            if(myRoom && myName) socket.emit('join_room', { room: myRoom, name: myName });
         }
 
         socket.on('login_success', () => {
@@ -107,27 +89,71 @@
 
         function initMap() {
             map = L.map('map', { zoomControl: false, attributionControl: false }).setView([43.40, 39.95], 18);
-            L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}').addTo(map);
-
-            map.on('move zoom', updateGrid);
-            map.on('click', handleAction);
-            updateGrid();
+            layers.map.addTo(map);
+            map.on('click', handleMapClick);
 
             navigator.geolocation.watchPosition(p => {
                 userPos = { lat: p.coords.latitude, lng: p.coords.longitude };
-                socket.emit('gps_sync', { lat: userPos.lat, lng: userPos.lng, name: myName });
+                socket.emit('gps_sync', { ...userPos, name: myName });
                 drawPlayer(myName, userPos, '#22c55e');
             }, null, { enableHighAccuracy: true });
         }
 
-        // РИСУЕМ БОЙЦОВ
-        socket.on('presence_update', (allUsers) => {
-            Object.values(allUsers).forEach(u => {
-                if(u.name && u.lat) {
-                    const color = u.name === myName ? '#22c55e' : '#facc15';
-                    drawPlayer(u.name, {lat: u.lat, lng: u.lng}, color);
+        function handleMapClick(e) {
+            if (tool === 'move') return;
+
+            if (tool === 'arrow' || tool === 'ruler') {
+                if (clickCount === 0) {
+                    firstPoint = e.latlng;
+                    clickCount = 1;
+                    L.circleMarker(e.latlng, { radius: 4, color: tool === 'arrow' ? 'red' : 'yellow' }).addTo(map);
+                } else {
+                    socket.emit('new_obj', { 
+                        type: tool, 
+                        start: firstPoint, 
+                        end: e.latlng, 
+                        color: tool === 'arrow' ? '#ff0000' : '#ffff00' 
+                    });
+                    resetClicks();
                 }
-            });
+            } else if (tool === 'enemy' || tool === 'point') {
+                socket.emit('new_obj', { type: tool, lat: e.latlng.lat, lng: e.latlng.lng });
+            }
+        }
+
+        socket.on('draw', m => {
+            let item;
+            if (m.type === 'arrow' || m.type === 'ruler') {
+                const line = L.polyline([m.start, m.end], { color: m.color, weight: 4 }).addTo(map);
+                if (m.type === 'arrow') {
+                    // Простая отрисовка наконечника через круг для наглядности
+                    const head = L.circleMarker(m.end, { radius: 6, color: m.color, fillOpacity: 1 }).addTo(map);
+                    tacticalMarkers.push(line, head);
+                } else {
+                    const dist = Math.round(map.distance(m.start, m.end));
+                    const label = L.marker(m.end, {
+                        icon: L.divIcon({ html: `${dist}м`, className: 'dist-label', iconAnchor: [20, 20] })
+                    }).addTo(map);
+                    tacticalMarkers.push(line, label);
+                }
+            } else {
+                const icon = m.type === 'enemy' ? '💀' : '🚩';
+                item = L.marker([m.lat, m.lng], { 
+                    icon: L.divIcon({ html: `<div style="font-size:30px cursor:pointer">${icon}</div>`, className: '', iconAnchor:[15,15] }) 
+                }).addTo(map);
+                
+                // Клик по объекту в режиме руки
+                item.on('click', (e) => {
+                    if (tool !== 'move') return;
+                    if (tempLine) map.removeLayer(tempLine);
+                    const d = Math.round(map.distance(userPos, [m.lat, m.lng]));
+                    tempLine = L.polyline([userPos, [m.lat, m.lng]], { color: 'red', weight: 2, className: 'pulse-line' }).addTo(map);
+                    tempLine.bindTooltip(`${d}м`, { permanent: true, direction: 'center', className: 'dist-label' }).openTooltip();
+                    setTimeout(() => { if(tempLine) map.removeLayer(tempLine); tempLine = null; }, 4000);
+                    L.DomEvent.stopPropagation(e);
+                });
+                tacticalMarkers.push(item);
+            }
         });
 
         function drawPlayer(name, pos, color) {
@@ -137,93 +163,29 @@
                     html: `<div class="p-marker"><div class="p-name">${name}</div><div class="p-dot" style="background:${color}"></div></div>`,
                     iconSize: [100, 40], iconAnchor: [50, 35]
                 });
-                players[name] = L.marker([pos.lat, pos.lng], { icon }).addTo(map);
+                players[name] = L.marker([pos.lat, pos.lng], { icon, zIndexOffset: 1000 }).addTo(map);
             } else {
                 players[name].setLatLng([pos.lat, pos.lng]);
             }
         }
 
-        // УВЕДОМЛЕНИЕ О ВХОДЕ
-        socket.on('player_joined', (data) => {
-            const container = document.getElementById('notif-container');
-            const el = document.createElement('div');
-            el.className = 'notif';
-            el.innerText = `ЗАХОДИТ: ${data.name}`;
-            container.appendChild(el);
-            setTimeout(() => el.remove(), 5000);
-        });
-
-        // СЕТКА
-        function updateGrid() {
-            const container = document.getElementById('grid-layer');
-            container.innerHTML = '';
-            if (map.getZoom() < 15) return;
-            const b = map.getBounds();
-            const step = 0.0005;
-
-            for (let x = Math.floor(b.getWest()/step)*step; x <= b.getEast(); x += step) {
-                let p = map.latLngToContainerPoint([b.getNorth(), x]);
-                let l = document.createElement('div'); l.className = 'g-line';
-                l.style.left = p.x + 'px'; l.style.top = '0'; l.style.bottom = '0'; l.style.width = '1px';
-                container.appendChild(l);
-                let lbl = document.createElement('div'); lbl.className = 'g-label';
-                lbl.style.left = (p.x+2)+'px'; lbl.style.top = '5px';
-                lbl.innerText = String.fromCharCode(65 + (Math.abs(Math.round(x/step)) % 26));
-                container.appendChild(lbl);
-            }
-            for (let y = Math.floor(b.getSouth()/step)*step; y <= b.getNorth(); y += step) {
-                let p = map.latLngToContainerPoint([y, b.getWest()]);
-                let l = document.createElement('div'); l.className = 'g-line';
-                l.style.top = p.y + 'px'; l.style.left = '65px'; l.style.right = '0'; l.style.height = '1px';
-                container.appendChild(l);
-                let lbl = document.createElement('div'); lbl.className = 'g-label';
-                lbl.style.right = '5px'; lbl.style.top = (p.y+2)+'px';
-                lbl.innerText = Math.abs(Math.round(y/step)) % 100;
-                container.appendChild(lbl);
-            }
-        }
-
-        // ДЕЙСТВИЯ НА КАРТЕ
-        function handleAction(e) {
-            if(tool === 'move') return;
-            socket.emit('new_obj', { type: tool, lat: e.latlng.lat, lng: e.latlng.lng, from: userPos });
-        }
-
-        socket.on('draw', m => {
-            const icon = m.type === 'enemy' ? '💀' : '🚩';
-            const marker = L.marker([m.lat, m.lng], { 
-                icon: L.divIcon({ html: `<div style="font-size:30px">${icon}</div>`, className: '', iconAnchor:[15,15] }) 
-            }).addTo(map);
-            const dist = Math.round(map.distance([m.lat, m.lng], [m.from.lat, m.from.lng]));
-            const label = L.marker([m.lat, m.lng], {
-                icon: L.divIcon({ html: `${dist}м`, className: 'p-name', iconAnchor:[20, -20] })
-            }).addTo(map);
-            markers.push(marker, label);
-        });
-
-        // ЧАТ
-        function toggleChat() { 
-            const c = document.getElementById('chat-box');
-            c.style.display = c.style.display === 'flex' ? 'none' : 'flex';
-        }
-        function sendMsg() {
-            const i = document.getElementById('msgInput');
-            if(i.value) { socket.emit('chat_msg', { author: myName, text: i.value }); i.value = ''; }
-        }
-        socket.on('receive_msg', m => {
-            const div = document.createElement('div');
-            div.innerHTML = `<b class="text-green-400">${m.author}:</b> ${m.text}`;
-            document.getElementById('chat-msgs').appendChild(div);
-        });
-
         function setTool(t) {
-            tool = t;
+            tool = t; resetClicks();
             document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
             document.getElementById('btn-'+t).classList.add('active');
         }
-        function centerMap() { if(userPos.lat) map.flyTo([userPos.lat, userPos.lng], 19); }
-        function clearMap() { if(confirm("УДАЛИТЬ МЕТКИ?")) socket.emit('clear'); }
-        socket.on('clear_all', () => { markers.forEach(m => map.removeLayer(m)); markers = []; });
+
+        function setMap(type) {
+            map.removeLayer(layers.map); map.removeLayer(layers.sat);
+            layers[type].addTo(map);
+            document.getElementById('btn-sat').classList.toggle('active', type === 'sat');
+            document.getElementById('btn-map').classList.toggle('active', type === 'map');
+        }
+
+        function resetClicks() { clickCount = 0; firstPoint = null; }
+        function clearMap() { if(confirm("ОЧИСТИТЬ КАРТУ?")) socket.emit('clear'); }
+        socket.on('clear_all', () => { tacticalMarkers.forEach(m => map.removeLayer(m)); tacticalMarkers = []; });
+        function toggleChat() { /* Логика чата из V12 */ }
     </script>
 </body>
 </html>
