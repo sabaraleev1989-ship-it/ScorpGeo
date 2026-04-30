@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SCORPION TACTICAL V5</title>
+    <title>SCORPION TACTICAL V6</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="/socket.io/socket.io.js"></script>
@@ -14,99 +14,107 @@
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Roboto+Condensed:wght@700&display=swap');
         body, html { margin: 0; padding: 0; height: 100%; background: #000; color: #22c55e; font-family: 'Roboto Condensed', sans-serif; overflow: hidden; }
 
-        /* РУССКИЙ ВХОД */
-        #login-screen { position: fixed; inset: 0; z-index: 9999; background: #050505; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 4px solid #111; }
-        .auth-input { background: #000; border: 1px solid #22c55e; color: #22c55e; padding: 15px; margin-bottom: 12px; width: 300px; text-align: center; outline: none; font-size: 18px; }
-        .auth-btn { background: #166534; color: #fff; padding: 20px; width: 300px; font-weight: bold; cursor: pointer; border: 1px solid #22c55e; text-transform: uppercase; }
+        /* ЭКРАН ВХОДА С РАДАРОМ */
+        #login-screen { position: fixed; inset: 0; z-index: 9999; background: #050505; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        
+        .entry-radar { width: 280px; height: 120px; background: rgba(0,255,0,0.05); border: 2px solid #22c55e; position: relative; margin-bottom: 20px; overflow: hidden; }
+        .radar-sweep { position: absolute; width: 100%; height: 2px; background: #22c55e; box-shadow: 0 0 15px #22c55e; animation: scan 2.5s ease-in-out infinite; }
+        @keyframes scan { 0% { top: 0; } 50% { top: 100%; } 100% { top: 0; } }
 
-        /* АКТИВНЫЙ РАДАР */
-        #radar-top { position: fixed; top: 0; left: 60px; right: 0; height: 40px; background: rgba(0,20,0,0.9); z-index: 2000; border-bottom: 1px solid #22c55e; overflow: hidden; display: flex; align-items: center; }
-        .radar-line { position: absolute; height: 100%; width: 100px; background: linear-gradient(to right, transparent, rgba(34, 197, 94, 0.3)); animation: sweep 3s linear infinite; }
-        .radar-dot { width: 6px; height: 6px; background: red; border-radius: 50%; position: absolute; box-shadow: 0 0 10px red; }
-        @keyframes sweep { from { left: -100px; } to { left: 100%; } }
+        .auth-input { background: #000; border: 1px solid #22c55e; color: #22c55e; padding: 15px; margin-bottom: 12px; width: 300px; text-align: center; outline: none; font-size: 18px; font-family: 'Orbitron'; }
+        .auth-btn { background: #166534; color: #fff; padding: 20px; width: 300px; font-weight: bold; border: 1px solid #22c55e; cursor: pointer; }
 
-        /* СЕТКА ПОВЕРХ КАРТЫ */
-        .grid-line-h, .grid-line-v { position: absolute; pointer-events: none; z-index: 1000; background: rgba(34, 197, 94, 0.2); }
-        .grid-line-h { height: 1px; left: 0; right: 0; }
-        .grid-line-v { width: 1px; top: 0; bottom: 0; }
+        /* ИСПРАВЛЕННАЯ СЕТКА (Крупные ячейки) */
+        #grid-layer { position: fixed; inset: 0; pointer-events: none; z-index: 1000; }
+        .grid-v { position: absolute; width: 1px; background: rgba(34, 197, 94, 0.4); top: 0; bottom: 0; }
+        .grid-h { position: absolute; height: 1px; background: rgba(34, 197, 94, 0.4); left: 0; right: 0; }
+        .grid-label { position: absolute; background: #000; color: #22c55e; font-family: 'Orbitron'; font-size: 16px; padding: 2px 6px; border: 1px solid #22c55e; z-index: 1001; font-weight: bold; }
 
         #map { height: 100vh; width: 100%; z-index: 1; position: absolute; background: #000; }
 
-        /* ТЕКСТ С ОБВОДКОЙ ВНУТРИ КВАДРАТА */
-        .dist-box { background: #fff !important; border: 2px solid #000 !important; padding: 2px 5px !important; display: flex; }
-        .dist-val { color: red; font-weight: 900; font-size: 18px; text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; line-height: 1; }
+        /* ЦИФРЫ - МАКСИМАЛЬНАЯ ЧИТАЕМОСТЬ */
+        .tactical-label { 
+            background: #fff !important; 
+            border: 3px solid #000 !important; 
+            color: #ff0000 !important; 
+            font-weight: 900 !important; 
+            font-size: 20px !important; 
+            padding: 2px 8px !important;
+            border-radius: 4px;
+            white-space: nowrap;
+            text-align: center;
+        }
 
-        /* ПАНЕЛЬ */
-        .side-panel { position: fixed; left: 0; top: 0; bottom: 0; width: 60px; background: #0a0a0a; border-right: 2px solid #22c55e; z-index: 5000; display: flex; flex-direction: column; }
-        .tool-btn { width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid #222; font-size: 24px; cursor: pointer; }
-        .tool-btn.active { background: #166534; box-shadow: inset 0 0 15px #22c55e; }
+        /* ИНТЕРФЕЙС */
+        .side-panel { position: fixed; left: 0; top: 0; bottom: 0; width: 65px; background: #000; border-right: 2px solid #22c55e; z-index: 5000; display: flex; flex-direction: column; }
+        .tool-btn { width: 65px; height: 60px; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid #111; font-size: 26px; cursor: pointer; }
+        .tool-btn.active { background: #166534; color: white; }
 
-        #color-selector { display: none; position: absolute; left: 65px; top: 240px; background: #000; border: 1px solid #22c55e; padding: 5px; z-index: 5500; }
-        .c-box { width: 35px; height: 35px; margin: 5px; cursor: pointer; border: 1px solid #fff; }
+        #arrow-colors { display: none; position: absolute; left: 70px; top: 240px; background: #000; border: 2px solid #22c55e; padding: 5px; z-index: 5500; }
+        .color-dot { width: 40px; height: 40px; margin: 5px; border: 2px solid #fff; cursor: pointer; }
 
-        /* ЧАТ */
-        #chat-box { position: fixed; left: 70px; bottom: 90px; width: 320px; height: 400px; background: rgba(0,0,0,0.9); border: 2px solid #22c55e; z-index: 6000; display: none; flex-direction: column; }
+        /* СТРЕЛКА-ТРЕУГОЛЬНИК (Наконечник) */
+        .arrow-head {
+            width: 0; height: 0;
+            border-left: 10px solid transparent;
+            border-right: 10px solid transparent;
+            border-bottom: 20px solid white;
+            position: absolute;
+            transform-origin: center;
+        }
     </style>
 </head>
 <body>
 
     <div id="login-screen">
-        <h1 style="font-family:'Orbitron'; color:white; font-size:30px; margin-bottom:20px;">SCORPION <span style="color:#22c55e">GEO</span></h1>
-        <input id="roomIn" type="text" placeholder="ID СЕТИ" class="auth-input">
-        <input id="passIn" type="password" placeholder="ПАРОЛЬ" class="auth-input">
-        <input id="nameIn" type="text" placeholder="ПОЗЫВНОЙ" class="auth-input">
-        <button onclick="connect()" class="auth-btn">ПОДКЛЮЧИТЬСЯ К СИСТЕМЕ</button>
+        <h1 style="font-family:'Orbitron'; color:white; font-size:28px; margin-bottom:10px;">SCORPION <span style="color:#22c55e">SYSTEM</span></h1>
+        
+        <div class="entry-radar">
+            <div class="radar-sweep"></div>
+            <div style="position:absolute; top:20px; left:30px; width:6px; height:6px; background:red; border-radius:50%; box-shadow:0 0 10px red;"></div>
+            <div style="position:absolute; bottom:30px; right:50px; width:6px; height:6px; background:red; border-radius:50%; box-shadow:0 0 10px red;"></div>
+            <div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-size:10px; color:#22c55e; opacity:0.5;">SCANNING FOR TARGETS...</div>
+        </div>
+
+        <input id="roomIn" type="text" placeholder="КОМАНДА / ID" class="auth-input">
+        <input id="nameIn" type="text" placeholder="ВАШ ПОЗЫВНОЙ" class="auth-input">
+        <button onclick="connect()" class="auth-btn">АКТИВИРОВАТЬ ТЕРМИНАЛ</button>
     </div>
 
     <div id="ui" style="display:none">
-        <div id="radar-top">
-            <div class="radar-line"></div>
-            <div id="radar-dots"></div>
-            <span style="margin-left:auto; margin-right:20px; font-size:12px; color:#22c55e;">SCANNING AREA...</span>
-        </div>
+        <div id="grid-layer"></div>
 
         <div class="side-panel">
             <div onclick="setTool('move')" id="t-move" class="tool-btn active">🖐️</div>
-            <div onclick="centerMe()" class="tool-btn">🎯</div>
+            <div onclick="centerMe()" class="tool-btn text-blue-400">🎯</div>
             <div onclick="setTool('enemy')" id="t-enemy" class="tool-btn">💀</div>
             <div onclick="setTool('point')" id="t-point" class="tool-btn">🚩</div>
             <div onclick="setTool('arrow')" id="t-arrow" class="tool-btn">➡️</div>
-            <div onclick="toggleChat()" class="tool-btn">💬</div>
-            <div onclick="undo()" class="tool-btn text-yellow-500">↩️</div>
             <div onclick="clearMap()" class="tool-btn text-red-500">🗑️</div>
             <div class="mt-auto">
                 <div onclick="location.reload()" class="tool-btn text-red-600">🚪</div>
             </div>
         </div>
 
-        <div id="color-selector">
-            <div class="c-box bg-blue-600" onclick="pickColor('#2563eb')"></div>
-            <div class="c-box bg-red-600" onclick="pickColor('#ef4444')"></div>
-            <div class="c-box bg-green-600" onclick="pickColor('#22c55e')"></div>
-        </div>
-
-        <div id="chat-box">
-            <div class="bg-green-900 p-2 font-bold flex justify-between">РАДИООБМЕН <span onclick="toggleChat()" class="cursor-pointer">✕</span></div>
-            <div id="chat-messages" class="flex-1 overflow-y-auto p-2 text-xl"></div>
-            <div class="p-2 border-t border-green-900 flex">
-                <input id="msgInput" type="text" class="flex-1 bg-black text-white p-2 outline-none" placeholder="Сообщение...">
-                <button onclick="sendMsg()" class="bg-green-700 px-3">OK</button>
-            </div>
+        <div id="arrow-colors">
+            <div class="color-dot bg-blue-600" onclick="pickColor('#2563eb')"></div>
+            <div class="color-dot bg-red-600" onclick="pickColor('#ef4444')"></div>
+            <div class="color-dot bg-green-600" onclick="pickColor('#22c55e')"></div>
         </div>
 
         <div id="map"></div>
-        <div id="grid-container" style="position:fixed; inset:0; pointer-events:none; z-index:1000;"></div>
     </div>
 
     <script>
         const socket = io();
         let map, user = { lat:0, lng:0, name:'' }, tool = 'move', activeColor = '#2563eb', arrowStart = null;
         let tactical = {};
-        const STEP = 20 * 0.000009;
+        // Увеличил шаг сетки, чтобы не было "каши"
+        const STEP = 50 * 0.000009; 
 
         function connect() {
             user.name = document.getElementById('nameIn').value.toUpperCase();
-            const room = document.getElementById('roomIn').value;
+            const room = document.getElementById('roomIn').value.toUpperCase();
             if(room && user.name) socket.emit('join_room', { room, name: user.name });
         }
 
@@ -120,45 +128,36 @@
             map = L.map('map', { zoomControl: false, attributionControl: false, maxZoom: 21 }).setView([43.40, 39.95], 18);
             L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 21 }).addTo(map);
             
-            // СТРЕЛКИ С НАКОНЕЧНИКАМИ ЧЕРЕЗ SVG DEFS
-            const svg = map.getRenderer(L.svg());
-            svg._container.insertAdjacentHTML('afterbegin', `
-                <defs>
-                    <marker id="arrowhead" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-                        <path d="M 0 0 L 10 5 L 0 10 z" fill="white" />
-                    </marker>
-                </defs>
-            `);
-
-            map.on('move zoom click', updateUI);
+            map.on('move zoom', updateGrid);
             map.on('click', onMapClick);
-            setInterval(updateRadar, 3000);
+            updateGrid();
             startGps();
         }
 
-        function updateUI() {
+        function updateGrid() {
             const b = map.getBounds();
-            const container = document.getElementById('grid-container');
+            const container = document.getElementById('grid-layer');
             container.innerHTML = '';
 
+            // Рисуем только те линии, которые попадают в экран, с ограничением частоты
             for (let x = Math.floor(b.getWest()/STEP)*STEP; x <= b.getEast(); x += STEP) {
                 const p = map.latLngToContainerPoint([b.getNorth(), x]);
-                const line = document.createElement('div'); line.className = 'grid-line-v';
+                const line = document.createElement('div'); line.className = 'grid-v';
                 line.style.left = p.x + 'px'; container.appendChild(line);
                 
-                const lbl = document.createElement('div'); lbl.className = 'axis-label';
-                lbl.style.position = 'absolute'; lbl.style.left = (p.x + 5) + 'px'; lbl.style.top = '45px';
-                lbl.style.color = '#22c55e'; lbl.innerText = String.fromCharCode(65 + (Math.abs(Math.round(x/STEP))%26));
+                const lbl = document.createElement('div'); lbl.className = 'grid-label';
+                lbl.style.left = (p.x + 2) + 'px'; lbl.style.top = '10px';
+                lbl.innerText = String.fromCharCode(65 + (Math.abs(Math.round(x/STEP))%26));
                 container.appendChild(lbl);
             }
             for (let y = Math.floor(b.getSouth()/STEP)*STEP; y <= b.getNorth(); y += STEP) {
                 const p = map.latLngToContainerPoint([y, b.getWest()]);
-                const line = document.createElement('div'); line.className = 'grid-line-h';
+                const line = document.createElement('div'); line.className = 'grid-h';
                 line.style.top = p.y + 'px'; container.appendChild(line);
 
-                const lbl = document.createElement('div'); lbl.className = 'axis-label';
-                lbl.style.position = 'absolute'; lbl.style.right = '5px'; lbl.style.top = (p.y - 15) + 'px';
-                lbl.style.color = '#22c55e'; lbl.innerText = Math.abs(Math.round(y/STEP)) % 100;
+                const lbl = document.createElement('div'); lbl.className = 'grid-label';
+                lbl.style.right = '10px'; lbl.style.top = (p.y + 2) + 'px';
+                lbl.innerText = Math.abs(Math.round(y/STEP)) % 100;
                 container.appendChild(lbl);
             }
         }
@@ -167,8 +166,13 @@
             if(tool === 'move') return;
             const id = 'id' + Date.now();
             if(tool === 'arrow') {
-                if(!arrowStart) { arrowStart = e.latlng; }
-                else { socket.emit('new_obj', { id, type:'arrow', start:arrowStart, end:e.latlng, color:activeColor }); arrowStart = null; }
+                if(!arrowStart) { 
+                    arrowStart = e.latlng;
+                    L.circleMarker(e.latlng, {radius:5, color:activeColor}).addTo(map);
+                } else {
+                    socket.emit('new_obj', { id, type:'arrow', start:arrowStart, end:e.latlng, color:activeColor });
+                    arrowStart = null;
+                }
             } else {
                 socket.emit('new_obj', { id, type:tool, lat:e.latlng.lat, lng:e.latlng.lng, from:[user.lat, user.lng] });
             }
@@ -176,27 +180,33 @@
 
         socket.on('draw', m => {
             if(m.type === 'arrow') {
-                const line = L.polyline([m.start, m.end], { color: m.color, weight: 6 }).addTo(map);
-                line.getElement().setAttribute('marker-end', 'url(#arrowhead)');
-                tactical[m.id] = { layers: [line] };
+                const line = L.polyline([m.start, m.end], { color: m.color, weight: 8 }).addTo(map);
+                
+                // Наконечник - отдельный маркер с поворотом
+                const angle = Math.atan2(m.end.lat - m.start.lat, m.end.lng - m.start.lng) * 180 / Math.PI;
+                const head = L.marker(m.end, {
+                    icon: L.divIcon({
+                        className: '',
+                        html: `<div class="arrow-head" style="transform: rotate(${90-angle}deg); border-bottom-color: ${m.color};"></div>`,
+                        iconAnchor: [10, 10]
+                    })
+                }).addTo(map);
+
+                tactical[m.id] = { layers: [line, head] };
             } else {
                 const ico = m.type === 'enemy' ? '💀' : '🚩';
-                const main = L.marker([m.lat, m.lng], { icon: L.divIcon({ html: `<div style="font-size:35px">${ico}</div>`, className:'dummy' })}).addTo(map);
+                const marker = L.marker([m.lat, m.lng], { 
+                    icon: L.divIcon({ html: `<div style="font-size:40px; text-shadow: 0 0 10px #000;">${ico}</div>`, className:'dummy', iconAnchor:[20,20] })
+                }).addTo(map);
+
                 const dist = Math.round(map.distance(m.from, [m.lat, m.lng]));
-                const box = L.marker([m.lat, m.lng], { icon: L.divIcon({ className:'dist-box', html:`<span class="dist-val">${dist}м</span>`, iconAnchor:[25,-20] })}).addTo(map);
-                const line = L.polyline([m.from, [m.lat, m.lng]], { color:'red', dashArray:'10,10', weight:2 }).addTo(map);
-                tactical[m.id] = { layers: [main, box, line] };
+                const label = L.marker([m.lat, m.lng], {
+                    icon: L.divIcon({ className: 'tactical-label', html: `${dist}м`, iconAnchor: [20, -25] })
+                }).addTo(map);
+
+                tactical[m.id] = { layers: [marker, label] };
             }
         });
-
-        function updateRadar() {
-            const res = document.getElementById('radar-dots'); res.innerHTML = '';
-            for(let i=0; i<3; i++) {
-                const dot = document.createElement('div'); dot.className = 'radar-dot';
-                dot.style.left = Math.random()*90 + '%'; dot.style.top = Math.random()*30 + 'px';
-                res.appendChild(dot);
-            }
-        }
 
         function startGps() {
             navigator.geolocation.watchPosition(p => {
@@ -205,21 +215,14 @@
             }, null, { enableHighAccuracy: true });
         }
 
-        function toggleChat() { const c = document.getElementById('chat-box'); c.style.display = (c.style.display==='flex')?'none':'flex'; }
-        function sendMsg() { const i = document.getElementById('msgInput'); if(i.value) { socket.emit('chat_msg', { name:user.name, text:i.value }); i.value=''; } }
-        socket.on('msg', m => {
-            const d = document.createElement('div'); d.innerHTML = `<b style="color:#22c55e">${m.name}:</b> ${m.text}`;
-            document.getElementById('chat-messages').appendChild(d);
-        });
-
         function setTool(t) { 
             tool = t; arrowStart = null;
             document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
             document.getElementById('t-'+t).classList.add('active');
-            document.getElementById('color-selector').style.display = (t==='arrow')?'block':'none';
+            document.getElementById('arrow-colors').style.display = (t==='arrow')?'block':'none';
         }
         function pickColor(c) { activeColor = c; }
-        function clearMap() { if(confirm("ОЧИСТИТЬ?")) socket.emit('clear'); }
+        function clearMap() { if(confirm("ОЧИСТИТЬ КАРТУ?")) socket.emit('clear'); }
         socket.on('clear_all', () => { Object.values(tactical).forEach(o => o.layers.forEach(l => map.removeLayer(l))); tactical = {}; });
     </script>
 </body>
