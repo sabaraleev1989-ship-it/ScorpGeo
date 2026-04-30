@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SCORPION GEO | FIX FINAL</title>
+    <title>SCORPION GEO | PRO V4.1</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="/socket.io/socket.io.js"></script>
@@ -14,44 +14,49 @@
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Roboto+Condensed:wght@700&display=swap');
         body, html { margin: 0; padding: 0; height: 100%; background: #000; color: #22c55e; font-family: 'Roboto Condensed', sans-serif; overflow: hidden; }
 
-        /* ВХОД */
         #login-screen { position: fixed; inset: 0; z-index: 9999; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; }
         .auth-input { background: #111; border: 1px solid #22c55e; color: #22c55e; padding: 15px; margin-bottom: 10px; width: 280px; text-align: center; outline: none; font-family: 'Orbitron'; }
-        .auth-btn { background: #166534; color: #fff; padding: 18px; width: 280px; font-weight: bold; cursor: pointer; border: none; font-family: 'Orbitron'; }
+        
+        #map { height: 100vh; width: 100%; z-index: 1; position: absolute; background: #000; }
 
-        /* КАРТА */
-        #map { height: 100vh; width: 100%; z-index: 1; position: absolute; }
-        .grid-axis-x { position: fixed; top: 0; left: 60px; right: 0; height: 30px; background: rgba(0,0,0,0.8); z-index: 1000; pointer-events: none; border-bottom: 2px solid #22c55e; }
-        .grid-axis-y { position: fixed; top: 30px; right: 0; bottom: 0; width: 35px; background: rgba(0,0,0,0.8); z-index: 1000; pointer-events: none; border-left: 2px solid #22c55e; }
+        /* ИСПРАВЛЕННАЯ СЕТКА */
+        .grid-axis-x { position: fixed; top: 0; left: 60px; right: 0; height: 30px; background: rgba(0,0,0,0.85); z-index: 1000; border-bottom: 2px solid #22c55e; pointer-events: none; }
+        .grid-axis-y { position: fixed; top: 30px; right: 0; bottom: 0; width: 35px; background: rgba(0,0,0,0.85); z-index: 1000; border-left: 2px solid #22c55e; pointer-events: none; }
         .axis-label { color: #22c55e; font-family: 'Orbitron'; font-size: 14px; position: absolute; font-weight: bold; }
 
-        /* МЕТКА ДИСТАНЦИИ (Белый бокс, красные цифры) */
-        .dist-box { background: white !important; border: 2px solid black !important; padding: 2px 6px !important; border-radius: 3px; display: flex; }
-        .dist-val { color: #ff0000; font-weight: 900; font-size: 16px; white-space: nowrap; }
+        /* ДИСТАНЦИЯ: Цифры внутри квадрата с обводкой */
+        .dist-box { background: white !important; border: 2px solid black !important; padding: 0px 4px !important; border-radius: 2px; display: flex; align-items: center; justify-content: center; min-width: 40px; height: 22px; }
+        .dist-val { color: #ff0000; font-weight: 900; font-size: 16px; text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; line-height: 1; }
 
-        /* ПАНЕЛЬ */
+        /* ПАНЕЛЬ И ВЫБОР ЦВЕТА */
         .side-panel { position: fixed; left: 0; top: 0; bottom: 0; width: 60px; background: #0a0a0a; border-right: 1px solid #1e293b; z-index: 5000; display: flex; flex-direction: column; }
-        .tool-btn { width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid #1e293b; font-size: 26px; cursor: pointer; }
-        .tool-btn.active { background: #2563eb; color: white; }
+        .tool-btn { width: 60px; height: 55px; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid #1e293b; font-size: 24px; cursor: pointer; transition: 0.2s; }
+        .tool-btn.active { background: #1e3a8a; box-shadow: inset 0 0 10px #3b82f6; }
+        
+        #color-picker { display: none; flex-direction: column; background: #111; border: 1px solid #3b82f6; position: absolute; left: 62px; top: 220px; z-index: 5500; padding: 5px; gap: 5px; }
+        .color-opt { width: 40px; height: 40px; border: 2px solid #fff; cursor: pointer; }
 
         /* ЧАТ */
-        #chat-box { position: fixed; left: 70px; bottom: 80px; width: 300px; height: 400px; background: rgba(0,0,0,0.95); border: 2px solid #2563eb; z-index: 6000; display: none; flex-direction: column; }
-        #chat-messages { flex: 1; overflow-y: auto; padding: 10px; font-size: 16px; color: #fff; }
-        .close-chat { width: 60px; height: 50px; background: #ef4444; color: white; display: flex; align-items: center; justify-content: center; font-size: 30px; font-weight: bold; }
+        #chat-box { position: fixed; left: 70px; bottom: 90px; width: 320px; height: 450px; background: rgba(5, 5, 10, 0.95); border: 2px solid #2563eb; z-index: 6000; display: none; flex-direction: column; box-shadow: 0 0 20px rgba(0,0,0,1); }
+        #chat-messages { flex: 1; overflow-y: auto; padding: 12px; font-size: 18px; color: #fff; }
+        .close-chat { width: 60px; height: 50px; background: #ef4444; color: white; display: flex; align-items: center; justify-content: center; font-size: 35px; cursor: pointer; }
 
-        /* ПУЛЬСАЦИЯ ЛИНИИ */
-        .leaflet-ant-path { stroke-dasharray: 10, 10; animation: leaflet-ant-path-animation 5s linear infinite; }
-        @keyframes leaflet-ant-path-animation { from { stroke-dashoffset: 100%; } to { stroke-dashoffset: 0%; } }
+        /* АНИМАЦИЯ ПУНКТИРА */
+        .path-pulse { stroke-dasharray: 8, 8; animation: dash 20s linear infinite; }
+        @keyframes dash { from { stroke-dashoffset: 500; } to { stroke-dashoffset: 0; } }
     </style>
 </head>
 <body>
 
     <div id="login-screen">
-        <h1 class="text-3xl font-bold mb-8 tracking-tighter font-['Orbitron']">SCORPION <span class="text-green-500">V.4</span></h1>
+        <div class="mb-6 text-center">
+            <h1 class="text-4xl font-bold tracking-widest font-['Orbitron'] text-white">SCORPION</h1>
+            <p class="text-green-500 font-bold tracking-widest text-sm">TACTICAL NETWORK V4.1</p>
+        </div>
         <input id="roomIn" type="text" placeholder="NET ID" class="auth-input">
-        <input id="passIn" type="password" placeholder="CODE" class="auth-input">
+        <input id="passIn" type="password" placeholder="ACCESS CODE" class="auth-input">
         <input id="nameIn" type="text" placeholder="CALLSIGN" class="auth-input">
-        <button onclick="connect()" class="auth-btn">CONNECT TO SYSTEM</button>
+        <button onclick="connect()" class="auth-btn mt-4 hover:bg-green-700 transition">INITIALIZE LINK</button>
     </div>
 
     <div id="ui" style="display:none">
@@ -60,7 +65,7 @@
 
         <div class="side-panel">
             <div onclick="setTool('move')" id="t-move" class="tool-btn active">🖐️</div>
-            <div onclick="centerMe()" class="tool-btn text-green-500">🎯</div>
+            <div onclick="centerMe()" class="tool-btn text-green-400">🎯</div>
             <div onclick="setTool('enemy')" id="t-enemy" class="tool-btn">💀</div>
             <div onclick="setTool('point')" id="t-point" class="tool-btn">🚩</div>
             <div onclick="setTool('arrow')" id="t-arrow" class="tool-btn">➡️</div>
@@ -68,19 +73,27 @@
             <div onclick="undo()" class="tool-btn text-yellow-500">↩️</div>
             <div onclick="clearMap()" class="tool-btn text-red-500">🗑️</div>
             <div class="mt-auto">
+                <div onclick="changeMap('sat')" class="tool-btn text-xs font-bold">SAT</div>
+                <div onclick="changeMap('map')" class="tool-btn text-xs font-bold">MAP</div>
                 <div onclick="location.reload()" class="tool-btn text-red-600">🚪</div>
             </div>
         </div>
 
+        <div id="color-picker">
+            <div class="color-opt bg-blue-600" onclick="pickColor('#2563eb')"></div>
+            <div class="color-opt bg-red-600" onclick="pickColor('#ef4444')"></div>
+            <div class="color-opt bg-green-600" onclick="pickColor('#22c55e')"></div>
+        </div>
+
         <div id="chat-box">
-            <div class="flex justify-between items-center bg-blue-900 h-12">
-                <span class="ml-3 font-bold">SECURE RADIO</span>
+            <div class="flex justify-between items-center bg-blue-900 h-14 border-b border-blue-400">
+                <span class="ml-4 font-bold tracking-tighter">COMMS CHANNEL [ACTIVE]</span>
                 <div onclick="toggleChat()" class="close-chat">×</div>
             </div>
             <div id="chat-messages"></div>
-            <div class="p-2 bg-black flex border-t border-blue-900">
-                <input id="msgInput" type="text" class="flex-1 bg-transparent text-green-400 outline-none p-2" placeholder="Message...">
-                <button onclick="sendMsg()" class="text-blue-500 font-bold px-2">SEND</button>
+            <div class="p-3 bg-black flex border-t border-blue-900">
+                <input id="msgInput" type="text" class="flex-1 bg-[#111] text-green-400 outline-none p-3 border border-blue-900" placeholder="ENTER MESSAGE...">
+                <button onclick="sendMsg()" class="bg-blue-700 px-4 ml-2 font-bold">SEND</button>
             </div>
         </div>
 
@@ -89,9 +102,14 @@
 
     <script>
         const socket = io();
-        let map, myMarker, user = { room: '', name: '', lat: 0, lng: 0 };
-        let tactical = {}, tool = 'move', arrowStart = null;
+        let map, myMarker, user = { room: '', name: '', lat: 0, lng: 0 }, currentLayer = 'sat';
+        let tactical = {}, tool = 'move', arrowStart = null, activeColor = '#2563eb';
         const STEP = 20 * 0.000009;
+
+        const tileLayers = {
+            map: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 21 }),
+            sat: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 21 })
+        };
 
         function connect() {
             user.room = document.getElementById('roomIn').value.toUpperCase().trim();
@@ -109,7 +127,7 @@
 
         function initMap() {
             map = L.map('map', { zoomControl: false, attributionControl: false, maxZoom: 21 }).setView([43.40, 39.95], 18);
-            L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 21 }).addTo(map);
+            tileLayers.sat.addTo(map);
             
             map.on('move zoom', updateGrid);
             map.on('click', onMapClick);
@@ -145,14 +163,13 @@
             const id = 'id' + Date.now();
             
             if(tool === 'point' || tool === 'enemy') {
-                // ДЛЯ ФЛАГОВ: Шлем еще и координаты игрока для пульсирующей линии
                 socket.emit('new_obj', { id, type: tool, lat: e.latlng.lat, lng: e.latlng.lng, from: [user.lat, user.lng] });
             } else if(tool === 'arrow') {
                 if(!arrowStart) {
                     arrowStart = e.latlng;
-                    L.circleMarker(e.latlng, {radius:4, color:'yellow'}).addTo(map).fadeOut = true;
+                    L.circleMarker(e.latlng, {radius:5, color:activeColor}).addTo(map);
                 } else {
-                    socket.emit('new_obj', { id, type: 'arrow', start: arrowStart, end: e.latlng });
+                    socket.emit('new_obj', { id, type: 'arrow', start: arrowStart, end: e.latlng, color: activeColor });
                     arrowStart = null;
                 }
             }
@@ -160,27 +177,23 @@
 
         socket.on('draw', m => {
             if(m.type === 'arrow') {
-                // СТРЕЛКА: Сплошная линия БЕЗ дистанции
-                const line = L.polyline([m.start, m.end], { color: '#2563eb', weight: 5 }).addTo(map);
-                // Наконечник (простой маркер в конце)
-                const head = L.circleMarker(m.end, { radius: 2, color: 'white', fillOpacity: 1 }).addTo(map);
+                const line = L.polyline([m.start, m.end], { color: m.color, weight: 6 }).addTo(map);
+                // Наконечник через SVG маркер
+                const head = L.circleMarker(m.end, { radius: 4, color: '#fff', fillOpacity: 1, weight: 2 }).addTo(map);
                 tactical[m.id] = { layers: [line, head] };
             } else {
-                // ФЛАГ/ВРАГ: Пульсирующая линия + дистанция
                 const ico = m.type === 'enemy' ? '💀' : '🚩';
                 const mainMarker = L.marker([m.lat, m.lng], { 
-                    icon: L.divIcon({ html: `<div style="font-size:30px">${ico}</div>`, className: 'dummy', iconAnchor:[15,15] }) 
+                    icon: L.divIcon({ html: `<div style="font-size:32px; filter: drop-shadow(0 0 5px #000);">${ico}</div>`, className: 'dummy', iconAnchor:[16,16] }) 
                 }).addTo(map);
 
-                // Дистанция (белый бокс, красные цифры)
                 const dist = Math.round(map.distance(m.from, [m.lat, m.lng]));
                 const distLabel = L.marker([m.lat, m.lng], {
-                    icon: L.divIcon({ className: 'dist-box', html: `<span class="dist-val">${dist}м</span>`, iconAnchor:[20, -20] })
+                    icon: L.divIcon({ className: 'dist-box', html: `<span class="dist-val">${dist}м</span>`, iconAnchor:[22, -22] })
                 }).addTo(map);
 
-                // Пульсирующая пунктирная линия
                 const pulseLine = L.polyline([m.from, [m.lat, m.lng]], { 
-                    color: '#22c55e', weight: 2, dashArray: '10, 10', className: 'leaflet-ant-path' 
+                    color: '#ff0000', weight: 2, className: 'path-pulse'
                 }).addTo(map);
 
                 tactical[m.id] = { layers: [mainMarker, distLabel, pulseLine] };
@@ -191,31 +204,62 @@
             navigator.geolocation.watchPosition(p => {
                 user.lat = p.coords.latitude; user.lng = p.coords.longitude;
                 if(!myMarker) {
-                    myMarker = L.circleMarker([user.lat, user.lng], { color: '#2563eb', radius: 10, fillOpacity: 1 }).addTo(map);
-                    myMarker.bindTooltip(user.name, { permanent: true, className: 'bg-blue-600 text-white' });
+                    myMarker = L.circleMarker([user.lat, user.lng], { color: '#2563eb', radius: 12, fillOpacity: 1, weight: 3, fillColor: '#fff' }).addTo(map);
+                    myMarker.bindTooltip(user.name, { permanent: true, className: 'bg-blue-600 text-white font-bold px-2 py-1 border-none shadow-lg' });
                     map.setView([user.lat, user.lng], 19);
                 } else myMarker.setLatLng([user.lat, user.lng]);
                 socket.emit('gps_sync', { lat: user.lat, lng: user.lng });
             }, null, { enableHighAccuracy: true });
         }
 
-        function toggleChat() { const c = document.getElementById('chat-box'); c.style.display = (c.style.display === 'flex') ? 'none' : 'flex'; }
+        function toggleChat() { 
+            const c = document.getElementById('chat-box'); 
+            c.style.display = (c.style.display === 'flex') ? 'none' : 'flex'; 
+        }
+
         function sendMsg() { 
             const i = document.getElementById('msgInput'); 
-            if(i.value) { socket.emit('chat_msg', { name: user.name, text: i.value }); i.value = ''; } 
+            if(i.value) { 
+                socket.emit('chat_msg', { name: user.name, text: i.value }); 
+                i.value = ''; 
+            } 
         }
+
         socket.on('msg', m => { 
-            const d = document.createElement('div'); d.className = "mb-2 border-b border-gray-800 pb-1";
-            d.innerHTML = `<b class="text-blue-400 text-xs">${m.name}:</b><br><span class="text-white text-lg">${m.text}</span>`; 
+            const d = document.createElement('div'); 
+            d.className = "mb-4 p-2 bg-blue-950/30 border-l-4 border-blue-500";
+            d.innerHTML = `<b class="text-blue-400 text-sm uppercase font-['Orbitron']">${m.name}</b><br><span class="text-white text-xl">${m.text}</span>`; 
             document.getElementById('chat-messages').appendChild(d);
             document.getElementById('chat-messages').scrollTop = 9999;
         });
 
-        function setTool(t) { tool = t; arrowStart = null; document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active')); document.getElementById('t-'+t).classList.add('active'); }
+        function setTool(t) { 
+            tool = t; 
+            arrowStart = null; 
+            document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active')); 
+            document.getElementById('t-'+t).classList.add('active'); 
+            document.getElementById('color-picker').style.display = (t === 'arrow') ? 'flex' : 'none';
+        }
+
+        function pickColor(c) { activeColor = c; }
+        function changeMap(t) { map.eachLayer(l => { if(l instanceof L.TileLayer) map.removeLayer(l); }); tileLayers[t].addTo(map); }
         function centerMe() { if(user.lat) map.setView([user.lat, user.lng], 19); }
         function undo() { socket.emit('undo'); }
-        function clearMap() { if(confirm("DELETE TACTICAL DATA?")) socket.emit('clear'); }
-        socket.on('del_obj', id => { if(tactical[id]) { tactical[id].layers.forEach(l => map.removeLayer(l)); delete tactical[id]; } });
+        function clearMap() { if(confirm("ОЧИСТИТЬ ВСЕ ДАННЫЕ?")) socket.emit('clear'); }
+
+        socket.on('del_obj', id => { 
+            if(tactical[id]) { 
+                tactical[id].layers.forEach(l => map.removeLayer(l)); 
+                delete tactical[id]; 
+            } 
+        });
+
+        socket.on('clear_all', () => {
+            Object.keys(tactical).forEach(id => {
+                tactical[id].layers.forEach(l => map.removeLayer(l));
+                delete tactical[id];
+            });
+        });
     </script>
 </body>
 </html>
