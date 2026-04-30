@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SCORPION TACTICAL V6</title>
+    <title>SCORPION TACTICAL V7</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="/socket.io/socket.io.js"></script>
@@ -14,92 +14,65 @@
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Roboto+Condensed:wght@700&display=swap');
         body, html { margin: 0; padding: 0; height: 100%; background: #000; color: #22c55e; font-family: 'Roboto Condensed', sans-serif; overflow: hidden; }
 
-        /* ЭКРАН ВХОДА С РАДАРОМ */
+        /* РАДАР НА ВХОДЕ */
         #login-screen { position: fixed; inset: 0; z-index: 9999; background: #050505; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        
-        .entry-radar { width: 280px; height: 120px; background: rgba(0,255,0,0.05); border: 2px solid #22c55e; position: relative; margin-bottom: 20px; overflow: hidden; }
-        .radar-sweep { position: absolute; width: 100%; height: 2px; background: #22c55e; box-shadow: 0 0 15px #22c55e; animation: scan 2.5s ease-in-out infinite; }
-        @keyframes scan { 0% { top: 0; } 50% { top: 100%; } 100% { top: 0; } }
+        .entry-radar { width: 280px; height: 120px; border: 2px solid #22c55e; position: relative; margin-bottom: 20px; overflow: hidden; background: radial-gradient(circle, #062b06 0%, #000 70%); }
+        .radar-sweep { position: absolute; width: 100%; height: 3px; background: #22c55e; box-shadow: 0 0 15px #22c55e; animation: scan 2s linear infinite; }
+        @keyframes scan { 0% { top: 0; } 100% { top: 100%; } }
 
-        .auth-input { background: #000; border: 1px solid #22c55e; color: #22c55e; padding: 15px; margin-bottom: 12px; width: 300px; text-align: center; outline: none; font-size: 18px; font-family: 'Orbitron'; }
-        .auth-btn { background: #166534; color: #fff; padding: 20px; width: 300px; font-weight: bold; border: 1px solid #22c55e; cursor: pointer; }
+        /* ИНТЕРФЕЙС И КНОПКИ */
+        .side-panel { position: fixed; left: 0; top: 0; bottom: 0; width: 65px; background: #0a0a0a; border-right: 2px solid #22c55e; z-index: 5000; display: flex; flex-direction: column; }
+        .tool-btn { width: 65px; height: 55px; display: flex; flex-direction: column; align-items: center; justify-content: center; border-bottom: 1px solid #222; cursor: pointer; font-size: 20px; }
+        .tool-btn span { font-size: 10px; font-weight: bold; margin-top: 2px; }
+        .tool-btn.active { background: #166534; box-shadow: inset 0 0 10px #22c55e; }
 
-        /* ИСПРАВЛЕННАЯ СЕТКА (Крупные ячейки) */
+        /* СЕТКА ПОВЕРХ */
         #grid-layer { position: fixed; inset: 0; pointer-events: none; z-index: 1000; }
-        .grid-v { position: absolute; width: 1px; background: rgba(34, 197, 94, 0.4); top: 0; bottom: 0; }
-        .grid-h { position: absolute; height: 1px; background: rgba(34, 197, 94, 0.4); left: 0; right: 0; }
-        .grid-label { position: absolute; background: #000; color: #22c55e; font-family: 'Orbitron'; font-size: 16px; padding: 2px 6px; border: 1px solid #22c55e; z-index: 1001; font-weight: bold; }
+        .grid-v, .grid-h { position: absolute; background: rgba(34, 197, 94, 0.4); }
+        .grid-v { width: 1px; top: 0; bottom: 0; }
+        .grid-h { height: 1px; left: 0; right: 0; }
+        .grid-label { position: absolute; color: #22c55e; font-size: 14px; font-weight: bold; text-shadow: 1px 1px 2px #000; pointer-events: none; }
 
-        #map { height: 100vh; width: 100%; z-index: 1; position: absolute; background: #000; }
-
-        /* ЦИФРЫ - МАКСИМАЛЬНАЯ ЧИТАЕМОСТЬ */
+        /* ТАКТИЧЕСКИЕ МЕТКИ */
         .tactical-label { 
-            background: #fff !important; 
-            border: 3px solid #000 !important; 
+            background: rgba(255,255,255,0.95) !important; 
+            border: 2px solid #000 !important; 
             color: #ff0000 !important; 
             font-weight: 900 !important; 
-            font-size: 20px !important; 
-            padding: 2px 8px !important;
-            border-radius: 4px;
-            white-space: nowrap;
-            text-align: center;
+            padding: 1px 5px !important;
+            border-radius: 3px;
+            font-size: 16px !important;
         }
 
-        /* ИНТЕРФЕЙС */
-        .side-panel { position: fixed; left: 0; top: 0; bottom: 0; width: 65px; background: #000; border-right: 2px solid #22c55e; z-index: 5000; display: flex; flex-direction: column; }
-        .tool-btn { width: 65px; height: 60px; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid #111; font-size: 26px; cursor: pointer; }
-        .tool-btn.active { background: #166534; color: white; }
-
-        #arrow-colors { display: none; position: absolute; left: 70px; top: 240px; background: #000; border: 2px solid #22c55e; padding: 5px; z-index: 5500; }
-        .color-dot { width: 40px; height: 40px; margin: 5px; border: 2px solid #fff; cursor: pointer; }
-
-        /* СТРЕЛКА-ТРЕУГОЛЬНИК (Наконечник) */
-        .arrow-head {
-            width: 0; height: 0;
-            border-left: 10px solid transparent;
-            border-right: 10px solid transparent;
-            border-bottom: 20px solid white;
-            position: absolute;
-            transform-origin: center;
-        }
+        #map { height: 100vh; width: 100%; z-index: 1; background: #000; }
     </style>
 </head>
 <body>
 
     <div id="login-screen">
-        <h1 style="font-family:'Orbitron'; color:white; font-size:28px; margin-bottom:10px;">SCORPION <span style="color:#22c55e">SYSTEM</span></h1>
-        
-        <div class="entry-radar">
-            <div class="radar-sweep"></div>
-            <div style="position:absolute; top:20px; left:30px; width:6px; height:6px; background:red; border-radius:50%; box-shadow:0 0 10px red;"></div>
-            <div style="position:absolute; bottom:30px; right:50px; width:6px; height:6px; background:red; border-radius:50%; box-shadow:0 0 10px red;"></div>
-            <div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-size:10px; color:#22c55e; opacity:0.5;">SCANNING FOR TARGETS...</div>
-        </div>
-
-        <input id="roomIn" type="text" placeholder="КОМАНДА / ID" class="auth-input">
-        <input id="nameIn" type="text" placeholder="ВАШ ПОЗЫВНОЙ" class="auth-input">
-        <button onclick="connect()" class="auth-btn">АКТИВИРОВАТЬ ТЕРМИНАЛ</button>
+        <h1 style="font-family:'Orbitron'; color:white; font-size:24px; margin-bottom:15px;">SCORPION <span style="color:#22c55e">V7</span></h1>
+        <div class="entry-radar"><div class="radar-sweep"></div></div>
+        <input id="roomIn" type="text" placeholder="ID КОМАНДЫ" style="background:#000; border:1px solid #22c55e; color:#22c55e; padding:12px; margin-bottom:10px; width:260px; text-align:center;">
+        <input id="nameIn" type="text" placeholder="ПОЗЫВНОЙ" style="background:#000; border:1px solid #22c55e; color:#22c55e; padding:12px; margin-bottom:10px; width:260px; text-align:center;">
+        <button onclick="connect()" style="background:#166534; color:white; padding:15px; width:260px; font-weight:bold; border:1px solid #22c55e;">ВХОД В СИСТЕМУ</button>
     </div>
 
     <div id="ui" style="display:none">
         <div id="grid-layer"></div>
 
         <div class="side-panel">
-            <div onclick="setTool('move')" id="t-move" class="tool-btn active">🖐️</div>
-            <div onclick="centerMe()" class="tool-btn text-blue-400">🎯</div>
-            <div onclick="setTool('enemy')" id="t-enemy" class="tool-btn">💀</div>
-            <div onclick="setTool('point')" id="t-point" class="tool-btn">🚩</div>
-            <div onclick="setTool('arrow')" id="t-arrow" class="tool-btn">➡️</div>
-            <div onclick="clearMap()" class="tool-btn text-red-500">🗑️</div>
-            <div class="mt-auto">
-                <div onclick="location.reload()" class="tool-btn text-red-600">🚪</div>
-            </div>
-        </div>
-
-        <div id="arrow-colors">
-            <div class="color-dot bg-blue-600" onclick="pickColor('#2563eb')"></div>
-            <div class="color-dot bg-red-600" onclick="pickColor('#ef4444')"></div>
-            <div class="color-dot bg-green-600" onclick="pickColor('#22c55e')"></div>
+            <div onclick="setTool('move')" id="t-move" class="tool-btn active">🖐️<span>РУКА</span></div>
+            <div onclick="centerMe()" class="tool-btn text-blue-400">🎯<span>ГДЕ Я</span></div>
+            <div onclick="setTool('enemy')" id="t-enemy" class="tool-btn">💀<span>ВРАГ</span></div>
+            <div onclick="setTool('point')" id="t-point" class="tool-btn">🚩<span>ЦЕЛЬ</span></div>
+            <div onclick="setTool('arrow')" id="t-arrow" class="tool-btn">➡️<span>УДАР</span></div>
+            
+            <div style="margin-top:auto"></div>
+            
+            <div onclick="setLayer('sat')" id="layer-sat" class="tool-btn">🛰️<span>SAT</span></div>
+            <div onclick="setLayer('map')" id="layer-map" class="tool-btn active">🗺️<span>MAP</span></div>
+            
+            <div onclick="clearMap()" class="tool-btn text-red-500">🗑️<span>ОЧИСТИТЬ</span></div>
         </div>
 
         <div id="map"></div>
@@ -107,15 +80,21 @@
 
     <script>
         const socket = io();
-        let map, user = { lat:0, lng:0, name:'' }, tool = 'move', activeColor = '#2563eb', arrowStart = null;
-        let tactical = {};
-        // Увеличил шаг сетки, чтобы не было "каши"
-        const STEP = 50 * 0.000009; 
+        let map, userMarker, tool = 'move', userPos = { lat:0, lng:0 };
+        let tacticalLayers = [];
+        
+        const layers = {
+            map: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'),
+            sat: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}')
+        };
 
         function connect() {
-            user.name = document.getElementById('nameIn').value.toUpperCase();
+            const name = document.getElementById('nameIn').value.toUpperCase();
             const room = document.getElementById('roomIn').value.toUpperCase();
-            if(room && user.name) socket.emit('join_room', { room, name: user.name });
+            if(room && name) {
+                userPos.name = name;
+                socket.emit('join_room', { room, name });
+            }
         }
 
         socket.on('login_success', () => {
@@ -125,105 +104,105 @@
         });
 
         function initMap() {
-            map = L.map('map', { zoomControl: false, attributionControl: false, maxZoom: 21 }).setView([43.40, 39.95], 18);
-            L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 21 }).addTo(map);
-            
+            map = L.map('map', { zoomControl: false, attributionControl: false }).setView([43.40, 39.95], 18);
+            layers.map.addTo(map);
+
             map.on('move zoom', updateGrid);
             map.on('click', onMapClick);
+            
+            // Синий маркер игрока
+            userMarker = L.marker([0,0], {
+                icon: L.divIcon({
+                    html: `<div style="background:#2563eb; color:white; padding:2px 8px; border-radius:5px; border:2px solid white; font-weight:bold; white-space:nowrap;">ХАН</div>`,
+                    className: '', iconAnchor: [20, 10]
+                })
+            }).addTo(map);
+
             updateGrid();
             startGps();
         }
 
+        function setLayer(type) {
+            map.removeLayer(layers.map);
+            map.removeLayer(layers.sat);
+            layers[type].addTo(map);
+            document.getElementById('layer-sat').classList.toggle('active', type==='sat');
+            document.getElementById('layer-map').classList.toggle('active', type==='map');
+        }
+
         function updateGrid() {
-            const b = map.getBounds();
             const container = document.getElementById('grid-layer');
             container.innerHTML = '';
+            
+            // СКРЫВАЕМ СЕТКУ ПРИ ОТДАЛЕНИИ (меньше 16 зума)
+            if (map.getZoom() < 16) return;
 
-            // Рисуем только те линии, которые попадают в экран, с ограничением частоты
+            const b = map.getBounds();
+            const STEP = 0.0005; // Фиксированный шаг для стабильности
+
             for (let x = Math.floor(b.getWest()/STEP)*STEP; x <= b.getEast(); x += STEP) {
-                const p = map.latLngToContainerPoint([b.getNorth(), x]);
-                const line = document.createElement('div'); line.className = 'grid-v';
-                line.style.left = p.x + 'px'; container.appendChild(line);
-                
-                const lbl = document.createElement('div'); lbl.className = 'grid-label';
-                lbl.style.left = (p.x + 2) + 'px'; lbl.style.top = '10px';
-                lbl.innerText = String.fromCharCode(65 + (Math.abs(Math.round(x/STEP))%26));
-                container.appendChild(lbl);
+                let p = map.latLngToContainerPoint([b.getNorth(), x]);
+                let l = document.createElement('div'); l.className = 'grid-v';
+                l.style.left = p.x + 'px'; container.appendChild(l);
             }
             for (let y = Math.floor(b.getSouth()/STEP)*STEP; y <= b.getNorth(); y += STEP) {
-                const p = map.latLngToContainerPoint([y, b.getWest()]);
-                const line = document.createElement('div'); line.className = 'grid-h';
-                line.style.top = p.y + 'px'; container.appendChild(line);
-
-                const lbl = document.createElement('div'); lbl.className = 'grid-label';
-                lbl.style.right = '10px'; lbl.style.top = (p.y + 2) + 'px';
-                lbl.innerText = Math.abs(Math.round(y/STEP)) % 100;
-                container.appendChild(lbl);
+                let p = map.latLngToContainerPoint([y, b.getWest()]);
+                let l = document.createElement('div'); l.className = 'grid-h';
+                l.style.top = p.y + 'px'; container.appendChild(l);
             }
+        }
+
+        function centerMe() {
+            if (userPos.lat !== 0) {
+                map.flyTo([userPos.lat, userPos.lng], 19);
+            } else {
+                alert("Ожидание GPS...");
+            }
+        }
+
+        function startGps() {
+            navigator.geolocation.watchPosition(p => {
+                userPos.lat = p.coords.latitude;
+                userPos.lng = p.coords.longitude;
+                userMarker.setLatLng([userPos.lat, userPos.lng]);
+                socket.emit('gps_sync', { lat: userPos.lat, lng: userPos.lng });
+            }, null, { enableHighAccuracy: true });
         }
 
         function onMapClick(e) {
             if(tool === 'move') return;
             const id = 'id' + Date.now();
-            if(tool === 'arrow') {
-                if(!arrowStart) { 
-                    arrowStart = e.latlng;
-                    L.circleMarker(e.latlng, {radius:5, color:activeColor}).addTo(map);
-                } else {
-                    socket.emit('new_obj', { id, type:'arrow', start:arrowStart, end:e.latlng, color:activeColor });
-                    arrowStart = null;
-                }
-            } else {
-                socket.emit('new_obj', { id, type:tool, lat:e.latlng.lat, lng:e.latlng.lng, from:[user.lat, user.lng] });
-            }
+            socket.emit('new_obj', { id, type:tool, lat:e.latlng.lat, lng:e.latlng.lng, from:[userPos.lat, userPos.lng] });
         }
 
         socket.on('draw', m => {
-            if(m.type === 'arrow') {
-                const line = L.polyline([m.start, m.end], { color: m.color, weight: 8 }).addTo(map);
-                
-                // Наконечник - отдельный маркер с поворотом
-                const angle = Math.atan2(m.end.lat - m.start.lat, m.end.lng - m.start.lng) * 180 / Math.PI;
-                const head = L.marker(m.end, {
-                    icon: L.divIcon({
-                        className: '',
-                        html: `<div class="arrow-head" style="transform: rotate(${90-angle}deg); border-bottom-color: ${m.color};"></div>`,
-                        iconAnchor: [10, 10]
-                    })
-                }).addTo(map);
+            const ico = m.type === 'enemy' ? '💀' : '🚩';
+            const marker = L.marker([m.lat, m.lng], { 
+                icon: L.divIcon({ html: `<div style="font-size:30px">${ico}</div>`, className:'dummy', iconAnchor:[15,15] })
+            }).addTo(map);
 
-                tactical[m.id] = { layers: [line, head] };
-            } else {
-                const ico = m.type === 'enemy' ? '💀' : '🚩';
-                const marker = L.marker([m.lat, m.lng], { 
-                    icon: L.divIcon({ html: `<div style="font-size:40px; text-shadow: 0 0 10px #000;">${ico}</div>`, className:'dummy', iconAnchor:[20,20] })
-                }).addTo(map);
+            const dist = Math.round(map.distance(m.from, [m.lat, m.lng]));
+            const label = L.marker([m.lat, m.lng], {
+                icon: L.divIcon({ className: 'tactical-label', html: `${dist}м`, iconAnchor: [20, -20] })
+            }).addTo(map);
 
-                const dist = Math.round(map.distance(m.from, [m.lat, m.lng]));
-                const label = L.marker([m.lat, m.lng], {
-                    icon: L.divIcon({ className: 'tactical-label', html: `${dist}м`, iconAnchor: [20, -25] })
-                }).addTo(map);
-
-                tactical[m.id] = { layers: [marker, label] };
-            }
+            tacticalLayers.push(marker, label);
         });
 
-        function startGps() {
-            navigator.geolocation.watchPosition(p => {
-                user.lat = p.coords.latitude; user.lng = p.coords.longitude;
-                socket.emit('gps_sync', { lat: user.lat, lng: user.lng });
-            }, null, { enableHighAccuracy: true });
-        }
-
-        function setTool(t) { 
-            tool = t; arrowStart = null;
+        function setTool(t) {
+            tool = t;
             document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
             document.getElementById('t-'+t).classList.add('active');
-            document.getElementById('arrow-colors').style.display = (t==='arrow')?'block':'none';
         }
-        function pickColor(c) { activeColor = c; }
-        function clearMap() { if(confirm("ОЧИСТИТЬ КАРТУ?")) socket.emit('clear'); }
-        socket.on('clear_all', () => { Object.values(tactical).forEach(o => o.layers.forEach(l => map.removeLayer(l))); tactical = {}; });
+
+        function clearMap() {
+            if(confirm("УДАЛИТЬ ВСЕ МЕТКИ?")) socket.emit('clear');
+        }
+
+        socket.on('clear_all', () => {
+            tacticalLayers.forEach(l => map.removeLayer(l));
+            tacticalLayers = [];
+        });
     </script>
 </body>
 </html>
