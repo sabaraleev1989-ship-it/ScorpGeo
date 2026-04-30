@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SCORPION GEO | PRO V4.1</title>
+    <title>SCORPION TACTICAL V5</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="/socket.io/socket.io.js"></script>
@@ -14,58 +14,60 @@
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Roboto+Condensed:wght@700&display=swap');
         body, html { margin: 0; padding: 0; height: 100%; background: #000; color: #22c55e; font-family: 'Roboto Condensed', sans-serif; overflow: hidden; }
 
-        #login-screen { position: fixed; inset: 0; z-index: 9999; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        .auth-input { background: #111; border: 1px solid #22c55e; color: #22c55e; padding: 15px; margin-bottom: 10px; width: 280px; text-align: center; outline: none; font-family: 'Orbitron'; }
-        
+        /* РУССКИЙ ВХОД */
+        #login-screen { position: fixed; inset: 0; z-index: 9999; background: #050505; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 4px solid #111; }
+        .auth-input { background: #000; border: 1px solid #22c55e; color: #22c55e; padding: 15px; margin-bottom: 12px; width: 300px; text-align: center; outline: none; font-size: 18px; }
+        .auth-btn { background: #166534; color: #fff; padding: 20px; width: 300px; font-weight: bold; cursor: pointer; border: 1px solid #22c55e; text-transform: uppercase; }
+
+        /* АКТИВНЫЙ РАДАР */
+        #radar-top { position: fixed; top: 0; left: 60px; right: 0; height: 40px; background: rgba(0,20,0,0.9); z-index: 2000; border-bottom: 1px solid #22c55e; overflow: hidden; display: flex; align-items: center; }
+        .radar-line { position: absolute; height: 100%; width: 100px; background: linear-gradient(to right, transparent, rgba(34, 197, 94, 0.3)); animation: sweep 3s linear infinite; }
+        .radar-dot { width: 6px; height: 6px; background: red; border-radius: 50%; position: absolute; box-shadow: 0 0 10px red; }
+        @keyframes sweep { from { left: -100px; } to { left: 100%; } }
+
+        /* СЕТКА ПОВЕРХ КАРТЫ */
+        .grid-line-h, .grid-line-v { position: absolute; pointer-events: none; z-index: 1000; background: rgba(34, 197, 94, 0.2); }
+        .grid-line-h { height: 1px; left: 0; right: 0; }
+        .grid-line-v { width: 1px; top: 0; bottom: 0; }
+
         #map { height: 100vh; width: 100%; z-index: 1; position: absolute; background: #000; }
 
-        /* ИСПРАВЛЕННАЯ СЕТКА */
-        .grid-axis-x { position: fixed; top: 0; left: 60px; right: 0; height: 30px; background: rgba(0,0,0,0.85); z-index: 1000; border-bottom: 2px solid #22c55e; pointer-events: none; }
-        .grid-axis-y { position: fixed; top: 30px; right: 0; bottom: 0; width: 35px; background: rgba(0,0,0,0.85); z-index: 1000; border-left: 2px solid #22c55e; pointer-events: none; }
-        .axis-label { color: #22c55e; font-family: 'Orbitron'; font-size: 14px; position: absolute; font-weight: bold; }
+        /* ТЕКСТ С ОБВОДКОЙ ВНУТРИ КВАДРАТА */
+        .dist-box { background: #fff !important; border: 2px solid #000 !important; padding: 2px 5px !important; display: flex; }
+        .dist-val { color: red; font-weight: 900; font-size: 18px; text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; line-height: 1; }
 
-        /* ДИСТАНЦИЯ: Цифры внутри квадрата с обводкой */
-        .dist-box { background: white !important; border: 2px solid black !important; padding: 0px 4px !important; border-radius: 2px; display: flex; align-items: center; justify-content: center; min-width: 40px; height: 22px; }
-        .dist-val { color: #ff0000; font-weight: 900; font-size: 16px; text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; line-height: 1; }
+        /* ПАНЕЛЬ */
+        .side-panel { position: fixed; left: 0; top: 0; bottom: 0; width: 60px; background: #0a0a0a; border-right: 2px solid #22c55e; z-index: 5000; display: flex; flex-direction: column; }
+        .tool-btn { width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid #222; font-size: 24px; cursor: pointer; }
+        .tool-btn.active { background: #166534; box-shadow: inset 0 0 15px #22c55e; }
 
-        /* ПАНЕЛЬ И ВЫБОР ЦВЕТА */
-        .side-panel { position: fixed; left: 0; top: 0; bottom: 0; width: 60px; background: #0a0a0a; border-right: 1px solid #1e293b; z-index: 5000; display: flex; flex-direction: column; }
-        .tool-btn { width: 60px; height: 55px; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid #1e293b; font-size: 24px; cursor: pointer; transition: 0.2s; }
-        .tool-btn.active { background: #1e3a8a; box-shadow: inset 0 0 10px #3b82f6; }
-        
-        #color-picker { display: none; flex-direction: column; background: #111; border: 1px solid #3b82f6; position: absolute; left: 62px; top: 220px; z-index: 5500; padding: 5px; gap: 5px; }
-        .color-opt { width: 40px; height: 40px; border: 2px solid #fff; cursor: pointer; }
+        #color-selector { display: none; position: absolute; left: 65px; top: 240px; background: #000; border: 1px solid #22c55e; padding: 5px; z-index: 5500; }
+        .c-box { width: 35px; height: 35px; margin: 5px; cursor: pointer; border: 1px solid #fff; }
 
         /* ЧАТ */
-        #chat-box { position: fixed; left: 70px; bottom: 90px; width: 320px; height: 450px; background: rgba(5, 5, 10, 0.95); border: 2px solid #2563eb; z-index: 6000; display: none; flex-direction: column; box-shadow: 0 0 20px rgba(0,0,0,1); }
-        #chat-messages { flex: 1; overflow-y: auto; padding: 12px; font-size: 18px; color: #fff; }
-        .close-chat { width: 60px; height: 50px; background: #ef4444; color: white; display: flex; align-items: center; justify-content: center; font-size: 35px; cursor: pointer; }
-
-        /* АНИМАЦИЯ ПУНКТИРА */
-        .path-pulse { stroke-dasharray: 8, 8; animation: dash 20s linear infinite; }
-        @keyframes dash { from { stroke-dashoffset: 500; } to { stroke-dashoffset: 0; } }
+        #chat-box { position: fixed; left: 70px; bottom: 90px; width: 320px; height: 400px; background: rgba(0,0,0,0.9); border: 2px solid #22c55e; z-index: 6000; display: none; flex-direction: column; }
     </style>
 </head>
 <body>
 
     <div id="login-screen">
-        <div class="mb-6 text-center">
-            <h1 class="text-4xl font-bold tracking-widest font-['Orbitron'] text-white">SCORPION</h1>
-            <p class="text-green-500 font-bold tracking-widest text-sm">TACTICAL NETWORK V4.1</p>
-        </div>
-        <input id="roomIn" type="text" placeholder="NET ID" class="auth-input">
-        <input id="passIn" type="password" placeholder="ACCESS CODE" class="auth-input">
-        <input id="nameIn" type="text" placeholder="CALLSIGN" class="auth-input">
-        <button onclick="connect()" class="auth-btn mt-4 hover:bg-green-700 transition">INITIALIZE LINK</button>
+        <h1 style="font-family:'Orbitron'; color:white; font-size:30px; margin-bottom:20px;">SCORPION <span style="color:#22c55e">GEO</span></h1>
+        <input id="roomIn" type="text" placeholder="ID СЕТИ" class="auth-input">
+        <input id="passIn" type="password" placeholder="ПАРОЛЬ" class="auth-input">
+        <input id="nameIn" type="text" placeholder="ПОЗЫВНОЙ" class="auth-input">
+        <button onclick="connect()" class="auth-btn">ПОДКЛЮЧИТЬСЯ К СИСТЕМЕ</button>
     </div>
 
     <div id="ui" style="display:none">
-        <div id="axis-x" class="grid-axis-x"></div>
-        <div id="axis-y" class="grid-axis-y"></div>
+        <div id="radar-top">
+            <div class="radar-line"></div>
+            <div id="radar-dots"></div>
+            <span style="margin-left:auto; margin-right:20px; font-size:12px; color:#22c55e;">SCANNING AREA...</span>
+        </div>
 
         <div class="side-panel">
             <div onclick="setTool('move')" id="t-move" class="tool-btn active">🖐️</div>
-            <div onclick="centerMe()" class="tool-btn text-green-400">🎯</div>
+            <div onclick="centerMe()" class="tool-btn">🎯</div>
             <div onclick="setTool('enemy')" id="t-enemy" class="tool-btn">💀</div>
             <div onclick="setTool('point')" id="t-point" class="tool-btn">🚩</div>
             <div onclick="setTool('arrow')" id="t-arrow" class="tool-btn">➡️</div>
@@ -73,50 +75,39 @@
             <div onclick="undo()" class="tool-btn text-yellow-500">↩️</div>
             <div onclick="clearMap()" class="tool-btn text-red-500">🗑️</div>
             <div class="mt-auto">
-                <div onclick="changeMap('sat')" class="tool-btn text-xs font-bold">SAT</div>
-                <div onclick="changeMap('map')" class="tool-btn text-xs font-bold">MAP</div>
                 <div onclick="location.reload()" class="tool-btn text-red-600">🚪</div>
             </div>
         </div>
 
-        <div id="color-picker">
-            <div class="color-opt bg-blue-600" onclick="pickColor('#2563eb')"></div>
-            <div class="color-opt bg-red-600" onclick="pickColor('#ef4444')"></div>
-            <div class="color-opt bg-green-600" onclick="pickColor('#22c55e')"></div>
+        <div id="color-selector">
+            <div class="c-box bg-blue-600" onclick="pickColor('#2563eb')"></div>
+            <div class="c-box bg-red-600" onclick="pickColor('#ef4444')"></div>
+            <div class="c-box bg-green-600" onclick="pickColor('#22c55e')"></div>
         </div>
 
         <div id="chat-box">
-            <div class="flex justify-between items-center bg-blue-900 h-14 border-b border-blue-400">
-                <span class="ml-4 font-bold tracking-tighter">COMMS CHANNEL [ACTIVE]</span>
-                <div onclick="toggleChat()" class="close-chat">×</div>
-            </div>
-            <div id="chat-messages"></div>
-            <div class="p-3 bg-black flex border-t border-blue-900">
-                <input id="msgInput" type="text" class="flex-1 bg-[#111] text-green-400 outline-none p-3 border border-blue-900" placeholder="ENTER MESSAGE...">
-                <button onclick="sendMsg()" class="bg-blue-700 px-4 ml-2 font-bold">SEND</button>
+            <div class="bg-green-900 p-2 font-bold flex justify-between">РАДИООБМЕН <span onclick="toggleChat()" class="cursor-pointer">✕</span></div>
+            <div id="chat-messages" class="flex-1 overflow-y-auto p-2 text-xl"></div>
+            <div class="p-2 border-t border-green-900 flex">
+                <input id="msgInput" type="text" class="flex-1 bg-black text-white p-2 outline-none" placeholder="Сообщение...">
+                <button onclick="sendMsg()" class="bg-green-700 px-3">OK</button>
             </div>
         </div>
 
         <div id="map"></div>
+        <div id="grid-container" style="position:fixed; inset:0; pointer-events:none; z-index:1000;"></div>
     </div>
 
     <script>
         const socket = io();
-        let map, myMarker, user = { room: '', name: '', lat: 0, lng: 0 }, currentLayer = 'sat';
-        let tactical = {}, tool = 'move', arrowStart = null, activeColor = '#2563eb';
+        let map, user = { lat:0, lng:0, name:'' }, tool = 'move', activeColor = '#2563eb', arrowStart = null;
+        let tactical = {};
         const STEP = 20 * 0.000009;
 
-        const tileLayers = {
-            map: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 21 }),
-            sat: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 21 })
-        };
-
         function connect() {
-            user.room = document.getElementById('roomIn').value.toUpperCase().trim();
-            user.name = document.getElementById('nameIn').value.toUpperCase().trim();
-            if(user.room && user.name) {
-                socket.emit('join_room', { room: user.room, name: user.name, code: document.getElementById('passIn').value });
-            }
+            user.name = document.getElementById('nameIn').value.toUpperCase();
+            const room = document.getElementById('roomIn').value;
+            if(room && user.name) socket.emit('join_room', { room, name: user.name });
         }
 
         socket.on('login_success', () => {
@@ -127,139 +118,109 @@
 
         function initMap() {
             map = L.map('map', { zoomControl: false, attributionControl: false, maxZoom: 21 }).setView([43.40, 39.95], 18);
-            tileLayers.sat.addTo(map);
+            L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 21 }).addTo(map);
             
-            map.on('move zoom', updateGrid);
+            // СТРЕЛКИ С НАКОНЕЧНИКАМИ ЧЕРЕЗ SVG DEFS
+            const svg = map.getRenderer(L.svg());
+            svg._container.insertAdjacentHTML('afterbegin', `
+                <defs>
+                    <marker id="arrowhead" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                        <path d="M 0 0 L 10 5 L 0 10 z" fill="white" />
+                    </marker>
+                </defs>
+            `);
+
+            map.on('move zoom click', updateUI);
             map.on('click', onMapClick);
-            updateGrid();
+            setInterval(updateRadar, 3000);
             startGps();
         }
 
-        function updateGrid() {
+        function updateUI() {
             const b = map.getBounds();
-            const axX = document.getElementById('axis-x'), axY = document.getElementById('axis-y');
-            axX.innerHTML = ''; axY.innerHTML = '';
+            const container = document.getElementById('grid-container');
+            container.innerHTML = '';
 
             for (let x = Math.floor(b.getWest()/STEP)*STEP; x <= b.getEast(); x += STEP) {
-                const p = map.latLngToContainerPoint([b.getNorth(), x + STEP/2]);
-                if(p.x > 60) {
-                    const el = document.createElement('div'); el.className = 'axis-label';
-                    el.style.left = (p.x - 77) + 'px'; el.style.top = '5px';
-                    el.innerText = String.fromCharCode(65 + (Math.abs(Math.round(x/STEP))%26));
-                    axX.appendChild(el);
-                }
+                const p = map.latLngToContainerPoint([b.getNorth(), x]);
+                const line = document.createElement('div'); line.className = 'grid-line-v';
+                line.style.left = p.x + 'px'; container.appendChild(line);
+                
+                const lbl = document.createElement('div'); lbl.className = 'axis-label';
+                lbl.style.position = 'absolute'; lbl.style.left = (p.x + 5) + 'px'; lbl.style.top = '45px';
+                lbl.style.color = '#22c55e'; lbl.innerText = String.fromCharCode(65 + (Math.abs(Math.round(x/STEP))%26));
+                container.appendChild(lbl);
             }
             for (let y = Math.floor(b.getSouth()/STEP)*STEP; y <= b.getNorth(); y += STEP) {
-                const p = map.latLngToContainerPoint([y + STEP/2, b.getEast()]);
-                const el = document.createElement('div'); el.className = 'axis-label';
-                el.style.top = (p.y - 45) + 'px'; el.style.right = '5px';
-                el.innerText = Math.abs(Math.round(y/STEP)) % 100;
-                axY.appendChild(el);
+                const p = map.latLngToContainerPoint([y, b.getWest()]);
+                const line = document.createElement('div'); line.className = 'grid-line-h';
+                line.style.top = p.y + 'px'; container.appendChild(line);
+
+                const lbl = document.createElement('div'); lbl.className = 'axis-label';
+                lbl.style.position = 'absolute'; lbl.style.right = '5px'; lbl.style.top = (p.y - 15) + 'px';
+                lbl.style.color = '#22c55e'; lbl.innerText = Math.abs(Math.round(y/STEP)) % 100;
+                container.appendChild(lbl);
             }
         }
 
         function onMapClick(e) {
             if(tool === 'move') return;
             const id = 'id' + Date.now();
-            
-            if(tool === 'point' || tool === 'enemy') {
-                socket.emit('new_obj', { id, type: tool, lat: e.latlng.lat, lng: e.latlng.lng, from: [user.lat, user.lng] });
-            } else if(tool === 'arrow') {
-                if(!arrowStart) {
-                    arrowStart = e.latlng;
-                    L.circleMarker(e.latlng, {radius:5, color:activeColor}).addTo(map);
-                } else {
-                    socket.emit('new_obj', { id, type: 'arrow', start: arrowStart, end: e.latlng, color: activeColor });
-                    arrowStart = null;
-                }
+            if(tool === 'arrow') {
+                if(!arrowStart) { arrowStart = e.latlng; }
+                else { socket.emit('new_obj', { id, type:'arrow', start:arrowStart, end:e.latlng, color:activeColor }); arrowStart = null; }
+            } else {
+                socket.emit('new_obj', { id, type:tool, lat:e.latlng.lat, lng:e.latlng.lng, from:[user.lat, user.lng] });
             }
         }
 
         socket.on('draw', m => {
             if(m.type === 'arrow') {
                 const line = L.polyline([m.start, m.end], { color: m.color, weight: 6 }).addTo(map);
-                // Наконечник через SVG маркер
-                const head = L.circleMarker(m.end, { radius: 4, color: '#fff', fillOpacity: 1, weight: 2 }).addTo(map);
-                tactical[m.id] = { layers: [line, head] };
+                line.getElement().setAttribute('marker-end', 'url(#arrowhead)');
+                tactical[m.id] = { layers: [line] };
             } else {
                 const ico = m.type === 'enemy' ? '💀' : '🚩';
-                const mainMarker = L.marker([m.lat, m.lng], { 
-                    icon: L.divIcon({ html: `<div style="font-size:32px; filter: drop-shadow(0 0 5px #000);">${ico}</div>`, className: 'dummy', iconAnchor:[16,16] }) 
-                }).addTo(map);
-
+                const main = L.marker([m.lat, m.lng], { icon: L.divIcon({ html: `<div style="font-size:35px">${ico}</div>`, className:'dummy' })}).addTo(map);
                 const dist = Math.round(map.distance(m.from, [m.lat, m.lng]));
-                const distLabel = L.marker([m.lat, m.lng], {
-                    icon: L.divIcon({ className: 'dist-box', html: `<span class="dist-val">${dist}м</span>`, iconAnchor:[22, -22] })
-                }).addTo(map);
-
-                const pulseLine = L.polyline([m.from, [m.lat, m.lng]], { 
-                    color: '#ff0000', weight: 2, className: 'path-pulse'
-                }).addTo(map);
-
-                tactical[m.id] = { layers: [mainMarker, distLabel, pulseLine] };
+                const box = L.marker([m.lat, m.lng], { icon: L.divIcon({ className:'dist-box', html:`<span class="dist-val">${dist}м</span>`, iconAnchor:[25,-20] })}).addTo(map);
+                const line = L.polyline([m.from, [m.lat, m.lng]], { color:'red', dashArray:'10,10', weight:2 }).addTo(map);
+                tactical[m.id] = { layers: [main, box, line] };
             }
         });
+
+        function updateRadar() {
+            const res = document.getElementById('radar-dots'); res.innerHTML = '';
+            for(let i=0; i<3; i++) {
+                const dot = document.createElement('div'); dot.className = 'radar-dot';
+                dot.style.left = Math.random()*90 + '%'; dot.style.top = Math.random()*30 + 'px';
+                res.appendChild(dot);
+            }
+        }
 
         function startGps() {
             navigator.geolocation.watchPosition(p => {
                 user.lat = p.coords.latitude; user.lng = p.coords.longitude;
-                if(!myMarker) {
-                    myMarker = L.circleMarker([user.lat, user.lng], { color: '#2563eb', radius: 12, fillOpacity: 1, weight: 3, fillColor: '#fff' }).addTo(map);
-                    myMarker.bindTooltip(user.name, { permanent: true, className: 'bg-blue-600 text-white font-bold px-2 py-1 border-none shadow-lg' });
-                    map.setView([user.lat, user.lng], 19);
-                } else myMarker.setLatLng([user.lat, user.lng]);
                 socket.emit('gps_sync', { lat: user.lat, lng: user.lng });
             }, null, { enableHighAccuracy: true });
         }
 
-        function toggleChat() { 
-            const c = document.getElementById('chat-box'); 
-            c.style.display = (c.style.display === 'flex') ? 'none' : 'flex'; 
-        }
-
-        function sendMsg() { 
-            const i = document.getElementById('msgInput'); 
-            if(i.value) { 
-                socket.emit('chat_msg', { name: user.name, text: i.value }); 
-                i.value = ''; 
-            } 
-        }
-
-        socket.on('msg', m => { 
-            const d = document.createElement('div'); 
-            d.className = "mb-4 p-2 bg-blue-950/30 border-l-4 border-blue-500";
-            d.innerHTML = `<b class="text-blue-400 text-sm uppercase font-['Orbitron']">${m.name}</b><br><span class="text-white text-xl">${m.text}</span>`; 
+        function toggleChat() { const c = document.getElementById('chat-box'); c.style.display = (c.style.display==='flex')?'none':'flex'; }
+        function sendMsg() { const i = document.getElementById('msgInput'); if(i.value) { socket.emit('chat_msg', { name:user.name, text:i.value }); i.value=''; } }
+        socket.on('msg', m => {
+            const d = document.createElement('div'); d.innerHTML = `<b style="color:#22c55e">${m.name}:</b> ${m.text}`;
             document.getElementById('chat-messages').appendChild(d);
-            document.getElementById('chat-messages').scrollTop = 9999;
         });
 
         function setTool(t) { 
-            tool = t; 
-            arrowStart = null; 
-            document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active')); 
-            document.getElementById('t-'+t).classList.add('active'); 
-            document.getElementById('color-picker').style.display = (t === 'arrow') ? 'flex' : 'none';
+            tool = t; arrowStart = null;
+            document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('t-'+t).classList.add('active');
+            document.getElementById('color-selector').style.display = (t==='arrow')?'block':'none';
         }
-
         function pickColor(c) { activeColor = c; }
-        function changeMap(t) { map.eachLayer(l => { if(l instanceof L.TileLayer) map.removeLayer(l); }); tileLayers[t].addTo(map); }
-        function centerMe() { if(user.lat) map.setView([user.lat, user.lng], 19); }
-        function undo() { socket.emit('undo'); }
-        function clearMap() { if(confirm("ОЧИСТИТЬ ВСЕ ДАННЫЕ?")) socket.emit('clear'); }
-
-        socket.on('del_obj', id => { 
-            if(tactical[id]) { 
-                tactical[id].layers.forEach(l => map.removeLayer(l)); 
-                delete tactical[id]; 
-            } 
-        });
-
-        socket.on('clear_all', () => {
-            Object.keys(tactical).forEach(id => {
-                tactical[id].layers.forEach(l => map.removeLayer(l));
-                delete tactical[id];
-            });
-        });
+        function clearMap() { if(confirm("ОЧИСТИТЬ?")) socket.emit('clear'); }
+        socket.on('clear_all', () => { Object.values(tactical).forEach(o => o.layers.forEach(l => map.removeLayer(l))); tactical = {}; });
     </script>
 </body>
 </html>
