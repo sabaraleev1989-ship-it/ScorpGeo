@@ -11,48 +11,69 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Roboto+Condensed:wght@700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Roboto+Condensed:wght@700;900&display=swap');
         
-        body { background: #0a0a0a; font-family: 'Roboto Condensed', sans-serif; margin: 0; overflow: hidden; color: #e2e8f0; }
+        body { background: #020617; font-family: 'Roboto Condensed', sans-serif; margin: 0; overflow: hidden; color: #e2e8f0; }
         #map { height: 100vh; width: 100%; z-index: 1; background: #000; }
         .leaflet-control-attribution { display: none !important; }
 
+        /* ТАКТИЧЕСКАЯ ЗАСТАВКА "СКОРПИОН" (ЗЕЛЕНАЯ) */
+        #auth-screen { background: radial-gradient(circle at center, #052e16 0%, #000000 100%); }
+        .auth-card { background: rgba(0, 20, 0, 0.9); border: 2px solid #166534; backdrop-filter: blur(10px); box-shadow: 0 0 50px rgba(22, 101, 52, 0.4); text-shadow: 0 0 10px #22c55e; }
+        
+        /* Компас в заставке */
+        .compass-ui { width: 100px; height: 100px; border: 4px solid #22c55e; border-radius: 50%; position: relative; margin: 0 auto 20px; animation: compass-rot 10s linear infinite; box-shadow: 0 0 15px #166534; }
+        .compass-ui::before { content: 'N'; position: absolute; top: 5px; left: 50%; transform: translateX(-50%); color: #ef4444; font-weight: bold; font-family: 'Orbitron'; }
+        .compass-ui::after { content: ''; position: absolute; top: 50%; left: 50%; width: 2px; height: 40px; background: #22c55e; transform: translate(-50%, -100%); }
+        @keyframes compass-rot { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+        /* Скорпион */
+        .scorp-logo { font-size: 60px; color: #22c55e; margin-bottom: 10px; animation: pulse-green 2s infinite; }
+        @keyframes pulse-green { 0%, 100% { opacity: 1; filter: drop-shadow(0 0 5px #22c55e); } 50% { opacity: 0.7; filter: drop-shadow(0 0 15px #22c55e); } }
+
+        .auth-input { background: #000; border: 1px solid #166534; color: #22c55e; padding: 14px; border-radius: 4px; text-align: center; font-weight: bold; text-transform: uppercase; width: 100%; outline: none; font-family: monospace; }
+        .auth-input:focus { border-color: #22c55e; box-shadow: 0 0 10px #166534; }
+        .auth-btn { background: #166534; color: white; padding: 16px; border-radius: 4px; font-weight: bold; text-lg w-full transition: all 0.2s; font-family: 'Orbitron'; letter-spacing: 1px; }
+        .auth-btn:hover { background: #15803d; box-shadow: 0 0 20px #22c55e; }
+
         /* Панель */
         .side-panel { background: #0f172a; border-right: 2px solid #334155; z-index: 5000; width: 72px; position: fixed; left: 0; top: 0; bottom: 0; display: flex; flex-direction: column; }
-        .tool-btn { width: 72px; height: 60px; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid #1e293b; cursor: pointer; font-size: 24px; transition: 0.2s; }
-        .tool-btn.active { background: #2563eb; box-shadow: inset 0 0 10px rgba(0,0,0,0.5); }
+        .tool-btn { width: 72px; height: 62px; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid #1e293b; cursor: pointer; font-size: 26px; transition: 0.2s; color: #94a3b8; }
+        .tool-btn.active { background: #2563eb; color: white; box-shadow: inset 0 0 10px rgba(0,0,0,0.5); }
+        .tool-btn:hover:not(.active) { background: #1e293b; color: white; }
         
-        .color-selector { display: flex; flex-direction: column; align-items: center; padding: 10px 0; gap: 10px; border-bottom: 1px solid #1e293b; }
-        .c-dot { width: 28px; height: 28px; border-radius: 4px; border: 2px solid #334155; cursor: pointer; }
-        .c-dot.active { border-color: white; transform: scale(1.1); }
+        .color-selector { display: flex; flex-direction: column; align-items: center; padding: 12px 0; gap: 12px; border-bottom: 1px solid #1e293b; }
+        .c-dot { width: 30px; height: 30px; border-radius: 4px; border: 3px solid #334155; cursor: pointer; transition: 0.2s; }
+        .c-dot.active { border-color: white; transform: scale(1.15); box-shadow: 0 0 10px rgba(255,255,255,0.5); }
 
         /* ТАКТИЧЕСКАЯ МЕТКА ДИСТАНЦИИ */
         .dist-label { 
             background: #ffffff !important; 
             color: #000000 !important; 
-            padding: 2px 6px; 
-            border: 2px solid #000000 !important; /* Черная рамка */
-            border-radius: 0px; /* Прямоугольник */
-            font-weight: 900; 
-            font-size: 14px; 
+            padding: 4px 10px !important; 
+            border: 3px solid #000000 !important; /* Толстая черная рамка */
+            border-radius: 0px !important; 
+            font-weight: 900 !important; 
+            font-size: 16px !important; 
             white-space: nowrap; 
             pointer-events: none;
-            margin-top: 42px; /* Под объект */
+            margin-top: 48px; /* Смещено вниз */
             text-align: center;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.7);
         }
         
-        .user-label { background: #2563eb; color: white; padding: 2px 6px; border-radius: 2px; font-weight: bold; border: 1px solid white; font-size: 10px; text-transform: uppercase; }
+        .user-label { background: #2563eb; color: white; padding: 2px 8px; border-radius: 4px; font-weight: bold; border: 2px solid white; font-size: 11px; text-transform: uppercase; }
+
+        /* Сетка MGRS */
+        .grid-label { color: rgba(34, 197, 94, 0.6); font-family: monospace; font-size: 11px; font-weight: bold; pointer-events: none; text-shadow: 0 0 3px #000; }
 
         /* Чат */
-        #chat-win { position: fixed; bottom: 85px; left: 80px; width: 320px; height: 400px; background: #0f172a; border: 2px solid #334155; border-radius: 8px; z-index: 9000; display: none; flex-direction: column; }
-        #chat-msgs { flex: 1; overflow-y: auto; padding: 12px; background: #020617; font-family: monospace; font-size: 13px; color: #10b981; }
-        .msg-line { margin-bottom: 8px; border-bottom: 1px solid #1e293b; padding-bottom: 4px; }
-        #badge { position: absolute; top: 8px; right: 8px; background: #ef4444; width: 18px; height: 18px; border-radius: 50%; font-size: 10px; display: none; align-items: center; justify-content: center; font-weight: bold; }
-
-        /* Вход */
-        .auth-input { background: #000; border: 1px solid #334155; color: #fff; padding: 12px; border-radius: 4px; text-align: center; font-weight: bold; text-transform: uppercase; width: 100%; outline: none; }
-        .auth-input:focus { border-color: #2563eb; }
+        #chat-win { position: fixed; bottom: 85px; left: 80px; width: 340px; height: 420px; background: #0f172a; border: 2px solid #334155; border-radius: 8px; z-index: 9000; display: none; flex-direction: column; box-shadow: 0 20px 50px rgba(0,0,0,0.8); }
+        .chat-hdr { padding: 12px; background: #1e293b; border-bottom: 2px solid #334155; display: flex; justify-content: space-between; font-family: 'Orbitron'; font-size: 12px; }
+        #chat-msgs { flex: 1; overflow-y: auto; padding: 15px; background: #020617; font-family: monospace; font-size: 13px; color: #10b981; }
+        .msg-line { margin-bottom: 10px; border-bottom: 1px solid #1e293b; padding-bottom: 6px; }
+        .msg-line b { color: #3b82f6; }
+        #badge { position: absolute; top: 8px; right: 8px; background: #ef4444; width: 20px; height: 20px; border-radius: 50%; font-size: 11px; display: none; align-items: center; justify-content: center; font-weight: bold; border: 2px solid #0f172a; }
 
         /* Пунктир */
         .nav-line-b { stroke: #fff; stroke-dasharray: 8, 8; stroke-width: 6; }
@@ -63,14 +84,20 @@
 <body>
 
     <div id="auth-screen" class="fixed inset-0 z-[10000] flex items-center justify-center bg-black p-6">
-        <div class="bg-slate-900 border-2 border-slate-700 p-8 rounded-xl w-full max-w-sm space-y-5 text-center">
-            <h1 style="font-family: 'Orbitron', sans-serif;" class="text-2xl font-black text-white italic tracking-tighter">SCORP <span class="text-blue-500">GEO</span></h1>
+        <div class="auth-card p-10 rounded-2xl w-full max-w-sm space-y-6 text-center">
+            
+            <div class="compass-ui"></div> <div class="scorp-logo">🦂</div> <div class="space-y-1">
+                <h1 style="font-family: 'Orbitron', sans-serif;" class="text-3xl font-black text-white italic tracking-tighter">SCORP <span class="text-green-500">GEO</span></h1>
+                <p class="text-[10px] text-green-700 tracking-[5px] uppercase font-bold">Tactical Web Terminal v4.8</p>
+            </div>
+            
             <div class="space-y-3">
                 <input id="roomInput" type="text" placeholder="ID СЕТИ (ROOM)" class="auth-input">
                 <input id="codeInput" type="password" placeholder="КОД ДОСТУПА" class="auth-input">
                 <input id="nameInput" type="text" placeholder="ПОЗЫВНОЙ" class="auth-input">
             </div>
-            <button onclick="startApp()" class="w-full bg-blue-600 py-4 rounded font-bold text-lg hover:bg-blue-500 transition-all">ВХОД В ТЕРМИНАЛ</button>
+            
+            <button onclick="startApp()" class="auth-btn">ПОДКЛЮЧИТЬСЯ</button>
         </div>
     </div>
 
@@ -85,25 +112,25 @@
                 <div onclick="pickColor('#ef4444', this)" class="c-dot bg-red-600"></div>
                 <div onclick="pickColor('#22c55e', this)" class="c-dot bg-green-600"></div>
             </div>
-            <div onclick="toggleChat()" class="tool-btn">💬 <div id="badge">0</div></div>
+            <div onclick="toggleChat()" class="tool-btn relative">💬 <div id="badge">0</div></div>
             <div onclick="undo()" class="tool-btn">↩️</div>
             <div onclick="clearMap()" class="tool-btn text-red-500">🗑️</div>
             <div class="mt-auto">
-                <div onclick="changeMap('sat')" class="tool-btn text-[10px] font-bold">SAT</div>
-                <div onclick="changeMap('map')" class="tool-btn text-[10px] font-bold text-blue-400">MAP</div>
+                <div onclick="changeMap('sat')" class="tool-btn text-[11px] font-bold">SAT</div>
+                <div onclick="changeMap('map')" class="tool-btn text-[11px] font-bold text-blue-400">MAP</div>
                 <div onclick="logout()" class="tool-btn text-red-600">🚪</div>
             </div>
         </div>
 
         <div id="chat-win">
-            <div class="p-3 bg-slate-800 flex justify-between font-bold border-b border-slate-600 text-xs tracking-widest">
-                <span>RADIO CHANNEL</span>
-                <button onclick="closeChat()">[X]</button>
+            <div class="chat-hdr">
+                <span class="text-green-500">RADIO CHANNEL [🟢]</span>
+                <button onclick="closeChat()" class="text-gray-500 hover:text-white">[X]</button>
             </div>
             <div id="chat-msgs"></div>
-            <div class="p-2 bg-slate-800 border-t border-slate-600 flex gap-1">
-                <input id="chat-input" type="text" class="flex-1 bg-black p-2 rounded text-xs outline-none border border-slate-700 text-white" placeholder="MESSAGE...">
-                <button onclick="send()" class="bg-blue-600 px-3 rounded font-bold text-xs">📡</button>
+            <div class="p-3 bg-slate-900 border-t border-slate-700 flex gap-2">
+                <input id="chat-input" type="text" class="flex-1 bg-black p-3 rounded text-sm outline-none border border-slate-700 text-green-400 placeholder:text-green-900" placeholder="ENTER MESSAGE...">
+                <button onclick="send()" class="bg-blue-600 px-5 rounded font-bold text-white📡</button>
             </div>
         </div>
 
@@ -115,7 +142,7 @@
         let map, myMarker, myInfo = { room: '', name: '', code: '', lat: 0, lng: 0 };
         let markers = {}, tactical = {}, navs = {}, dists = {};
         let tool = 'move', color = '#2563eb', arrowFrom = null, tempStart = null, unread = 0, chatOpen = false;
-        let layers = {};
+        let layers = {}, gridLayer = null;
 
         function startApp() {
             myInfo.room = document.getElementById('roomInput').value.toUpperCase().trim();
@@ -125,7 +152,7 @@
             if(myInfo.room && myInfo.name && myInfo.code) {
                 socket.emit('join_room', myInfo);
             } else {
-                alert("ЗАПОЛНИТЕ ВСЕ ПОЛЯ");
+                alert("КРИТИЧЕСКАЯ ОШИБКА: ЗАПОЛНИТЕ ВСЕ ПОЛЯ");
             }
         }
 
@@ -141,6 +168,11 @@
             
             if (!map) {
                 map = L.map('map', { zoomControl: false, attributionControl: false, layers: [layers.map] }).setView([43.58, 39.72], 15);
+                
+                // ТАКТИЧЕСКАЯ СЕТКА (Авто-масштаб)
+                updateGrid();
+                map.on('zoomend', updateGrid); // Перерисовывать при зуме
+
                 map.on('click', (e) => {
                     if(tool === 'move') return;
                     const id = 'id' + Date.now();
@@ -160,6 +192,40 @@
             }
             startGps();
         }
+
+        // Логика динамической сетки
+        function updateGrid() {
+            if (gridLayer) map.removeLayer(gridLayer);
+            gridLayer = L.layerGroup();
+            
+            const z = map.getZoom();
+            let step;
+            if (z >= 16) step = 0.001;      // ~100m (Тонкая сетка)
+            else if (z >= 14) step = 0.01;  // ~1km
+            else step = 0.1;               // Большие квадраты
+            
+            const b = map.getBounds();
+            const w = b.getWest(), e = b.getEast(), n = b.getNorth(), s = b.getSouth();
+            
+            // Вертикальные линии (Буквы)
+            let i = 0;
+            for (let x = Math.floor(w / step) * step; x <= e; x += step) {
+                L.polyline([[s, x], [n, x]], { color: 'rgba(34, 197, 94, 0.2)', weight: 1, pointerEvents: 'none' }).addTo(gridLayer);
+                const label = getChar(i++);
+                L.marker([n, x], { icon: L.divIcon({ className: 'grid-label', html: label, iconAnchor: [-5, 15] }) }).addTo(gridLayer);
+            }
+            // Горизонтальные линии (Цифры)
+            let j = 1;
+            for (let y = Math.floor(s / step) * step; y <= n; y += step) {
+                L.polyline([[y, w], [y, e]], { color: 'rgba(34, 197, 94, 0.2)', weight: 1, pointerEvents: 'none' }).addTo(gridLayer);
+                L.marker([y, w], { icon: L.divIcon({ className: 'grid-label', html: j++, iconAnchor: [15, 5] }) }).addTo(gridLayer);
+            }
+            
+            gridLayer.addTo(map);
+        }
+
+        // Алфавит для сетки
+        function getChar(i) { return String.fromCharCode(1040 + (i % 32)); } // Русский А, Б, В...
 
         function setTool(t) {
             tool = (tool === t) ? 'move' : t;
@@ -185,10 +251,10 @@
                 pos = m.end;
             } else {
                 const ico = m.type === 'enemy' ? '💀' : '🚩';
-                obj = L.marker([m.lat, m.lng], { icon: L.divIcon({ html: `<div style="font-size:32px;">${ico}</div>`, className: 'dummy', iconAnchor: [16, 16] }) }).addTo(map);
+                obj = L.marker([m.lat, m.lng], { icon: L.divIcon({ html: `<div style="font-size:32px; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.5));">${ico}</div>`, className: 'dummy', iconAnchor: [16, 16] }) }).addTo(map);
                 pos = { lat: m.lat, lng: m.lng };
-                // ТАКТИЧЕСКАЯ МЕТКА: Белый фон + черная рамка + черные цифры
-                dists[m.id] = L.marker(pos, { icon: L.divIcon({ className: 'dist-label', html: '---', iconAnchor: [24, -12] }) }).addTo(map);
+                // ОБНОВЛЕННАЯ ТАКТИЧЕСКАЯ МЕТКА: Черный на белом в рамке
+                dists[m.id] = L.marker(pos, { icon: L.divIcon({ className: 'dist-label', html: '---', iconAnchor: [28, -18] }) }).addTo(map);
             }
             tactical[m.id] = obj;
             const target = obj.on ? obj : obj.layers[0];
@@ -198,7 +264,7 @@
 
         function getHead(s, e) {
             const d = Math.atan2(e.lng - s.lng, e.lat - s.lat);
-            const h = 0.00025; // Еще компактнее наконечник
+            const h = 0.00025; // Компактный наконечник
             return [[e.lat - h * Math.cos(d - 0.5), e.lng - h * Math.sin(d - 0.5)], [e.lat, e.lng], [e.lat - h * Math.cos(d + 0.5), e.lng - h * Math.sin(d + 0.5)]];
         }
 
@@ -215,7 +281,7 @@
             Object.keys(dists).forEach(id => {
                 const p = tactical[id].getLatLng ? tactical[id].getLatLng() : tactical[id].latlng;
                 const d = Math.round(map.distance([myInfo.lat, myInfo.lng], p));
-                dists[id].setIcon(L.divIcon({ className: 'dist-label', html: d + 'м', iconAnchor: [24, -12] }));
+                dists[id].setIcon(L.divIcon({ className: 'dist-label', html: d + 'м', iconAnchor: [28, -18] }));
                 if(navs[id]) { navs[id].b.setLatLngs([[myInfo.lat, myInfo.lng], p]); navs[id].f.setLatLngs([[myInfo.lat, myInfo.lng], p]); }
             });
         }
@@ -246,8 +312,10 @@
 
         function changeMap(t) { map.removeLayer(layers.map); map.removeLayer(layers.sat); map.addLayer(layers[t]); }
         function undo() { socket.emit('undo'); }
-        function clearMap() { if(confirm("ОЧИСТИТЬ КАРТУ?")) socket.emit('clear'); }
+        function clearMap() { if(confirm("ВНИМАНИЕ: ОЧИСТИТЬ ВСЕ ТАКТИЧЕСКИЕ ДАННЫЕ СЕТИ?")) socket.emit('clear'); }
         function logout() { location.reload(); }
+        
+        // ЧАТ ЛОГИКА
         function toggleChat() { chatOpen = !chatOpen; document.getElementById('chat-win').style.display = chatOpen ? 'flex' : 'none'; if(chatOpen) unread = 0; updateBadge(); }
         function closeChat() { chatOpen = false; document.getElementById('chat-win').style.display = 'none'; }
         function send() { const i = document.getElementById('chat-input'); if(i.value.trim()) { socket.emit('msg_send', { user: myInfo.name, text: i.value.trim() }); i.value = ''; } }
