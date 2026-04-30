@@ -13,14 +13,8 @@ app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.ht
 io.on('connection', (socket) => {
     socket.on('join_room', (data) => {
         const rName = data.room;
-        // Если комнаты нет, создаем её с тем паролем, который ввел первый игрок
-        if (!rooms[rName]) {
-            rooms[rName] = { password: data.pass, objects: [] };
-        }
-        
-        if (rooms[rName].password !== data.pass) {
-            return socket.emit('auth_error', 'НЕВЕРНЫЙ ПАРОЛЬ КОМНАТЫ');
-        }
+        if (!rooms[rName]) rooms[rName] = { password: data.pass, objects: [] };
+        if (rooms[rName].password !== data.pass) return socket.emit('auth_error', 'НЕВЕРНЫЙ ПАРОЛЬ');
 
         socket.join(rName);
         socket.room = rName;
@@ -37,7 +31,7 @@ io.on('connection', (socket) => {
 
     socket.on('new_obj', (obj) => {
         if (socket.room) {
-            obj.owner = socket.id; // Помечаем, чей объект
+            obj.owner = socket.id;
             rooms[socket.room].objects.push(obj);
             io.to(socket.room).emit('draw', obj);
         }
@@ -52,9 +46,9 @@ io.on('connection', (socket) => {
 
     socket.on('clear_my', () => {
         if (socket.room) {
-            const toRemove = rooms[socket.room].objects.filter(o => o.owner === socket.id);
+            const myObjs = rooms[socket.room].objects.filter(o => o.owner === socket.id);
             rooms[socket.room].objects = rooms[socket.room].objects.filter(o => o.owner !== socket.id);
-            toRemove.forEach(o => io.to(socket.room).emit('remove_obj', o.id));
+            myObjs.forEach(o => io.to(socket.room).emit('remove_obj', o.id));
         }
     });
 
@@ -63,4 +57,4 @@ io.on('connection', (socket) => {
     });
 });
 
-http.listen(PORT, () => console.log('SCORPION V18 START'));
+http.listen(PORT, () => console.log('SCORPION V18.1 STARTED'));
