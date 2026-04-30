@@ -12,19 +12,23 @@ app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.ht
 
 io.on('connection', (socket) => {
     socket.on('join_room', (data) => {
-        // Простая проверка пароля (можешь сменить '1234' на свой)
-        if(data.pass !== '1234') return socket.emit('auth_error', 'НЕВЕРНЫЙ ПАРОЛЬ');
+        if(data.pass !== '1234') return socket.emit('auth_error', 'ОШИБКА ДОСТУПА');
         
         socket.join(data.room);
         socket.room = data.room;
         socket.userName = data.name;
+        // Назначаем уникальный цвет игроку
+        socket.userColor = `hsl(${Math.random() * 360}, 100%, 60%)`;
+        
         if (!rooms[data.room]) rooms[data.room] = { objects: [] };
         rooms[data.room].objects.forEach(obj => socket.emit('draw', obj));
-        socket.emit('login_success');
+        socket.emit('login_success', { color: socket.userColor });
     });
 
     socket.on('gps_sync', (data) => {
-        if (socket.room) socket.to(socket.room).emit('player_move', data);
+        if (socket.room) {
+            socket.to(socket.room).emit('player_move', { ...data, color: socket.userColor });
+        }
     });
 
     socket.on('new_obj', (obj) => {
@@ -53,4 +57,4 @@ io.on('connection', (socket) => {
     });
 });
 
-http.listen(PORT, () => console.log(`SCORPION V17 ACTIVE`));
+http.listen(PORT, () => console.log(`SCORPION TACTICAL V17.2 ONLINE`));
