@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SCORP GEO | ELITE</title>
+    <title>SCORP GEO | BALANCED</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="/socket.io/socket.io.js"></script>
@@ -15,31 +15,29 @@
         body { background: #000; margin: 0; overflow: hidden; font-family: 'Roboto Condensed', sans-serif; }
         #map { height: 100vh; width: 100%; background: #000; position: absolute; z-index: 1; }
 
-        /* ОСИ КООРДИНАТ - МАКСИМАЛЬНАЯ ВИДИМОСТЬ */
+        /* ОСИ КООРДИНАТ - ЧЕРНЫЕ ПОЛЯ ДЛЯ ЧИТАЕМОСТИ */
         .grid-axis-x { position: fixed; top: 0; left: 60px; right: 0; height: 30px; background: #000; z-index: 4000; pointer-events: none; border-bottom: 2px solid #22c55e; }
         .grid-axis-y { position: fixed; top: 30px; right: 0; bottom: 0; width: 35px; background: #000; z-index: 4000; pointer-events: none; border-left: 2px solid #22c55e; }
-        
         .axis-label { color: #22c55e; font-family: 'Orbitron'; font-size: 14px; font-weight: 900; position: absolute; width: 35px; text-align: center; line-height: 30px; }
 
-        /* НОВЫЙ СТИЛЬ РАССТОЯНИЯ: БЕЛЫЙ ФОН, ЧЕРНАЯ ОБВОДКА, КРАСНЫЕ ЦИФРЫ */
+        /* ДИСТАНЦИЯ: БЕЛЫЙ БОКС, КРАСНЫЕ ЦИФРЫ (ПО ТЗ) */
         .dist-label-new { 
-            background: #ffffff !important; 
-            border: 2px solid #000000 !important;
-            border-radius: 2px;
-            padding: 4px 8px !important;
-            display: flex; align-items: center; justify-content: center;
+            background: #ffffff !important; border: 2px solid #000000 !important;
+            padding: 2px 6px !important; display: flex; align-items: center; justify-content: center;
         }
-        .dist-text {
-            color: #ff0000; 
-            font-size: 16px; 
-            font-weight: 900;
-            -webkit-text-stroke: 0.5px black;
-            white-space: nowrap;
-        }
+        .dist-text { color: #ff0000; font-size: 16px; font-weight: 900; -webkit-text-stroke: 0.5px black; }
 
+        /* ИНТЕРФЕЙС ПАНЕЛИ */
         .side-panel { background: rgba(10, 15, 30, 0.95); border-right: 1px solid #1e293b; z-index: 5000; width: 60px; position: fixed; left: 0; top: 0; bottom: 0; display: flex; flex-direction: column; }
         .tool-btn { width: 60px; height: 55px; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid #1e293b; cursor: pointer; font-size: 22px; color: #64748b; }
         .tool-btn.active { background: #2563eb; color: white; }
+
+        /* ОКНО РАДИОСВЯЗИ */
+        #chat-box { position: fixed; left: 70px; bottom: 80px; width: 280px; height: 350px; background: rgba(10,20,40,0.95); border: 2px solid #2563eb; z-index: 6000; display: none; flex-direction: column; border-radius: 8px; }
+        #chat-messages { flex: 1; overflow-y: auto; padding: 10px; color: #fff; font-size: 14px; }
+        #chat-input { background: #000; border-top: 1px solid #2563eb; padding: 8px; display: flex; }
+        #chat-input input { background: transparent; color: #22c55e; outline: none; flex: 1; border: none; }
+        
         .user-label { background: #2563eb; color: white; padding: 2px 6px; border-radius: 3px; font-weight: bold; border: 1px solid white; font-size: 12px; }
     </style>
 </head>
@@ -55,6 +53,7 @@
             <div onclick="setTool('enemy')" id="t-enemy" class="tool-btn">💀</div>
             <div onclick="setTool('point')" id="t-point" class="tool-btn">🚩</div>
             <div onclick="setTool('arrow')" id="t-arrow" class="tool-btn">➡️</div>
+            <div onclick="toggleChat()" class="tool-btn">💬</div>
             <div onclick="undo()" class="tool-btn text-yellow-500">↩️</div>
             <div onclick="clearMap()" class="tool-btn text-red-500">🗑️</div>
             <div class="mt-auto">
@@ -62,29 +61,45 @@
                 <div onclick="changeMap('map')" id="btn-map" class="tool-btn text-xs font-bold text-blue-400">MAP</div>
             </div>
         </div>
+
+        <div id="chat-box">
+            <div class="p-2 bg-blue-900 font-bold text-[10px] text-white flex justify-between">
+                <span>RADIO CHANNEL [🟢]</span>
+                <span onclick="toggleChat()" class="cursor-pointer">✖</span>
+            </div>
+            <div id="chat-messages"></div>
+            <div id="chat-input">
+                <input id="msgInput" type="text" placeholder="ENTER MESSAGE...">
+                <button onclick="sendMsg()" class="text-blue-500 font-bold ml-2">SEND</button>
+            </div>
+        </div>
+
         <div id="map"></div>
     </div>
 
     <script>
         const socket = io();
         let map, myMarker, myInfo = { name: 'ХАН', lat: 0, lng: 0 };
-        let markers = {}, tactical = {}, distLabels = {};
+        let markers = {}, tactical = {};
         let tool = 'move', arrowFrom = null, tempMarker = null;
         let layers = {}, gridLayer = null;
 
-        const STEP = 20 * 0.000009; // 20 метров
+        const STEP = 20 * 0.000009; // Сетка 20м
 
         function initMap() {
-            layers.map = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 24, maxNativeZoom: 19 });
-            layers.sat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 24, maxNativeZoom: 19 });
+            // Ограничение зума до 21 для баланса четкости и точности
+            layers.map = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 21, maxNativeZoom: 19 });
+            layers.sat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 21, maxNativeZoom: 19 });
             
-            map = L.map('map', { zoomControl: false, attributionControl: false, maxZoom: 24 }).setView([43.40, 39.95], 18);
+            map = L.map('map', { zoomControl: false, attributionControl: false, maxZoom: 21 }).setView([43.40, 39.95], 18);
             layers.sat.addTo(map);
             
             gridLayer = L.layerGroup().addTo(map);
             updateGrid();
             map.on('move zoom', updateGrid);
-            map.on('mousedown', onMapClick);
+            
+            // Используем click, но с проверкой зума
+            map.on('click', onMapClick);
             startGps();
         }
 
@@ -101,7 +116,7 @@
             const endLat = Math.ceil(b.getNorth() / STEP) * STEP;
 
             for (let x = startLng; x <= endLng; x += STEP) {
-                L.polyline([[startLat, x], [endLat, x]], { color: '#22c55e', weight: 1, opacity: 0.2 }).addTo(gridLayer);
+                L.polyline([[startLat, x], [endLat, x]], { color: '#22c55e', weight: 1, opacity: 0.15 }).addTo(gridLayer);
                 const p = map.latLngToContainerPoint([b.getNorth(), x + STEP/2]);
                 if (p.x > 60) {
                     const el = document.createElement('div');
@@ -113,7 +128,7 @@
             }
 
             for (let y = startLat; y <= endLat; y += STEP) {
-                L.polyline([[y, startLng], [y, endLng]], { color: '#22c55e', weight: 1, opacity: 0.2 }).addTo(gridLayer);
+                L.polyline([[y, startLng], [y, endLng]], { color: '#22c55e', weight: 1, opacity: 0.15 }).addTo(gridLayer);
                 const p = map.latLngToContainerPoint([y + STEP/2, b.getEast()]);
                 const el = document.createElement('div');
                 el.className = 'axis-label';
@@ -143,10 +158,8 @@
 
         socket.on('draw', (m) => {
             if(m.type === 'arrow') {
-                const line = L.polyline([m.start, m.end], { color: '#2563eb', weight: 4, dashArray: '5, 10' }).addTo(map);
+                const line = L.polyline([m.start, m.end], { color: '#2563eb', weight: 4, dashArray: '8, 8' }).addTo(map);
                 const dist = Math.round(map.distance(m.start, m.end));
-                
-                // Метка только для стрелок
                 const label = L.marker(m.end, {
                     icon: L.divIcon({
                         className: 'dist-label-new',
@@ -154,7 +167,6 @@
                         iconAnchor: [25, -15]
                     })
                 }).addTo(map);
-                
                 tactical[m.id] = { layers: [line, label] };
             } else {
                 const ico = m.type === 'enemy' ? '💀' : '🚩';
@@ -165,32 +177,50 @@
             }
         });
 
+        function toggleChat() { 
+            const box = document.getElementById('chat-box');
+            box.style.display = (box.style.display === 'flex') ? 'none' : 'flex';
+        }
+
+        function sendMsg() {
+            const val = document.getElementById('msgInput').value;
+            if(val) { 
+                socket.emit('chat_msg', { name: myInfo.name, text: val }); 
+                document.getElementById('msgInput').value = ''; 
+            }
+        }
+
+        socket.on('msg', m => {
+            const msgEl = document.createElement('div');
+            msgEl.className = 'mb-1';
+            msgEl.innerHTML = `<b class="text-blue-400">${m.name}:</b> <span class="text-white">${m.text}</span>`;
+            document.getElementById('chat-messages').appendChild(msgEl);
+            document.getElementById('chat-messages').scrollTop = 9999;
+        });
+
         function startGps() {
             navigator.geolocation.watchPosition(p => {
                 myInfo.lat = p.coords.latitude; myInfo.lng = p.coords.longitude;
                 if(!myMarker) {
                     myMarker = L.circleMarker([myInfo.lat, myInfo.lng], { color: '#2563eb', radius: 10, fillOpacity: 1 }).addTo(map);
                     myMarker.bindTooltip(myInfo.name, { permanent: true, className: 'user-label', direction: 'top' });
-                    map.setView([myInfo.lat, myInfo.lng], 20);
+                    map.setView([myInfo.lat, myInfo.lng], 19);
                 } else myMarker.setLatLng([myInfo.lat, myInfo.lng]);
                 socket.emit('gps_sync', { lat: myInfo.lat, lng: myInfo.lng });
             }, null, { enableHighAccuracy: true });
         }
 
-        function changeMap(t) { 
-            map.eachLayer(l => { if(l instanceof L.TileLayer) map.removeLayer(l); });
-            layers[t].addTo(map);
-        }
+        function changeMap(t) { map.eachLayer(l => { if(l instanceof L.TileLayer) map.removeLayer(l); }); layers[t].addTo(map); }
         function setTool(t) { tool = t; arrowFrom = null; if(tempMarker) map.removeLayer(tempMarker); document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active')); document.getElementById('t-'+t).classList.add('active'); }
-        function centerMe() { if(myInfo.lat) map.setView([myInfo.lat, myInfo.lng], 20); }
+        function centerMe() { if(myInfo.lat) map.setView([myInfo.lat, myInfo.lng], 19); }
         function undo() { socket.emit('undo'); }
-        function clearMap() { if(confirm("ОЧИСТИТЬ?")) socket.emit('clear'); }
-
+        function clearMap() { if(confirm("ОЧИСТИТЬ КАРТУ?")) socket.emit('clear'); }
+        
         socket.on('del_obj', id => { 
             if(tactical[id]) { 
                 if(tactical[id].layers) tactical[id].layers.forEach(l => map.removeLayer(l)); 
-                else map.removeLayer(tactical[id]);
-                delete tactical[id];
+                else map.removeLayer(tactical[id]); 
+                delete tactical[id]; 
             } 
         });
 
