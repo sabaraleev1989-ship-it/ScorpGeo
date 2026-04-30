@@ -1,9 +1,12 @@
+Вот обновленная версия тактической карты с сеткой 20×20 метров, где буквы и цифры расположены по центру квадратов, а инструменты работают по вашему запросу.
+
+```html
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>SCORPION TACTICAL V19.2 — ПРОФИЛЬ СТРАЙКБОЛ | ЦВЕТНЫЕ БОЙЦЫ</title>
+    <title>SCORPION V20.0 — ТАКТИЧЕСКАЯ СЕТКА 20м | СТРАЙКБОЛ</title>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -18,10 +21,9 @@
         body, html {
             width: 100%;
             height: 100%;
-            background: #000000;
+            background: #000;
             overflow: hidden;
             font-family: 'Courier New', 'Roboto Mono', monospace;
-            color: #e0e0e0;
         }
         #map {
             position: absolute;
@@ -30,7 +32,7 @@
             background: #0a0a0a;
             visibility: hidden;
         }
-        /* АВТОРИЗАЦИЯ — ЧЁРНЫЙ СТИЛЬ */
+        /* АВТОРИЗАЦИЯ */
         #auth-screen {
             position: fixed;
             inset: 0;
@@ -43,21 +45,14 @@
         }
         .auth-input {
             width: 290px;
-            background: #000000 !important;
+            background: #000 !important;
             border: 2px solid #16a34a !important;
             color: #16ff6e !important;
-            padding: 14px 18px;
+            padding: 14px;
             margin-bottom: 14px;
             text-align: center;
             font-weight: bold;
-            font-size: 1rem;
-            letter-spacing: 1px;
-            border-radius: 0px;
-            outline: none;
             font-family: monospace;
-        }
-        .auth-input::placeholder {
-            color: #3e7a4a;
         }
         .auth-btn {
             width: 290px;
@@ -66,9 +61,6 @@
             padding: 16px;
             font-weight: 900;
             text-transform: uppercase;
-            border: none;
-            font-size: 1.25rem;
-            letter-spacing: 2px;
             cursor: pointer;
             font-family: monospace;
         }
@@ -101,36 +93,32 @@
             font-size: 10px;
             font-weight: bold;
         }
-        .tool-btn b {
-            font-size: 22px;
-            margin-bottom: 4px;
-        }
-        .tool-btn.active {
-            background: #14532d;
-            color: #f0fff0;
-            border-left: 3px solid #adff2f;
-        }
-        /* КООРДИНАТНАЯ СЕТКА */
-        #grid-cont {
+        .tool-btn b { font-size: 22px; margin-bottom: 4px; }
+        .tool-btn.active { background: #14532d; color: #f0fff0; border-left: 3px solid #adff2f; }
+        /* СЕТКА (КВАДРАТЫ 20м, центр координат) */
+        .grid-overlay-svg {
             position: fixed;
             inset: 0;
             pointer-events: none;
-            z-index: 950;
-            display: none;
+            z-index: 900;
         }
-        .g-t {
+        .grid-cell-label {
             position: absolute;
-            color: #aaffcc;
-            font-size: 13px;
+            font-size: 11px;
             font-weight: 900;
-            text-shadow: 1px 1px 0px #000, -1px -1px 0px #000;
-            background: rgba(0,0,0,0.5);
-            padding: 2px 4px;
-            border-radius: 4px;
             font-family: monospace;
+            text-shadow: 1px 1px 0 #000;
+            background: rgba(0,0,0,0.55);
+            padding: 2px 5px;
+            border-radius: 12px;
             white-space: nowrap;
+            color: #ccffaa;
+            border-left: 2px solid #6eff3b;
+            pointer-events: none;
+            z-index: 910;
+            transform: translate(-50%, -50%);
         }
-        /* ЧАТ ОКНО */
+        /* ОКНО ЧАТА */
         #chat-win {
             position: fixed;
             bottom: 12px;
@@ -142,42 +130,22 @@
             z-index: 6000;
             display: none;
             flex-direction: column;
-            border-radius: 0;
-            backdrop-filter: blur(4px);
         }
-        #chat-m {
-            font-size: 11px;
-            font-family: monospace;
-            color: #b9ffb9;
-        }
-        #chatI {
-            background: #0c0c0c !important;
-            color: #b0ffb0 !important;
-            border: 1px solid #2e7d32;
-            padding: 10px;
-            font-size: 12px;
-        }
-        @media (max-width: 640px) {
-            .side-panel { width: 70px; }
-            .tool-btn { min-height: 58px; font-size: 8px; }
-            .tool-btn b { font-size: 18px; }
-            .g-t { font-size: 9px; }
-        }
-        /* СТИЛЬ ДЛЯ МАРКЕРА БОЙЦА: КРУЖОК ЗАКРАШЕН, ИМЯ СВЕРХУ БЕЗ ФОНА, ОДНИМ ЦВЕТОМ */
+        #chat-m { font-size: 11px; font-family: monospace; color: #b9ffb9; overflow-y: auto; }
+        #chatI { background: #0c0c0c; color: #b0ffb0; border: 1px solid #2e7d32; padding: 10px; }
+        /* Стиль для маркера бойца */
         .player-marker-wrapper {
             display: flex;
             flex-direction: column;
             align-items: center;
-            filter: drop-shadow(0 1px 2px rgba(0,0,0,0.8));
+            filter: drop-shadow(0 1px 2px black);
         }
         .player-callsign {
             font-weight: 900;
             font-size: 13px;
-            font-family: 'Courier New', monospace;
-            letter-spacing: 0.5px;
-            text-shadow: 1px 1px 0 #000, 0 0 4px black;
+            font-family: monospace;
+            text-shadow: 1px 1px 0 #000;
             background: transparent !important;
-            padding: 0 2px;
             white-space: nowrap;
             margin-bottom: 2px;
         }
@@ -186,24 +154,27 @@
             height: 16px;
             border-radius: 50%;
             border: 2px solid white;
-            box-shadow: 0 0 5px rgba(0,0,0,0.9);
             background: currentColor;
+            box-shadow: 0 0 4px black;
+        }
+        @media (max-width: 640px) {
+            .side-panel { width: 70px; }
+            .tool-btn { min-height: 58px; font-size: 8px; }
+            .tool-btn b { font-size: 18px; }
+            .grid-cell-label { font-size: 8px; padding: 1px 4px; }
         }
     </style>
 </head>
 <body>
 
 <div id="auth-screen">
-    <div class="text-green-500 font-black text-4xl mb-6 tracking-widest">SCORPION</div>
-    <div class="text-green-700 text-xs mb-4 italic">TACTICAL GRID | AIRSOFT PRO</div>
+    <div class="text-green-500 font-black text-4xl mb-4">SCORPION</div>
+    <div class="text-green-700 text-xs mb-4">ТАКТИЧЕСКАЯ СЕТКА 20x20м</div>
     <input id="roomIn" type="text" placeholder="КОД КОМНАТЫ" class="auth-input" value="SIR">
     <input id="nameIn" type="text" placeholder="ПОЗЫВНОЙ" class="auth-input">
     <input id="passIn" type="password" placeholder="ПАРОЛЬ" class="auth-input">
-    <button onclick="login()" class="auth-btn mt-2">⚡ АКТИВАЦИЯ ⚡</button>
-    <div class="text-[10px] text-green-800 mt-8 text-center px-4">ЗАЩИЩЕННЫЙ КАНАЛ | ЦВЕТОРАЗДЕЛЕНИЕ БОЙЦОВ</div>
+    <button onclick="login()" class="auth-btn">⚡ ВОЙТИ ⚡</button>
 </div>
-
-<div id="grid-cont"></div>
 
 <div class="side-panel" id="ui-panel">
     <div onclick="setTool('move')" id="b-move" class="tool-btn active"><b>🖐️</b><span>Рука</span></div>
@@ -220,242 +191,277 @@
 </div>
 
 <div id="map"></div>
-
 <div id="chat-win">
-    <div id="chat-m" class="flex-1 overflow-y-auto p-2 text-green-400 text-[11px] font-mono leading-relaxed"></div>
+    <div id="chat-m" class="flex-1 overflow-y-auto p-2 text-green-400"></div>
     <div class="flex p-1 bg-zinc-950 border-t border-green-800">
         <input id="chatI" class="flex-1 p-2 text-xs outline-none bg-black text-green-300" placeholder="Радиосвязь..." onkeypress="if(event.key==='Enter') sendMsg()">
-        <button onclick="sendMsg()" class="bg-green-800 px-4 ml-1 text-white font-bold text-sm">📡</button>
+        <button onclick="sendMsg()" class="bg-green-800 px-4 ml-1 text-white font-bold">📡</button>
     </div>
 </div>
 
 <script>
-    // ---------------------- ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ----------------------
     const socket = io({ transports: ['websocket', 'polling'] });
-    let map = null;
-    let activeTool = 'move';
-    let currentUserName = '';
-    let currentUserColor = '#16a34a';
-    let currentRoomId = '';
-    
-    // База игроков и тактических объектов
-    let playersMarkers = {};      // key: позывной, value: L.marker
-    let tacticalLayers = {};
+    let map, activeTool = 'move', currentUserName = '', currentUserColor = '#16a34a';
+    let playersMarkers = {};
+    let tacticalLayers = {};     // все объекты (линии, метки, стрелы)
     let rulerTempPoints = [];
+    let lastKnownCoords = { lat: 55.7512, lng: 37.6184 };
+    let watchId = null, currentTileLayer = null;
+    let gridLabelsLayer = [];     // для хранения DOM элементов сетки
     
-    let lastKnownCoords = { lat: 55.751244, lng: 37.618423 };
-    let watchId = null;
-    let currentTileLayer = null;
-    
-    // Генерация яркого случайного цвета (но не слишком тёмного, без белого/чёрного)
-    function getRandomPlayerColor() {
-        const hue = Math.floor(Math.random() * 360);
-        // насыщенность 70-90%, светлота 55-75% для ярких тонов, читаемых на карте
-        return `hsl(${hue}, 80%, 65%)`;
+    // Генерация яркого цвета
+    function getRandomColor() {
+        return `hsl(${Math.floor(Math.random() * 360)}, 80%, 60%)`;
     }
     
-    // Функция создания иконки бойца с прозрачным фоном для позывного и цветным кругом
-    // ПОЗЫВНОЙ БЕЗ ФОНА, сверху, цвет текста = цвет кружка. КРУЖОК ЗАКРАШЕН тем же цветом.
+    // Иконка бойца (прозрачный фон, цветной круг + имя цветное)
     function createPlayerIcon(name, colorHex) {
-        // Для удобства используем DivIcon с HTML/CSS — фон имени полностью прозрачный, текст окрашен в цвет
-        // Кружок закрашенный, белая обводка.
         const html = `
-            <div class="player-marker-wrapper" style="display: flex; flex-direction: column; align-items: center;">
-                <div class="player-callsign" style="color: ${colorHex}; background: transparent !important; font-weight: 900; font-size: 13px; text-shadow: 1px 1px 0px black, 0 0 3px black; letter-spacing: 0.5px; white-space: nowrap; margin-bottom: 2px;">${name}</div>
-                <div class="player-dot" style="width: 16px; height: 16px; border-radius: 50%; background: ${colorHex}; border: 2px solid white; box-shadow: 0 0 4px black;"></div>
+            <div class="player-marker-wrapper">
+                <div class="player-callsign" style="color: ${colorHex};">${name}</div>
+                <div class="player-dot" style="background: ${colorHex};"></div>
             </div>
         `;
-        return L.divIcon({
-            html: html,
-            iconSize: [80, 40],
-            iconAnchor: [40, 30],
-            popupAnchor: [0, -28],
-            className: 'custom-player-icon' // чистый класс без фона
-        });
+        return L.divIcon({ html, iconSize: [80, 40], iconAnchor: [40, 30], className: 'player-icon-clear' });
     }
     
-    // ---------------------- АВТОРИЗАЦИЯ ----------------------
+    // ========== СЕТКА 20 МЕТРОВ (шаг в метрах, пересчет в градусы) ==========
+    // 20 метров ~ 0.000179 градуса (в среднем по широте). Более точно: 1 градус ~ 111320 м, 20м = 20/111320 ≈ 0.0001797
+    const METER_TO_DEG = 1 / 111320;
+    const GRID_STEP_METERS = 20;
+    const GRID_STEP_DEG = GRID_STEP_METERS * METER_TO_DEG;
+    
+    // Буквы для колонн (А-Я, потом двойные)
+    const letters = "АБВГДЕЖЗИКЛМНОПРСТУФХЦЧШЩЭЮЯ";
+    function getColumnLetter(idx) {
+        if (idx < letters.length) return letters[idx];
+        return letters[Math.floor(idx / letters.length) - 1] + letters[idx % letters.length];
+    }
+    
+    function updateGridSystem() {
+        if (!map) return;
+        const container = document.getElementById('grid-cont');
+        if (!container) {
+            const newDiv = document.createElement('div');
+            newDiv.id = 'grid-cont';
+            newDiv.style.position = 'fixed';
+            newDiv.style.inset = '0';
+            newDiv.style.pointerEvents = 'none';
+            newDiv.style.zIndex = '950';
+            document.body.appendChild(newDiv);
+        }
+        const gridContainer = document.getElementById('grid-cont');
+        gridContainer.innerHTML = '';
+        
+        const zoom = map.getZoom();
+        // исчезаем на дальних зумах, чтобы не было каши (ниже 16 или выше 21)
+        if (zoom < 16 || zoom > 21) {
+            return;
+        }
+        
+        const bounds = map.getBounds();
+        const west = bounds.getWest();
+        const east = bounds.getEast();
+        const south = bounds.getSouth();
+        const north = bounds.getNorth();
+        
+        // Вычисляем стартовые линии сетки, чтобы квадраты были привязаны к абсолютной привязке (для стабильности)
+        const startLng = Math.floor(west / GRID_STEP_DEG) * GRID_STEP_DEG;
+        const startLat = Math.floor(south / GRID_STEP_DEG) * GRID_STEP_DEG;
+        
+        // Рисуем метки по ЦЕНТРУ каждого квадрата (смещение на полшага)
+        const halfStep = GRID_STEP_DEG / 2;
+        
+        for (let x = startLng; x <= east + GRID_STEP_DEG; x += GRID_STEP_DEG) {
+            for (let y = startLat; y <= north + GRID_STEP_DEG; y += GRID_STEP_DEG) {
+                const centerLng = x + halfStep;
+                const centerLat = y + halfStep;
+                // Проверка видимости центра в пределах экрана
+                const pt = map.latLngToContainerPoint([centerLat, centerLng]);
+                if (pt.x < -50 || pt.x > window.innerWidth + 50 || pt.y < -50 || pt.y > window.innerHeight + 50) continue;
+                
+                // Вычисляем индекс колонны (по долготе) и строки (по широте) для читаемой маркировки
+                const colIndex = Math.round((centerLng - halfStep) / GRID_STEP_DEG);
+                const rowIndex = Math.round((centerLat - halfStep) / GRID_STEP_DEG);
+                const colLetter = getColumnLetter(Math.abs(colIndex) % 200);
+                const rowNumber = Math.abs(rowIndex) % 100;
+                const labelText = `${colLetter}${rowNumber}`;
+                
+                const div = document.createElement('div');
+                div.className = 'grid-cell-label';
+                div.style.left = pt.x + 'px';
+                div.style.top = pt.y + 'px';
+                div.innerText = labelText;
+                div.style.fontWeight = 'bold';
+                div.style.fontSize = zoom > 18 ? '12px' : '10px';
+                gridContainer.appendChild(div);
+            }
+        }
+        // Дополнительно рисуем тонкие линии сетки (опционально, для наглядности)
+        drawGridLines(west, east, south, north);
+    }
+    
+    function drawGridLines(west, east, south, north) {
+        // удаляем старые линии если есть
+        if (window._gridLinesLayer) {
+            map.removeLayer(window._gridLinesLayer);
+        }
+        const linesGroup = L.layerGroup();
+        const startLng = Math.floor(west / GRID_STEP_DEG) * GRID_STEP_DEG;
+        const endLng = east + GRID_STEP_DEG;
+        const startLat = Math.floor(south / GRID_STEP_DEG) * GRID_STEP_DEG;
+        const endLat = north + GRID_STEP_DEG;
+        
+        // вертикальные линии
+        for (let lng = startLng; lng <= endLng; lng += GRID_STEP_DEG) {
+            const latStart = south;
+            const latEnd = north;
+            const line = L.polyline([[latStart, lng], [latEnd, lng]], { color: '#44ff44', weight: 1, opacity: 0.35, interactive: false });
+            linesGroup.addLayer(line);
+        }
+        // горизонтальные линии
+        for (let lat = startLat; lat <= endLat; lat += GRID_STEP_DEG) {
+            const line = L.polyline([[lat, west], [lat, east]], { color: '#44ff44', weight: 1, opacity: 0.35, interactive: false });
+            linesGroup.addLayer(line);
+        }
+        linesGroup.addTo(map);
+        window._gridLinesLayer = linesGroup;
+    }
+    
+    // Авторизация
     function login() {
         const room = document.getElementById('roomIn').value.trim().toUpperCase();
-        const rawName = document.getElementById('nameIn').value.trim().toUpperCase();
+        const name = document.getElementById('nameIn').value.trim().toUpperCase();
         const pass = document.getElementById('passIn').value;
-        if (!room) { alert("Укажите код комнаты!"); return; }
-        if (!rawName || rawName.length < 2) { alert("Введите позывной (минимум 2 символа)"); return; }
-        if (!pass) { alert("Требуется пароль"); return; }
-        currentUserName = rawName;
-        currentRoomId = room;
-        socket.emit('join_room', { room, name: currentUserName, pass });
+        if (!room || !name || !pass) { alert("Заполните все поля"); return; }
+        currentUserName = name;
+        socket.emit('join_room', { room, name, pass });
     }
     
     socket.on('login_success', (data) => {
-        // Цвет присваивается сервером или генерируется уникально. Сервер должен присылать color.
-        // Если сервер присылает color — используем его, иначе генерируем сами, но для синхронизации важно, чтобы у каждого игрока был уникальный цвет.
-        currentUserColor = data.color || getRandomPlayerColor();
+        currentUserColor = data.color || getRandomColor();
         document.getElementById('auth-screen').style.display = 'none';
-        const mapDiv = document.getElementById('map');
-        mapDiv.style.visibility = 'visible';
+        document.getElementById('map').style.visibility = 'visible';
         document.getElementById('ui-panel').style.display = 'flex';
-        document.getElementById('grid-cont').style.display = 'block';
-        initMapSystem();
-        startGeoWatching();
+        initMap();
+        startGeo();
     });
     
-    socket.on('login_failed', (err) => {
-        alert("ОШИБКА ДОСТУПА: " + (err?.reason || "Неверный пароль"));
-    });
+    socket.on('login_failed', (e) => alert("Ошибка: " + (e?.reason || "неверный пароль")));
     
-    // ---------------------- КАРТА ----------------------
-    function initMapSystem() {
+    function initMap() {
         if (map) return;
         map = L.map('map', { zoomControl: true, attributionControl: false, maxZoom: 22 }).setView([lastKnownCoords.lat, lastKnownCoords.lng], 18);
         currentTileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 22 }).addTo(map);
         map.on('click', onMapClick);
-        map.on('moveend zoomend', () => updateGridOverlay());
-        map.on('zoomend', updateGridOverlay);
-        updateGridOverlay();
-        setTimeout(() => { if(map) map.invalidateSize(); updateGridOverlay(); }, 150);
+        map.on('moveend zoomend', () => { updateGridSystem(); });
+        map.on('zoomend', () => updateGridSystem());
+        updateGridSystem();
+        setTimeout(() => { map.invalidateSize(); updateGridSystem(); }, 200);
     }
     
-    // Геолокация
-    function startGeoWatching() {
+    function startGeo() {
         if (!navigator.geolocation) return;
         if (watchId) navigator.geolocation.clearWatch(watchId);
         watchId = navigator.geolocation.watchPosition(
             (pos) => {
-                const newLat = pos.coords.latitude;
-                const newLng = pos.coords.longitude;
-                lastKnownCoords = { lat: newLat, lng: newLng };
-                socket.emit('gps_sync', { lat: newLat, lng: newLng, name: currentUserName });
-                updateMyMarkerOnMap(newLat, newLng);
-                if (map && map.getCenter().distanceTo(L.latLng(lastKnownCoords.lat, lastKnownCoords.lng)) > 150) {
-                    map.setView([newLat, newLng], map.getZoom());
-                }
-                updateGridOverlay();
+                lastKnownCoords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                socket.emit('gps_sync', { lat: lastKnownCoords.lat, lng: lastKnownCoords.lng, name: currentUserName });
+                updateMyMarker(lastKnownCoords.lat, lastKnownCoords.lng);
+                if (map.getCenter().distanceTo(L.latLng(lastKnownCoords)) > 200) map.setView([lastKnownCoords.lat, lastKnownCoords.lng], map.getZoom());
+                updateGridSystem();
             },
-            (err) => console.warn("GPS error", err),
-            { enableHighAccuracy: true, maximumAge: 3000, timeout: 8000 }
+            (err) => console.warn(err),
+            { enableHighAccuracy: true, maximumAge: 3000 }
         );
     }
     
-    function updateMyMarkerOnMap(lat, lng) {
+    function updateMyMarker(lat, lng) {
         if (!map) return;
-        const key = currentUserName;
-        // собственный маркер используем с текущим цветом
-        if (!playersMarkers[key]) {
-            const icon = createPlayerIcon(currentUserName, currentUserColor);
-            const marker = L.marker([lat, lng], { icon, zIndexOffset: 1000 }).addTo(map);
-            playersMarkers[key] = marker;
+        if (!playersMarkers[currentUserName]) {
+            playersMarkers[currentUserName] = L.marker([lat, lng], { icon: createPlayerIcon(currentUserName, currentUserColor), zIndexOffset: 1000 }).addTo(map);
         } else {
-            playersMarkers[key].setLatLng([lat, lng]);
-            // обновляем иконку если цвет поменялся? (но цвет фиксирован)
-            const oldIcon = playersMarkers[key].options.icon;
-            if (oldIcon && oldIcon.options.html) {
-                const newIcon = createPlayerIcon(currentUserName, currentUserColor);
-                playersMarkers[key].setIcon(newIcon);
-            }
+            playersMarkers[currentUserName].setLatLng([lat, lng]);
         }
     }
     
-    // Отрисовка/обновление маркеров других игроков
     function updateRemotePlayer(name, lat, lng, color) {
-        if (!map) return;
-        if (name === currentUserName) return;
+        if (!map || name === currentUserName) return;
         if (!playersMarkers[name]) {
-            const icon = createPlayerIcon(name, color);
-            const marker = L.marker([lat, lng], { icon }).addTo(map);
-            playersMarkers[name] = marker;
+            playersMarkers[name] = L.marker([lat, lng], { icon: createPlayerIcon(name, color) }).addTo(map);
         } else {
             playersMarkers[name].setLatLng([lat, lng]);
-            // обновляем цвет иконки, если цвет изменился
-            const newIcon = createPlayerIcon(name, color);
-            playersMarkers[name].setIcon(newIcon);
+            playersMarkers[name].setIcon(createPlayerIcon(name, color));
         }
     }
     
-    // Тактические иконки (враг/цель/метка)
-    function createTacticalIcon(type) {
-        let symbol = '🎯';
-        if (type === 'enemy') symbol = '💀';
-        else if (type === 'target') symbol = '🚩';
-        else if (type === 'iam') symbol = '📍';
-        const bg = type === 'enemy' ? 'rgba(80,0,0,0.8)' : 'rgba(0,0,0,0.7)';
-        return L.divIcon({
-            html: `<div style="font-size:34px; filter: drop-shadow(2px 2px 0px black); text-align:center;">${symbol}</div>`,
-            iconSize: [34, 34],
-            iconAnchor: [17, 30],
-            className: 'tac-icon'
-        });
+    // Тактические иконки
+    function getTacticalIcon(type) {
+        const sym = type === 'enemy' ? '💀' : (type === 'target' ? '🚩' : '📍');
+        return L.divIcon({ html: `<div style="font-size:34px; filter:drop-shadow(2px 2px 0 black);">${sym}</div>`, iconSize: [34,34], iconAnchor: [17,30] });
     }
     
-    // Клик по карте в зависимости от инструмента
+    // Обработка кликов
     function onMapClick(e) {
-        if (!map || !activeTool) return;
+        if (!map) return;
         const { lat, lng } = e.latlng;
         if (activeTool === 'enemy' || activeTool === 'target') {
-            const newId = `${activeTool}_${Date.now()}_${Math.random()}`;
-            socket.emit('new_obj', { id: newId, type: activeTool, lat, lng });
-        } 
-        else if (activeTool === 'iam') {
-            const newId = `marker_${Date.now()}`;
-            socket.emit('new_obj', { id: newId, type: 'iam', lat, lng, name: currentUserName });
-        }
-        else if (activeTool === 'ruler' || activeTool === 'arrow') {
+            socket.emit('new_obj', { id: `${activeTool}_${Date.now()}_${Math.random()}`, type: activeTool, lat, lng });
+        } else if (activeTool === 'iam') {
+            socket.emit('new_obj', { id: `mark_${Date.now()}`, type: 'iam', lat, lng, name: currentUserName });
+        } else if (activeTool === 'ruler' || activeTool === 'arrow') {
             rulerTempPoints.push({ lat, lng });
             if (rulerTempPoints.length === 2) {
-                const lineId = `${activeTool}_line_${Date.now()}`;
-                socket.emit('new_obj', { id: lineId, type: activeTool, start: rulerTempPoints[0], end: rulerTempPoints[1] });
+                socket.emit('new_obj', { id: `${activeTool}_${Date.now()}`, type: activeTool, start: rulerTempPoints[0], end: rulerTempPoints[1] });
                 rulerTempPoints = [];
             } else {
-                map.openPopup(`📏 Вторая точка для ${activeTool === 'arrow' ? 'вектора удара' : 'линейки'}`, [lat, lng], { autoClose: 1 });
+                map.openPopup(`👉 выберите вторую точку для ${activeTool === 'arrow' ? 'УДАРА' : 'ЛИНЕЙКИ'}`, [lat, lng], { autoClose: 1 });
             }
-        }
-        else if (activeTool === 'eraser') {
-            map.openPopup("🧹 Режим стирания: кликните по врагу/цели", [lat, lng], { autoClose: 1 });
+        } else if (activeTool === 'eraser') {
+            map.openPopup("🧹 Режим СТЕРКИ: кликните по любому объекту (враг, цель, линейка, удар)", [lat, lng], { autoClose: 1 });
         }
     }
     
-    // Получение тактических объектов
+    // Получение объектов
     socket.on('draw', (obj) => {
         if (!map) return;
         if (tacticalLayers[obj.id]) {
-            tacticalLayers[obj.id].forEach(layer => map.removeLayer(layer));
+            tacticalLayers[obj.id].forEach(l => map.removeLayer(l));
         }
-        const layersToAdd = [];
+        const layers = [];
         if (obj.type === 'ruler' || obj.type === 'arrow') {
-            const lineColor = obj.type === 'arrow' ? '#ff5555' : '#ffcc44';
+            const color = obj.type === 'arrow' ? '#ff5555' : '#f5cb5c';
             const weight = obj.type === 'arrow' ? 5 : 4;
-            const polyline = L.polyline([obj.start, obj.end], { color: lineColor, weight, opacity: 0.9 }).addTo(map);
-            layersToAdd.push(polyline);
+            const line = L.polyline([obj.start, obj.end], { color, weight, opacity: 0.9 }).addTo(map);
+            layers.push(line);
             if (obj.type === 'ruler') {
-                const distanceMeters = map.distance(L.latLng(obj.start), L.latLng(obj.end));
-                const distText = distanceMeters < 1000 ? `${Math.round(distanceMeters)} м` : `${(distanceMeters / 1000).toFixed(1)} км`;
-                const mid = { lat: (obj.start.lat + obj.end.lat)/2, lng: (obj.start.lng + obj.end.lng)/2 };
+                const dist = map.distance(L.latLng(obj.start), L.latLng(obj.end));
+                const txt = dist < 1000 ? `${Math.round(dist)} м` : `${(dist/1000).toFixed(1)} км`;
+                const mid = { lat: (obj.start.lat+obj.end.lat)/2, lng: (obj.start.lng+obj.end.lng)/2 };
                 const label = L.marker([mid.lat, mid.lng], {
-                    icon: L.divIcon({ html: `<div style="background:#000c; color:#ffd966; padding:2px 7px; border-radius:20px; font-weight:bold; font-size:12px;">📏 ${distText}</div>`, iconSize: [70, 24] })
+                    icon: L.divIcon({ html: `<div style="background:#000000cc; color:#ffdd77; padding:4px 8px; border-radius:20px; font-weight:900; font-size:13px; border:1px solid #ffcc44;">📏 ${txt}</div>`, iconSize: [80, 30] })
                 }).addTo(map);
-                layersToAdd.push(label);
+                layers.push(label);
             } else if (obj.type === 'arrow') {
-                const arrowIcon = L.marker([obj.end.lat, obj.end.lng], {
-                    icon: L.divIcon({ html: `<div style="background:#330000; color:#ff8888; padding:2px 5px; font-weight:bold;">⚡ УДАР</div>`, iconAnchor: [0, 20] })
+                const arrowLabel = L.marker([obj.end.lat, obj.end.lng], {
+                    icon: L.divIcon({ html: `<div style="background:#5a0000; color:#ff9f9f; padding:2px 6px; font-weight:bold; border-radius:14px;">⚡ УДАР</div>`, iconAnchor: [0, 20] })
                 }).addTo(map);
-                layersToAdd.push(arrowIcon);
+                layers.push(arrowLabel);
             }
         } else {
-            const marker = L.marker([obj.lat, obj.lng], { icon: createTacticalIcon(obj.type) }).addTo(map);
-            marker.on('click', (ev) => {
-                if (activeTool === 'eraser') {
-                    socket.emit('delete_obj', obj.id);
-                    L.DomEvent.stopPropagation(ev);
-                }
+            const marker = L.marker([obj.lat, obj.lng], { icon: getTacticalIcon(obj.type) }).addTo(map);
+            marker.on('click', () => {
+                if (activeTool === 'eraser') socket.emit('delete_obj', obj.id);
             });
-            if (obj.type === 'iam' && obj.name) marker.bindTooltip(`${obj.name} отметка`, { sticky: true });
-            else if (obj.type === 'enemy') marker.bindTooltip('💀 НЕПРИЯТЕЛЬ', { sticky: true });
-            else if (obj.type === 'target') marker.bindTooltip('🚩 ЦЕЛЬ', { sticky: true });
-            layersToAdd.push(marker);
+            if (obj.type === 'iam' && obj.name) marker.bindTooltip(`📌 ${obj.name}`, { sticky: true });
+            else if (obj.type === 'enemy') marker.bindTooltip('💀 ПРОТИВНИК', { sticky: true });
+            else if (obj.type === 'target') marker.bindTooltip('🎯 ЦЕЛЬ', { sticky: true });
+            layers.push(marker);
         }
-        tacticalLayers[obj.id] = layersToAdd;
+        tacticalLayers[obj.id] = layers;
     });
     
+    // Удаление (стирает и линии, и метки, и удары)
     socket.on('remove_obj', (id) => {
         if (tacticalLayers[id]) {
             tacticalLayers[id].forEach(layer => map?.removeLayer(layer));
@@ -463,111 +469,41 @@
         }
     });
     
-    // Обновление позиций других игроков с цветом (сервер присылает color)
     socket.on('player_move', (data) => {
-        if (!map) return;
-        const { name, lat, lng, color } = data;
-        // Для удаленных игроков используем цвет, присланный сервером (гарантированно уникальный)
-        if (name !== currentUserName) {
-            updateRemotePlayer(name, lat, lng, color || getRandomPlayerColor());
-        }
+        if (data.name !== currentUserName) updateRemotePlayer(data.name, data.lat, data.lng, data.color || getRandomColor());
     });
     
-    // ЧАТ
     socket.on('receive_msg', (msg) => {
         const chatDiv = document.getElementById('chat-m');
-        chatDiv.innerHTML += `<div class="border-b border-green-800 py-1">📡 ${msg}</div>`;
+        chatDiv.innerHTML += `<div>📡 ${msg}</div>`;
         chatDiv.scrollTop = chatDiv.scrollHeight;
     });
     
-    // КООРДИНАТНАЯ СЕТКА (буквы/цифры) airsoft стиль
-    function updateGridOverlay() {
-        const container = document.getElementById('grid-cont');
-        if (!container || !map) return;
-        container.innerHTML = '';
-        const zoom = map.getZoom();
-        if (zoom < 16) return;
-        const bounds = map.getBounds();
-        const step = 0.0002;
-        const letters = "АБВГДЕЖЗИКЛМНОПРСТУФХЦЧШЩЭЮЯ";
-        for (let lng = Math.floor(bounds.getWest() / step) * step; lng <= bounds.getEast(); lng += step) {
-            const point = map.latLngToContainerPoint([bounds.getNorth(), lng]);
-            if (point.x < 60 || point.x > window.innerWidth - 30) continue;
-            const idx = Math.abs(Math.round(lng / step)) % letters.length;
-            const char = letters[idx] || "?";
-            const div = document.createElement('div');
-            div.className = 'g-t';
-            div.style.left = point.x + 'px';
-            div.style.top = '14px';
-            div.innerText = char;
-            container.appendChild(div);
-        }
-        for (let lat = Math.floor(bounds.getSouth() / step) * step; lat <= bounds.getNorth(); lat += step) {
-            const point = map.latLngToContainerPoint([lat, bounds.getWest()]);
-            if (point.y < 30 || point.y > window.innerHeight - 30) continue;
-            const num = Math.abs(Math.round(lat / step)) % 100;
-            const div = document.createElement('div');
-            div.className = 'g-t';
-            div.style.right = '18px';
-            div.style.top = point.y + 'px';
-            div.innerText = num;
-            container.appendChild(div);
-        }
-    }
-    
-    // Утилиты панели
-    function setTool(toolName) {
-        activeTool = toolName;
+    // UI
+    function setTool(t) {
+        activeTool = t;
         rulerTempPoints = [];
         document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
-        const activeBtn = document.getElementById(`b-${toolName}`);
-        if (activeBtn) activeBtn.classList.add('active');
+        const btn = document.getElementById(`b-${t}`);
+        if (btn) btn.classList.add('active');
         if (map) map.closePopup();
     }
     
     function setMapLayer(type) {
         if (!map) return;
         if (currentTileLayer) map.removeLayer(currentTileLayer);
-        let url = type === 'sat' 
-            ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
-            : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+        const url = type === 'sat' ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}' : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
         currentTileLayer = L.tileLayer(url, { maxZoom: 22 }).addTo(map);
-        updateGridOverlay();
+        updateGridSystem();
     }
     
-    function toggleChat() {
-        const win = document.getElementById('chat-win');
-        win.style.display = win.style.display === 'flex' ? 'none' : 'flex';
-        if (win.style.display === 'flex') document.getElementById('chatI').focus();
-    }
+    function toggleChat() { const w = document.getElementById('chat-win'); w.style.display = w.style.display === 'flex' ? 'none' : 'flex'; }
+    function sendMsg() { const i = document.getElementById('chatI'); if(i.value) { socket.emit('chat_msg', `[${currentUserName}]: ${i.value}`); i.value = ''; } }
+    function forceExit() { if(watchId) navigator.geolocation.clearWatch(watchId); socket.disconnect(); location.reload(); }
     
-    function sendMsg() {
-        const inp = document.getElementById('chatI');
-        const text = inp.value.trim();
-        if (text) {
-            socket.emit('chat_msg', `[${currentUserName}]: ${text}`);
-            inp.value = '';
-        }
-    }
-    
-    function forceExit() {
-        if (watchId) navigator.geolocation.clearWatch(watchId);
-        socket.disconnect();
-        location.reload();
-    }
-    
-    // Глобальные события
-    window.addEventListener('resize', () => setTimeout(updateGridOverlay, 100));
-    window.login = login;
-    window.setTool = setTool;
-    window.setMapLayer = setMapLayer;
-    window.toggleChat = toggleChat;
-    window.sendMsg = sendMsg;
-    window.forceExit = forceExit;
-    
-    // Дополнительная синхронизация: если сервер не присылает цвет, но мы должны показать другого игрока — генерируем на клиенте, но серверная логика пусть шлёт color.
-    // Улучшение: при повторном входе цвет каждого игрока сохраняется сервером, но тут для совместимости.
-    console.log("SCORPION v19.2 — Цветные бойцы, кружок закрашен, надпись без фона");
+    window.addEventListener('resize', () => setTimeout(() => updateGridSystem(), 100));
+    window.setTool = setTool; window.setMapLayer = setMapLayer; window.toggleChat = toggleChat;
+    window.sendMsg = sendMsg; window.forceExit = forceExit; window.login = login;
 </script>
 </body>
 </html>
