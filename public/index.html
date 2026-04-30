@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SCORP GEO | MILITARY TERMINAL</title>
+    <title>SCORP GEO | TACTICAL</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="/socket.io/socket.io.js"></script>
@@ -18,7 +18,7 @@
 
         /* ИНТЕРФЕЙС */
         .side-panel { background: rgba(10, 15, 30, 0.95); border-right: 1px solid #1e293b; z-index: 5000; width: 60px; position: fixed; left: 0; top: 0; bottom: 0; display: flex; flex-direction: column; }
-        .tool-btn { width: 60px; height: 55px; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid #1e293b; cursor: pointer; font-size: 22px; color: #64748b; }
+        .tool-btn { width: 60px; height: 52px; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid #1e293b; cursor: pointer; font-size: 22px; color: #64748b; }
         .tool-btn.active { background: #2563eb; color: white; }
         .c-dot { width: 26px; height: 26px; border-radius: 4px; border: 2px solid #334155; margin: 5px 0; }
         .c-dot.active { border-color: white; transform: scale(1.1); }
@@ -26,25 +26,27 @@
         /* МЕТКИ ДИСТАНЦИИ */
         .dist-label { 
             background: #fff !important; color: #000 !important; 
-            padding: 5px 12px !important; /* Увеличил отступы */
-            border: 3px solid #000 !important; 
-            font-weight: 900 !important; font-size: 17px !important; 
-            min-width: 65px; text-align: center; white-space: nowrap; 
+            padding: 6px 14px !important; border: 3px solid #000 !important; 
+            font-weight: 900 !important; font-size: 18px !important; 
+            min-width: 70px; text-align: center; white-space: nowrap; 
             margin-top: 45px; display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
         }
 
-        /* ТАКТИЧЕСКАЯ СЕТКА (Буквы/Цифры) */
-        .grid-header {
-            color: #ffffff;
+        /* ИНДЕКСЫ КВАДРАТОВ (A1, B2...) */
+        .grid-index {
+            color: rgba(255, 255, 255, 0.8);
             font-family: 'Orbitron', sans-serif;
-            font-size: 14px;
+            font-size: 11px;
             font-weight: bold;
-            text-shadow: 2px 2px 0 #000, -1px -1px 0 #000;
+            text-shadow: 1px 1px 2px #000;
             pointer-events: none;
+            white-space: nowrap;
         }
 
         .user-label { background: #2563eb; color: white; padding: 2px 6px; border-radius: 3px; font-weight: bold; border: 1px solid white; font-size: 10px; }
 
+        /* ЭКРАН ВХОДА */
         #auth-screen { background: radial-gradient(circle at center, #052e16 0%, #000 100%); z-index: 10000; position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; }
         .auth-card { background: rgba(0,0,0,0.9); border: 2px solid #166534; padding: 30px; border-radius: 15px; width: 300px; text-align: center; }
         .auth-input { background: #000; border: 1px solid #166534; color: #22c55e; padding: 12px; border-radius: 5px; width: 100%; margin-bottom: 10px; outline: none; }
@@ -69,6 +71,7 @@
     <div id="ui" class="hidden">
         <div class="side-panel">
             <div onclick="setTool('move')" id="t-move" class="tool-btn active">🖐️</div>
+            <div onclick="centerMe()" class="tool-btn text-green-500">🎯</div>
             <div onclick="setTool('enemy')" id="t-enemy" class="tool-btn">💀</div>
             <div onclick="setTool('point')" id="t-point" class="tool-btn">🚩</div>
             <div onclick="setTool('arrow')" id="t-arrow" class="tool-btn">➡️</div>
@@ -112,7 +115,7 @@
             layers.map = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
             layers.sat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}');
             
-            map = L.map('map', { zoomControl: false, attributionControl: false }).setView([43.58, 39.72], 17);
+            map = L.map('map', { zoomControl: false, attributionControl: false }).setView([43.58, 39.72], 18);
             layers.map.addTo(map);
             
             updateGrid();
@@ -122,42 +125,48 @@
             startGps();
         }
 
-        // ТАКТИЧЕСКАЯ СЕТКА (БУКВЫ СВЕРХУ / ЦИФРЫ СПРАВА)
+        // КНОПКА ЦЕНТРИРОВАНИЯ
+        function centerMe() {
+            if(myInfo.lat) map.setView([myInfo.lat, myInfo.lng], 19);
+        }
+
+        // ТАКТИЧЕСКАЯ СЕТКА 20x20 МЕТРОВ С ПОСТОЯННЫМИ ИНДЕКСАМИ
         function updateGrid() {
             if (gridLayer) map.removeLayer(gridLayer);
             gridLayer = L.layerGroup().addTo(map);
 
+            if (map.getZoom() < 16) return;
+
             const b = map.getBounds();
-            const z = map.getZoom();
-            // Шаг сетки (примерно 100 метров на зуме 17)
-            const step = 0.001; 
+            // 20 метров в градусах примерно 0.00018
+            const step = 0.00018; 
 
             const startLng = Math.floor(b.getWest() / step) * step;
             const endLng = Math.ceil(b.getEast() / step) * step;
             const startLat = Math.floor(b.getSouth() / step) * step;
             const endLat = Math.ceil(b.getNorth() / step) * step;
 
-            // Вертикальные линии и БУКВЫ сверху
             for (let x = startLng; x <= endLng; x += step) {
-                L.polyline([[startLat, x], [endLat, x]], { color: '#000', weight: 1, dashArray: '5, 5', opacity: 0.5 }).addTo(gridLayer);
-                
-                const charCode = Math.abs(Math.floor(x * 1000)) % 26;
-                const letter = String.fromCharCode(65 + charCode); // A, B, C...
-                
-                L.marker([endLat, x], {
-                    icon: L.divIcon({ className: 'grid-header', html: letter, iconAnchor: [5, 20] })
-                }).addTo(gridLayer);
+                L.polyline([[startLat, x], [endLat, x]], { color: '#000', weight: 1, dashArray: '4, 4', opacity: 0.4 }).addTo(gridLayer);
             }
 
-            // Горизонтальные линии и ЦИФРЫ справа
             for (let y = startLat; y <= endLat; y += step) {
-                L.polyline([[y, startLng], [y, endLng]], { color: '#000', weight: 1, dashArray: '5, 5', opacity: 0.5 }).addTo(gridLayer);
+                L.polyline([[y, startLng], [y, endLng]], { color: '#000', weight: 1, dashArray: '4, 4', opacity: 0.4 }).addTo(gridLayer);
                 
-                const num = Math.abs(Math.floor(y * 1000)) % 100;
-                
-                L.marker([y, endLng], {
-                    icon: L.divIcon({ className: 'grid-header', html: num, iconAnchor: [-10, 5] })
-                }).addTo(gridLayer);
+                // Отрисовка индексов (A1, B2...) внутри видимых квадратов
+                for (let x = startLng; x <= endLng; x += step) {
+                    const charCode = Math.abs(Math.floor(x / step)) % 26;
+                    const letter = String.fromCharCode(65 + charCode);
+                    const num = Math.abs(Math.floor(y / step)) % 100;
+                    
+                    L.marker([y + step, x], {
+                        icon: L.divIcon({ 
+                            className: 'grid-index', 
+                            html: letter + num, 
+                            iconAnchor: [-5, -5] 
+                        })
+                    }).addTo(gridLayer);
+                }
             }
         }
 
@@ -188,10 +197,9 @@
                 pos = m.end;
             } else {
                 const ico = m.type === 'enemy' ? '💀' : '🚩';
-                obj = L.marker([m.lat, m.lng], { icon: L.divIcon({ html: `<div style="font-size:28px;">${ico}</div>`, className: 'dummy', iconAnchor: [14, 14] }) }).addTo(map);
+                obj = L.marker([m.lat, m.lng], { icon: L.divIcon({ html: `<div style="font-size:30px;">${ico}</div>`, className: 'dummy', iconAnchor: [15, 15] }) }).addTo(map);
                 pos = { lat: m.lat, lng: m.lng };
-                // Дистанция ТОЛЬКО для флагов и черепов
-                dists[m.id] = L.marker(pos, { icon: L.divIcon({ className: 'dist-label', html: '---', iconAnchor: [32, -18] }) }).addTo(map);
+                dists[m.id] = L.marker(pos, { icon: L.divIcon({ className: 'dist-label', html: '---', iconAnchor: [35, -20] }) }).addTo(map);
             }
             tactical[m.id] = obj;
             const target = obj.layers ? obj.layers[0] : obj;
@@ -201,7 +209,7 @@
 
         function getHead(s, e) {
             const d = Math.atan2(e.lng - s.lng, e.lat - s.lat);
-            const h = 0.00015; // Уменьшил наконечник в 2 раза
+            const h = 0.0001; 
             return [[e.lat - h * Math.cos(d - 0.5), e.lng - h * Math.sin(d - 0.5)], [e.lat, e.lng], [e.lat - h * Math.cos(d + 0.5), e.lng - h * Math.sin(d + 0.5)]];
         }
 
@@ -215,7 +223,7 @@
             Object.keys(dists).forEach(id => {
                 const p = tactical[id].latlng || tactical[id].getLatLng();
                 const d = Math.round(map.distance([myInfo.lat, myInfo.lng], p));
-                dists[id].setIcon(L.divIcon({ className: 'dist-label', html: d + 'м', iconAnchor: [32, -18] }));
+                dists[id].setIcon(L.divIcon({ className: 'dist-label', html: d + 'м', iconAnchor: [35, -20] }));
                 if(navs[id]) navs[id].setLatLngs([[myInfo.lat, myInfo.lng], p]);
             });
         }
@@ -224,9 +232,9 @@
             navigator.geolocation.watchPosition(p => {
                 myInfo.lat = p.coords.latitude; myInfo.lng = p.coords.longitude;
                 if(!myMarker) {
-                    myMarker = L.circleMarker([myInfo.lat, myInfo.lng], { color: '#2563eb', radius: 9, fillOpacity: 1 }).addTo(map);
+                    myMarker = L.circleMarker([myInfo.lat, myInfo.lng], { color: '#2563eb', radius: 10, fillOpacity: 1 }).addTo(map);
                     myMarker.bindTooltip(myInfo.name, { permanent: true, direction: 'top', className: 'user-label' });
-                    map.setView([myInfo.lat, myInfo.lng], 17);
+                    map.setView([myInfo.lat, myInfo.lng], 18);
                 } else myMarker.setLatLng([myInfo.lat, myInfo.lng]);
                 updateDist();
                 socket.emit('gps_sync', { lat: myInfo.lat, lng: myInfo.lng });
@@ -237,7 +245,7 @@
             Object.keys(us).forEach(id => {
                 if(id === socket.id) return;
                 if(!markers[id]) {
-                    markers[id] = L.circleMarker([us[id].lat, us[id].lng], { color: '#ef4444', radius: 8 }).addTo(map);
+                    markers[id] = L.circleMarker([us[id].lat, us[id].lng], { color: '#ef4444', radius: 9 }).addTo(map);
                     markers[id].bindTooltip(us[id].name, { permanent: true, className: 'user-label' });
                 } else markers[id].setLatLng([us[id].lat, us[id].lng]);
             });
@@ -254,7 +262,7 @@
         function pickColor(c, el) { color = c; document.querySelectorAll('.c-dot').forEach(d => d.classList.remove('active')); el.classList.add('active'); }
         function logout() { location.reload(); }
         function undo() { socket.emit('undo'); }
-        function clearMap() { if(confirm("ОЧИСТИТЬ КАРТУ?")) socket.emit('clear'); }
+        function clearMap() { if(confirm("ОЧИСТИТЬ ВСЕ?")) socket.emit('clear'); }
 
         socket.on('del_obj', id => { 
             if(tactical[id]) { 
