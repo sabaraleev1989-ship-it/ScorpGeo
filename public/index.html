@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="ScorpGEO">
     <meta name="theme-color" content="#000000">
-    <title>ScorpGEO v10.3</title>
+    <title>ScorpGEO v10.4</title>
     
     <link rel="manifest" href="/manifest.json">
     <link rel="apple-touch-icon" href="/icons/icon-512.png">
@@ -57,23 +57,89 @@
             background: radial-gradient(circle at 30% 30%, rgba(0,57,166,0.15) 0%, transparent 50%),
                         radial-gradient(circle at 70% 70%, rgba(213,43,30,0.1) 0%, transparent 50%),
                         linear-gradient(135deg, #0a0a1a 0%, #0d0d24 100%);
-            display:flex; flex-direction:column; align-items:center; justify-content:center; overflow:hidden;
+            display:flex; flex-direction:column; align-items:center; justify-content:flex-start; overflow:hidden;
+            padding-top: 40px;
         }
+
+        /* КРУГЛЫЙ РАДАР СВЕРХУ */
+        .radar-container {
+            position: relative;
+            width: 150px;
+            height: 150px;
+            flex-shrink: 0;
+            margin-bottom: 20px;
+            z-index: 2;
+        }
+        .radar-circle {
+            position: absolute; inset: 0;
+            border: 2px solid rgba(255,255,255,0.4);
+            border-radius: 50%;
+            box-shadow: 0 0 40px rgba(0,57,166,0.5), inset 0 0 40px rgba(0,57,166,0.2);
+            background: radial-gradient(circle at center, rgba(0,57,166,0.2) 0%, rgba(0,0,0,0.8) 70%);
+            animation: radarPulse 2s infinite;
+        }
+        @keyframes radarPulse {
+            0%, 100% { box-shadow: 0 0 40px rgba(0,57,166,0.5), inset 0 0 40px rgba(0,57,166,0.2); }
+            50% { box-shadow: 0 0 60px rgba(213,43,30,0.6), inset 0 0 60px rgba(213,43,30,0.3); }
+        }
+
+        /* Сканирующий луч */
+        .radar-scan {
+            position: absolute; inset: 0;
+            border-radius: 50%;
+            background: conic-gradient(from 0deg, transparent 0deg, transparent 25deg, rgba(0,57,166,0.6) 30deg, transparent 35deg, transparent 360deg);
+            animation: scanSpin 3s linear infinite;
+        }
+        @keyframes scanSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+        /* Сетка радара */
+        .radar-grid {
+            position: absolute; inset: 0; border-radius: 50%;
+            background: radial-gradient(circle at center, transparent 30%, rgba(255,255,255,0.08) 31%, transparent 32%),
+                        radial-gradient(circle at center, transparent 60%, rgba(255,255,255,0.08) 61%, transparent 62%),
+                        linear-gradient(transparent 49%, rgba(255,255,255,0.15) 50%, transparent 51%),
+                        linear-gradient(90deg, transparent 49%, rgba(255,255,255,0.15) 50%, transparent 51%);
+        }
+
+        /* Точки Скорпиона (красные) */
+        .scorpion-dot {
+            position: absolute; width: 4px; height: 4px;
+            background: var(--rus-red); border-radius: 50%;
+            box-shadow: 0 0 8px var(--rus-red), 0 0 16px var(--rus-red);
+            animation: dotBlink 1.2s infinite; z-index: 3;
+        }
+        @keyframes dotBlink {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.3; transform: scale(1.8); }
+        }
+
+        /* Позиции точек для скорпиона (относительно центра 150x150) */
+        .sdot1 { top: 35%; left: 50%; }  /* голова */
+        .sdot2 { top: 30%; left: 45%; }  /* клешня левая */
+        .sdot3 { top: 30%; left: 55%; }  /* клешня правая */
+        .sdot4 { top: 45%; left: 50%; }  /* тело */
+        .sdot5 { top: 52%; left: 42%; }  /* ножка 1 */
+        .sdot6 { top: 52%; left: 58%; }  /* ножка 2 */
+        .sdot7 { top: 58%; left: 48%; }  /* тело низ */
+        .sdot8 { top: 65%; left: 55%; }  /* хвост 1 */
+        .sdot9 { top: 72%; left: 60%; }  /* хвост 2 */
+        .sdot10 { top: 78%; left: 58%; } /* жало */
 
         /* КАРТОЧКА ВХОДА */
         .auth-card {
             background: rgba(10, 10, 20, 0.8);
             border: 1px solid rgba(255,255,255,0.15);
             box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 60px rgba(0,57,166,0.15);
-            padding: 40px 30px;
+            padding: 30px 24px;
             width: 90%;
-            max-width: 400px;
+            max-width: 380px;
             text-align: center;
             z-index: 10001;
             border-radius: 16px;
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
             animation: cardIn 0.6s ease-out;
+            margin-top: 10px;
         }
         @keyframes cardIn {
             from { opacity: 0; transform: translateY(30px); }
@@ -81,19 +147,19 @@
         }
 
         .auth-title {
-            font-size: 2.2rem; font-weight: 900; color: var(--rus-white);
-            margin-bottom: 8px; text-shadow: 0 0 20px rgba(255,255,255,0.5); letter-spacing: 4px;
+            font-size: 1.8rem; font-weight: 900; color: var(--rus-white);
+            margin-bottom: 6px; text-shadow: 0 0 20px rgba(255,255,255,0.5); letter-spacing: 4px;
         }
         .auth-subtitle {
-            font-size: 10px; color: var(--rus-blue); margin-bottom: 30px;
+            font-size: 9px; color: var(--rus-blue); margin-bottom: 22px;
             letter-spacing: 6px; text-transform: uppercase; opacity: 0.8;
         }
 
         .auth-input {
             width: 100%; background: rgba(0,0,0,0.6);
             border: 1px solid rgba(255,255,255,0.15); color: var(--rus-white);
-            padding: 16px; margin-bottom: 14px; font-family: 'Courier New', monospace;
-            font-size: 15px; text-align: center; outline: none; border-radius: 8px;
+            padding: 14px; margin-bottom: 10px; font-family: 'Courier New', monospace;
+            font-size: 14px; text-align: center; outline: none; border-radius: 8px;
             transition: all 0.3s; backdrop-filter: blur(5px);
         }
         .auth-input:focus {
@@ -101,14 +167,14 @@
             background: rgba(255,255,255,0.05);
         }
         .auth-input::placeholder {
-            color: #555; letter-spacing: 2px; font-size: 12px;
+            color: #555; letter-spacing: 2px; font-size: 11px;
         }
 
         .auth-btn {
             width: 100%; background: linear-gradient(135deg, var(--rus-blue), #001a4d);
             color: var(--rus-white); border: 1px solid rgba(255,255,255,0.3);
-            padding: 16px; font-weight: bold; font-size: 17px; cursor: pointer;
-            font-family: 'Courier New', monospace; letter-spacing: 3px; margin-top: 14px;
+            padding: 14px; font-weight: bold; font-size: 16px; cursor: pointer;
+            font-family: 'Courier New', monospace; letter-spacing: 3px; margin-top: 10px;
             border-radius: 8px; transition: all 0.3s; text-transform: uppercase;
             box-shadow: 0 4px 15px rgba(0,57,166,0.4);
         }
@@ -117,14 +183,14 @@
             box-shadow: 0 2px 8px rgba(213,43,30,0.6);
         }
 
-        .auth-info { color: #667; font-size: 9px; margin-top: 16px; letter-spacing: 1px; }
+        .auth-info { color: #667; font-size: 8px; margin-top: 12px; letter-spacing: 1px; }
         .auth-info span { color: #aab; cursor: pointer; text-decoration: underline; }
 
         .code-wrapper { position:relative; width:100%; }
-        .code-wrapper .auth-input { padding-right:45px; }
+        .code-wrapper .auth-input { padding-right:42px; }
         .gear-btn {
-            position:absolute; right:14px; top:50%; transform:translateY(-50%);
-            font-size:22px; cursor:pointer; color:var(--rus-white); display:none; z-index:10; opacity: 0.7;
+            position:absolute; right:12px; top:50%; transform:translateY(-50%);
+            font-size:20px; cursor:pointer; color:var(--rus-white); display:none; z-index:10; opacity: 0.7;
         }
         .gear-btn:hover { opacity: 1; }
 
@@ -181,6 +247,23 @@
 </div>
 
 <div id="auth-screen">
+    <!-- РАДАР СО СКОРПИОНОМ -->
+    <div class="radar-container">
+        <div class="radar-circle"></div>
+        <div class="radar-scan"></div>
+        <div class="radar-grid"></div>
+        <div class="scorpion-dot sdot1"></div>
+        <div class="scorpion-dot sdot2"></div>
+        <div class="scorpion-dot sdot3"></div>
+        <div class="scorpion-dot sdot4"></div>
+        <div class="scorpion-dot sdot5"></div>
+        <div class="scorpion-dot sdot6"></div>
+        <div class="scorpion-dot sdot7"></div>
+        <div class="scorpion-dot sdot8"></div>
+        <div class="scorpion-dot sdot9"></div>
+        <div class="scorpion-dot sdot10"></div>
+    </div>
+
     <div class="auth-card">
         <div class="auth-title">ScorpGEO</div>
         <div class="auth-subtitle">TACTICAL MAP</div>
@@ -192,7 +275,7 @@
             <span class="gear-btn" id="settingsGear" onclick="changeAccessCode()">⚙️</span>
         </div>
         <button onclick="doLogin()" class="auth-btn">⚡ ВОЙТИ ⚡</button>
-        <div class="auth-info">v10.3 • <span onclick="tryBecomeAdmin()">АДМИН</span></div>
+        <div class="auth-info">v10.4 • <span onclick="tryBecomeAdmin()">АДМИН</span></div>
         <div id="autoLoginMsg" style="color:#fff; font-size:12px; margin-top:10px; display:none;"></div>
     </div>
 </div>
@@ -445,7 +528,7 @@ window.changeMap=changeMap; window.toggleChat=toggleChat; window.sendChatMessage
 window.deleteMyObjects=deleteMyObjects; window.reconnectApp=reconnectApp; window.exitApp=exitApp;
 window.changeAccessCode=changeAccessCode; window.tryBecomeAdmin=tryBecomeAdmin;
 
-console.log('🇷🇺 ScorpGEO v10.3 — HUD + Частицы');
+console.log('🇷🇺 ScorpGEO v10.4 — Радар + Скорпион');
 </script>
 </body>
 </html>
