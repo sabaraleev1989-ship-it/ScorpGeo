@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="ScorpGEO">
     <meta name="theme-color" content="#000000">
-    <title>ScorpGEO v6.9</title>
+    <title>ScorpGEO v7.0</title>
     
     <link rel="manifest" href="/manifest.json">
     <link rel="apple-touch-icon" href="/icons/icon-512.png">
@@ -79,7 +79,7 @@
 
 <div id="connection-status">🟢 ОНЛАЙН</div>
 
-<!-- КОМПАС (КРАСИВЫЙ) -->
+<!-- КОМПАС (ТОНКАЯ СТРЕЛКА) -->
 <div id="compass" style="position:fixed; top:100px; right:35px; z-index:8000;">
     <div id="compass-inner" onclick="requestCompassPermission()" style="background:rgba(0,0,0,0.9); border:2px solid #0f0; border-radius:50%; width:44px; height:44px; display:flex; align-items:center; justify-content:center; pointer-events:auto; cursor:pointer; box-shadow:0 0 15px rgba(0,255,0,0.3);">
         <div style="position:absolute; inset:-3px; border:1px solid #0f0; border-radius:50%; opacity:0.4;"></div>
@@ -87,7 +87,7 @@
         <div style="position:absolute; bottom:2px; left:50%; transform:translateX(-50%); color:#555; font-size:7px;">S</div>
         <div style="position:absolute; right:2px; top:50%; transform:translateY(-50%); color:#555; font-size:7px;">E</div>
         <div style="position:absolute; left:2px; top:50%; transform:translateY(-50%); color:#555; font-size:7px;">W</div>
-        <span id="compass-arrow" style="font-size:20px; transition:transform 0.5s ease; z-index:1;">⬆️</span>
+        <span id="compass-arrow" style="font-size:14px; font-weight:bold; transition:transform 0.5s ease; z-index:1; color:#0f0;">▲</span>
     </div>
 </div>
 
@@ -111,7 +111,7 @@
         
         <button onclick="doLogin()" class="auth-btn">⚡ ВОЙТИ ⚡</button>
         <div style="color:#050;font-size:8px;margin-top:12px;letter-spacing:1px;">
-            v6.9 • <span onclick="tryBecomeAdmin()" style="color:#0a0;cursor:pointer;text-decoration:underline;">АДМИН</span> • 🧭
+            v7.0 • <span onclick="tryBecomeAdmin()" style="color:#0a0;cursor:pointer;text-decoration:underline;">АДМИН</span> • 🧭
         </div>
         <div id="autoLoginMsg" style="color:#0f0;font-size:11px;margin-top:8px;display:none;"></div>
     </div>
@@ -177,7 +177,7 @@ if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.re
     document.addEventListener('click',function requestPermission(){ DeviceOrientationEvent.requestPermission().then(r=>{ if(r==='granted') window.addEventListener('deviceorientation',handleOrientation,true); }); document.removeEventListener('click',requestPermission); },{once:true});
 }else{ window.addEventListener('deviceorientation',handleOrientation,true); }
 function requestCompassPermission(){ if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function'){ DeviceOrientationEvent.requestPermission().then(r=>{ if(r==='granted'){ window.addEventListener('deviceorientation',handleOrientation,true); alert('✅ Компас активирован!'); } }); }else{ alert('Компас уже активен'); } }
-setTimeout(()=>{ if(compassHeading===0) document.getElementById('compass-arrow').textContent='⬆️'; },3000);
+setTimeout(()=>{ if(compassHeading===0) document.getElementById('compass-arrow').textContent='▲'; },3000);
 window.requestCompassPermission=requestCompassPermission;
 
 function tryAutoLogin(){
@@ -251,8 +251,8 @@ socket.on('draw',(obj)=>{
 socket.on('remove_obj',(id)=>{ if(tacticalObjects[id]){ tacticalObjects[id].layers.forEach(l=>{ if(map&&map.hasLayer(l)) map.removeLayer(l); }); delete tacticalObjects[id]; myObjects.delete(id); if(rulerTimers[id]){ clearTimeout(rulerTimers[id]); delete rulerTimers[id]; } } });
 socket.on('receive_msg',(data)=>{ let n,t,c; if(typeof data==='string'){ const m=data.match(/^([^:]+):\s*(.+)$/); n=m?m[1]:'СИСТЕМА'; t=m?m[2]:data; c=playerColors[n]||'#ccc'; } else{ n=data.name||'Аноним'; t=data.text||''; c=data.color||playerColors[n]||'#ccc'; } addChatMessage(n,t,c); });
 
-// ==================== КАРТА ====================
-function initMap(){ if(map)return; map=L.map('map',{zoomControl:true,attributionControl:false,maxZoom:22,minZoom:10,tap:true}).setView([55.7558,37.6176],18); tileLayer=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:22,maxNativeZoom:19}).addTo(map); map.on('click',handleMapClick); map.on('moveend',drawGrid); map.on('zoomend',drawGrid); drawGrid(); setTimeout(()=>{map.invalidateSize();drawGrid();},500); }
+// ==================== КАРТА (БЕЗ КНОПОК ЗУМА) ====================
+function initMap(){ if(map)return; map=L.map('map',{zoomControl:false,attributionControl:false,maxZoom:22,minZoom:10,tap:true}).setView([55.7558,37.6176],18); tileLayer=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:22,maxNativeZoom:19}).addTo(map); map.on('click',handleMapClick); map.on('moveend',drawGrid); map.on('zoomend',drawGrid); drawGrid(); setTimeout(()=>{map.invalidateSize();drawGrid();},500); }
 function startGeolocation(){ if(!navigator.geolocation)return; if(watchId)navigator.geolocation.clearWatch(watchId); watchId=navigator.geolocation.watchPosition(pos=>{updateMyPosition(pos.coords.latitude,pos.coords.longitude);socket.emit('gps_sync',{lat:pos.coords.latitude,lng:pos.coords.longitude});},err=>console.warn('GPS:',err.message),{enableHighAccuracy:true,maximumAge:3000,timeout:10000}); }
 function updateMyPosition(lat,lng){ if(!map)return; if(playersMarkers[currentUser.name]) playersMarkers[currentUser.name].setLatLng([lat,lng]); else playersMarkers[currentUser.name]=L.marker([lat,lng],{icon:createPlayerIcon(currentUser.name,currentUser.color),zIndexOffset:1000}).addTo(map); }
 function createPlayerIcon(name,color){ return L.divIcon({html:`<div class="player-marker"><div class="player-name-tag" style="color:${color}">${name}</div><div class="player-dot" style="background:${color}"></div></div>`,iconSize:[60,32],iconAnchor:[30,24],className:''}); }
@@ -266,8 +266,8 @@ function resetZoom(){ if(map) map.setZoom(18); document.getElementById('distance
 function handleMapClick(e){ const{lat,lng}=e.latlng; if(activeTool==='enemy'||activeTool==='target'){ socket.emit('new_obj',{id:`${activeTool}_${Date.now()}_${Math.random().toString(36).substr(2,9)}`,type:activeTool,lat,lng,creator:currentUser.name}); } else if(activeTool==='arrow'||activeTool==='ruler'){ rulerPoints.push({lat,lng}); if(rulerPoints.length===2){ socket.emit('new_obj',{id:`${activeTool}_${Date.now()}_${Math.random().toString(36).substr(2,9)}`,type:activeTool,start:rulerPoints[0],end:rulerPoints[1],creator:currentUser.name}); rulerPoints=[]; }else{ L.popup().setLatLng([lat,lng]).setContent('<b>👆 Вторая точка</b>').openOn(map); } } }
 function deleteMyObjects(){ const ids=Array.from(myObjects); ids.forEach(id=>socket.emit('delete_obj',id)); myObjects.clear(); }
 
-// ===== СЕТКА: ТОЛЬКО ZOOM 18-20 =====
-function getGridSizeForZoom(zoom){ if(zoom<18||zoom>20) return 0; return 20; }
+// ===== СЕТКА ВСЕГДА (ZOOM ≥ 17) =====
+function getGridSizeForZoom(zoom){ if(zoom<17) return 0; return 20; }
 
 function drawGrid(){
     if(!map)return; const overlay=document.getElementById('grid-overlay'); overlay.innerHTML=''; const zoom=map.getZoom(); const GRID_SIZE=getGridSizeForZoom(zoom);
@@ -304,7 +304,7 @@ window.changeMap=changeMap; window.toggleChat=toggleChat; window.sendChatMessage
 window.deleteMyObjects=deleteMyObjects; window.reconnectApp=reconnectApp; window.exitApp=exitApp;
 window.changeAccessCode=changeAccessCode; window.tryBecomeAdmin=tryBecomeAdmin; window.requestCompassPermission=requestCompassPermission;
 
-console.log('🦂 ScorpGEO v6.9 — Сетка 18-20 | Компас N/S/E/W');
+console.log('🦂 ScorpGEO v7.0 — Зум убран | Сетка всегда | Компас ▲');
 </script>
 </body>
 </html>
