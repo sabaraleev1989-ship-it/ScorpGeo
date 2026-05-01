@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="ScorpGEO">
     <meta name="theme-color" content="#000000">
-    <title>ScorpGEO v5.6</title>
+    <title>ScorpGEO v5.7</title>
     
     <link rel="manifest" href="/manifest.json">
     <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='192' height='192' viewBox='0 0 192 192'%3E%3Ccircle cx='96' cy='96' r='90' fill='none' stroke='%2300ff00' stroke-width='4'/%3E%3Ccircle cx='96' cy='96' r='60' fill='none' stroke='%2300ff00' stroke-width='2'/%3E%3Ctext x='96' y='105' text-anchor='middle' fill='%2300ff00' font-size='14' font-family='monospace' font-weight='bold'%3EScorpGEO%3C/text%3E%3C/svg%3E">
@@ -20,6 +20,14 @@
     <style>
         * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; -webkit-user-select:none; user-select:none; }
         body,html { width:100%; height:100%; background:#000; overflow:hidden; font-family:'Courier New',monospace; }
+        
+        /* PWA отступы */
+        :root {
+            --safe-top: env(safe-area-inset-top, 0px);
+            --safe-bottom: env(safe-area-inset-bottom, 0px);
+            --safe-left: env(safe-area-inset-left, 0px);
+            --safe-right: env(safe-area-inset-right, 0px);
+        }
         
         #auth-screen {
             position:fixed; inset:0; z-index:10000;
@@ -70,21 +78,42 @@
         
         #map { position:absolute; inset:0; z-index:1; background:#1a1e1a; }
         
-        .side-panel { position:fixed; left:0; top:0; bottom:0; width:78px; background:rgba(0,0,0,0.96); border-right:2px solid #0f0; z-index:5000; display:none; flex-direction:column; overflow-y:auto; }
+        /* ПАНЕЛЬ С PWA-ОТСТУПОМ */
+        .side-panel { 
+            position:fixed; left:0; top:0; bottom:0; width:78px; 
+            background:rgba(0,0,0,0.96); border-right:2px solid #0f0; 
+            z-index:5000; display:none; flex-direction:column; overflow-y:auto;
+            padding-top: calc(env(safe-area-inset-top, 0px) + 5px);
+        }
         .tool-btn { width:100%; min-height:62px; display:flex; flex-direction:column; align-items:center; justify-content:center; border-bottom:1px solid #0a0; color:#0f0; cursor:pointer; font-size:10px; font-weight:bold; padding:5px 2px; }
         .tool-btn b { font-size:22px; margin-bottom:3px; }
         .tool-btn.active { background:#020; color:#fff; border-left:3px solid #0f0; }
         .tool-btn:active { transform:scale(0.95); background:#030; }
         
-        #grid-overlay { position:fixed; inset:0; pointer-events:none; z-index:900; }
-        .grid-letter-top { position:absolute; font-weight:900; font-family:'Courier New',monospace; background:rgba(0,0,0,0.8); color:#999; border:1px solid #444; border-radius:3px; transform:translate(-50%,-50%); z-index:950; }
-        .grid-number-right { position:absolute; font-weight:900; font-family:'Courier New',monospace; background:rgba(0,0,0,0.8); color:#999; border:1px solid #444; border-radius:3px; transform:translate(0,-50%); z-index:950; }
+        /* СЕТКА С PWA-ОТСТУПОМ */
+        #grid-overlay { 
+            position:fixed; inset:0; pointer-events:none; z-index:900;
+            padding-top: env(safe-area-inset-top, 0px);
+        }
+        .grid-letter-top { 
+            position:absolute; font-weight:900; font-family:'Courier New',monospace; 
+            background:rgba(0,0,0,0.9); color:#ccc; border:1px solid #666; 
+            border-radius:3px; transform:translate(-50%,-50%); z-index:950;
+            font-size:12px; padding:4px 8px;
+        }
+        .grid-number-right { 
+            position:absolute; font-weight:900; font-family:'Courier New',monospace; 
+            background:rgba(0,0,0,0.9); color:#ccc; border:1px solid #666; 
+            border-radius:3px; transform:translate(0,-50%); z-index:950;
+            font-size:12px; padding:4px 8px;
+        }
         
         #chat-win {
             position:fixed; bottom:10px; left:88px; right:10px;
             height:280px;
             background:rgba(0,0,0,0.95); border:1px solid #0f0;
             z-index:6000; display:none; flex-direction:column; border-radius:5px;
+            padding-bottom: env(safe-area-inset-bottom, 0px);
         }
         #chat-messages { flex:1; overflow-y:auto; padding:10px; font-size:12px; font-family:'Courier New',monospace; }
         .msg-line { margin-bottom:4px; padding:4px 6px; border-bottom:1px solid #0a0; word-break:break-word; }
@@ -117,6 +146,7 @@
             #distance-bar{font-size:16px;padding:10px 16px;bottom:70px}
             #chat-messages{font-size:11px;}
             #chat-input{font-size:11px; padding:8px;}
+            .grid-letter-top, .grid-number-right { font-size:10px; padding:3px 6px; }
         }
     </style>
 </head>
@@ -137,7 +167,7 @@
         <input type="text" id="playerName" class="auth-input" placeholder="ПОЗЫВНОЙ" maxlength="10" autocomplete="off">
         <input type="password" id="password" class="auth-input" placeholder="ПАРОЛЬ" maxlength="20" autocomplete="off">
         <button onclick="doLogin()" class="auth-btn">⚡ ВОЙТИ ⚡</button>
-        <div class="auth-info">ТАП ПО БОЙЦУ → РАССТОЯНИЕ | ЧАТ УВЕЛИЧЕН</div>
+        <div class="auth-info">PWA-ФИКС • СЕТКА ЯРЧЕ • КНОПКИ ДОСТУПНЫ</div>
         <div id="autoLoginMsg" class="auto-login-msg" style="display:none;"></div>
     </div>
 </div>
@@ -170,11 +200,11 @@
 </div>
 
 <script>
+// ==================== SOCKET.IO ====================
 const socket = io({ transports:['websocket','polling'], reconnection:true, reconnectionDelay:1000, reconnectionDelayMax:5000, reconnectionAttempts:Infinity, timeout:20000, pingInterval:25000, pingTimeout:60000, autoConnect:true });
 
 let map, activeTool='move', currentUser={name:'',team:'',color:'#0f0'};
 let playersMarkers={}, tacticalObjects={}, myObjects=new Set(), rulerPoints=[], gridLayer=null, tileLayer=null, playerColors={}, watchId=null, keepAliveInterval=null, distanceTimer=null;
-let currentMapType='map';
 
 const METERS_PER_DEGREE=111320;
 const RUSSIAN_LETTERS=['А','Б','В','Г','Д','Е','Ё','Ж','З','И','Й','К','Л','М','Н','О','П','Р','С','Т','У','Ф','Х','Ц','Ч','Ш','Щ','Ъ','Ы','Ь','Э','Ю','Я'];
@@ -242,8 +272,7 @@ socket.on('draw',(obj)=>{
     if(tacticalObjects[obj.id]){ tacticalObjects[obj.id].layers.forEach(l=>{ if(map&&map.hasLayer(l)) map.removeLayer(l); }); delete tacticalObjects[obj.id]; }
     let layers=[]; const cn=obj.creator||'???';
     if(obj.type==='enemy'||obj.type==='target'){
-        const ih=obj.type==='enemy'?'💀':'🎯';
-        const mk=L.marker([obj.lat,obj.lng],{icon:L.divIcon({html:`<div style="font-size:34px;filter:drop-shadow(2px 2px 3px black);cursor:pointer;">${ih}</div>`,iconSize:[34,34],iconAnchor:[17,17],className:''}),zIndexOffset:500}).addTo(map);
+        const mk=L.marker([obj.lat,obj.lng],{icon:L.divIcon({html:`<div style="font-size:34px;filter:drop-shadow(2px 2px 3px black);cursor:pointer;">${obj.type==='enemy'?'💀':'🎯'}</div>`,iconSize:[34,34],iconAnchor:[17,17],className:''}),zIndexOffset:500}).addTo(map);
         mk.on('click',()=>{ if(activeTool==='eraser'){socket.emit('delete_obj',obj.id);return;} L.popup({closeButton:false,className:'creator-tooltip',autoClose:true}).setLatLng([obj.lat,obj.lng]).setContent(`👤 <b>${cn}</b>`).openOn(map); });
         layers.push(mk);
     }else if(obj.type==='arrow'){
@@ -257,9 +286,9 @@ socket.on('draw',(obj)=>{
         const d=map.distance([obj.start.lat,obj.start.lng],[obj.end.lat,obj.end.lng]);
         const tx=d<1000?`${Math.round(d)} м`:`${(d/1000).toFixed(1)} км`;
         const md={lat:(obj.start.lat+obj.end.lat)/2,lng:(obj.start.lng+obj.end.lng)/2};
-        const lb=L.marker([md.lat,md.lng],{icon:L.divIcon({html:`<div style="background:#000;color:#ff0;padding:4px 8px;border:1px solid #ff0;border-radius:12px;font-size:12px;font-weight:bold;">📏 ${tx}</div>`,iconSize:[80,24],iconAnchor:[40,12],className:''}),interactive:false}).addTo(map);
+        L.marker([md.lat,md.lng],{icon:L.divIcon({html:`<div style="background:#000;color:#ff0;padding:4px 8px;border:1px solid #ff0;border-radius:12px;font-size:12px;font-weight:bold;">📏 ${tx}</div>`,iconSize:[80,24],iconAnchor:[40,12],className:''}),interactive:false}).addTo(map);
         ln.on('click',(e)=>{ if(activeTool==='eraser'){socket.emit('delete_obj',obj.id);return;} L.popup({closeButton:false,className:'creator-tooltip',autoClose:true}).setLatLng(e.latlng).setContent(`👤 <b>${cn}</b>`).openOn(map); });
-        layers.push(ln,lb);
+        layers.push(ln);
     }
     tacticalObjects[obj.id]={type:obj.type,layers,creator:cn};
     if(obj.creator===currentUser.name) myObjects.add(obj.id);
@@ -279,7 +308,6 @@ function initMap(){
     if(map)return;
     map=L.map('map',{zoomControl:true,attributionControl:false,maxZoom:22,minZoom:10,tap:true}).setView([55.7558,37.6176],18);
     tileLayer=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:22,maxNativeZoom:19}).addTo(map);
-    currentMapType='map';
     map.on('click',handleMapClick); map.on('moveend',drawGrid); map.on('zoomend',drawGrid);
     drawGrid(); setTimeout(()=>{map.invalidateSize();drawGrid();},500);
 }
@@ -303,15 +331,13 @@ function updatePlayerMarker(name,lat,lng,color){
     if(!map||!name||name===currentUser.name)return;
     if(playersMarkers[name]){ playersMarkers[name].setLatLng([lat,lng]); }
     else{
-        const icon=createPlayerIcon(name,color||'#fff');
-        const marker=L.marker([lat,lng],{icon,zIndexOffset:900}).addTo(map);
+        const marker=L.marker([lat,lng],{icon:createPlayerIcon(name,color||'#fff'),zIndexOffset:900}).addTo(map);
         playersMarkers[name]=marker;
         marker.on('click',(e)=>{
             if(!playersMarkers[currentUser.name])return;
             L.DomEvent.stopPropagation(e);
             const myPos=playersMarkers[currentUser.name].getLatLng();
-            const targetPos=marker.getLatLng();
-            const d=map.distance(myPos,targetPos);
+            const d=map.distance(myPos,marker.getLatLng());
             const txt=d<1000?`${Math.round(d)} м`:`${(d/1000).toFixed(1)} км`;
             const bar=document.getElementById('distance-bar');
             bar.innerHTML=`📏 <b style="color:${playerColors[name]||'#fff'}">${name}</b> — ${txt}`;
@@ -374,7 +400,7 @@ function drawGrid(){
         if(p.x>30&&p.x<window.innerWidth-30){
             const d=document.createElement('div'); d.className='grid-letter-top';
             d.textContent=RUSSIAN_LETTERS[ci%RUSSIAN_LETTERS.length];
-            d.style.left=p.x+'px'; d.style.top=Math.max(22,p.y-18)+'px';
+            d.style.left=p.x+'px'; d.style.top=Math.max(25+parseInt(getComputedStyle(document.getElementById('grid-overlay')).paddingTop||0),p.y-18)+'px';
             d.style.fontSize=fs; d.style.padding=pp; overlay.appendChild(d);
         }
         ci++;
@@ -407,13 +433,7 @@ function setTool(t){
 
 function changeMap(type){
     if(tileLayer) map.removeLayer(tileLayer);
-    if(type==='sat'){
-        tileLayer=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:20}).addTo(map);
-        currentMapType='sat';
-    }else{
-        tileLayer=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:22,maxNativeZoom:19}).addTo(map);
-        currentMapType='map';
-    }
+    tileLayer=L.tileLayer(type==='sat'?'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}':'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:type==='sat'?20:22,maxNativeZoom:type==='sat'?20:19}).addTo(map);
     drawGrid();
 }
 
@@ -437,7 +457,7 @@ window.doLogin=doLogin; window.setTool=setTool; window.centerOnMe=centerOnMe;
 window.changeMap=changeMap; window.toggleChat=toggleChat; window.sendChatMessage=sendChatMessage;
 window.deleteMyObjects=deleteMyObjects; window.exitApp=exitApp;
 
-console.log('🦂 ScorpGEO v5.6 — Чат 280px | Выход сразу | 15 мин');
+console.log('🦂 ScorpGEO v5.7 — PWA fix');
 </script>
 
 <script>
