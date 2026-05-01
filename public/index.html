@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="ScorpGEO">
     <meta name="theme-color" content="#000000">
-    <title>ScorpGEO v10.6</title>
+    <title>ScorpGEO v10.8</title>
     
     <link rel="manifest" href="/manifest.json">
     <link rel="apple-touch-icon" href="/icons/icon-512.png">
@@ -152,18 +152,29 @@
         }
 
         .auth-input {
-            width: 100%; background: rgba(0,0,0,0.6);
-            border: 1px solid rgba(255,255,255,0.15); color: var(--rus-white);
-            padding: 14px; margin-bottom: 10px; font-family: 'Courier New', monospace;
-            font-size: 14px; text-align: center; outline: none; border-radius: 8px;
-            transition: all 0.3s; backdrop-filter: blur(5px);
+            width: 100%;
+            background: rgba(0,0,0,0.7);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: var(--rus-white);
+            padding: 15px 14px;
+            margin-bottom: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            text-align: center;
+            outline: none;
+            border-radius: 8px;
+            transition: all 0.3s;
+            line-height: 1.4;
         }
         .auth-input:focus {
-            border-color: var(--rus-white); box-shadow: 0 0 20px rgba(255,255,255,0.3);
-            background: rgba(255,255,255,0.05);
+            border-color: var(--rus-white);
+            box-shadow: 0 0 20px rgba(255,255,255,0.3);
+            background: rgba(255,255,255,0.08);
         }
         .auth-input::placeholder {
-            color: #555; letter-spacing: 2px; font-size: 11px;
+            color: #555;
+            letter-spacing: 2px;
+            font-size: 11px;
         }
 
         .auth-btn {
@@ -192,7 +203,7 @@
         #map { position:absolute; top:0; left:0; right:0; bottom:0; z-index:1; background:#1a1e1a; }
         #drawing-layer { position:absolute; top:0; left:0; right:0; bottom:0; z-index:100; display:none; cursor:crosshair; touch-action:none; }
 
-        /* ========== СТЕКЛЯННАЯ ПАНЕЛЬ ИНСТРУМЕНТОВ ========== */
+        /* СТЕКЛЯННАЯ ПАНЕЛЬ ИНСТРУМЕНТОВ */
         .side-panel {
             position:fixed; left:0; top:44px; bottom:0; width:80px;
             background: var(--panel-bg);
@@ -209,10 +220,8 @@
             color: var(--text-dim);
             cursor:pointer; font-size:9px; font-weight:bold; padding:4px 2px;
             transition: all 0.25s ease;
-            background: transparent;
-            position: relative;
         }
-        .tool-btn b { font-size:18px; margin-bottom:2px; transition: transform 0.2s; }
+        .tool-btn b { font-size:18px; margin-bottom:2px; }
         .tool-btn:hover { color: var(--rus-white); background: rgba(255,255,255,0.05); }
         .tool-btn:active { transform: scale(0.95); }
         .tool-btn.active {
@@ -228,7 +237,7 @@
         .grid-letter-top { position:absolute; font-weight:900; font-family:'Courier New',monospace; background:rgba(0,0,0,0.9); color:#ccc; border:1px solid #666; border-radius:3px; transform:translate(-50%,-50%); z-index:950; font-size:12px; padding:4px 8px; }
         .grid-number-right { position:absolute; font-weight:900; font-family:'Courier New',monospace; background:rgba(0,0,0,0.9); color:#ccc; border:1px solid #666; border-radius:3px; transform:translate(0,-50%); z-index:950; font-size:12px; padding:4px 8px; }
 
-        /* ========== СТЕКЛЯННЫЙ ЧАТ ========== */
+        /* ЧАТ */
         #chat-win {
             position:fixed; bottom:10px; left:90px; right:10px; height:280px;
             background: var(--glass-bg);
@@ -238,51 +247,27 @@
             box-shadow: var(--glass-shadow);
             z-index:6000; display:none; flex-direction:column; border-radius:12px;
         }
-        #chat-messages {
-            flex:1; overflow-y:auto; padding:12px;
-            font-size:12px; font-family:'Courier New',monospace;
-            color: var(--text-color);
-        }
-        .msg-line {
-            margin-bottom:5px; padding:5px 8px;
-            border-radius: 6px;
-            background: rgba(255,255,255,0.03);
-            border-left: 2px solid var(--rus-blue);
-            animation: fadeIn 0.2s ease;
-        }
+        #chat-messages { flex:1; overflow-y:auto; padding:12px; font-size:12px; font-family:'Courier New',monospace; color: var(--text-color); }
+        .msg-line { margin-bottom:5px; padding:5px 8px; border-radius: 6px; background: rgba(255,255,255,0.03); border-left: 2px solid var(--rus-blue); animation: fadeIn 0.2s ease; }
         @keyframes fadeIn { from { opacity:0; transform:translateX(-10px); } to { opacity:1; transform:translateX(0); } }
         .msg-name { font-weight:900; margin-right:6px; }
         .msg-text { color: #ccc; }
 
         #chat-input {
-            background: rgba(0,0,0,0.6);
-            border: 1px solid rgba(255,255,255,0.2);
-            color: var(--rus-white);
-            padding:10px 14px; outline:none;
-            font-size:12px; font-family:'Courier New',monospace;
-            margin:8px; border-radius:20px;
-            backdrop-filter: blur(10px);
-            transition: all 0.3s;
+            background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.2);
+            color: var(--rus-white); padding:10px 14px; outline:none; font-size:12px;
+            font-family:'Courier New',monospace; margin:8px; border-radius:20px; line-height: 1.4;
         }
-        #chat-input:focus {
-            border-color: var(--rus-white);
-            box-shadow: 0 0 15px rgba(255,255,255,0.2);
-        }
+        #chat-input:focus { border-color: var(--rus-white); box-shadow: 0 0 15px rgba(255,255,255,0.2); }
         #chat-input::placeholder { color: #555; }
 
         #send-btn {
             background: linear-gradient(135deg, var(--rus-blue), #001a4d);
-            color: var(--rus-white);
-            border: 1px solid rgba(255,255,255,0.3);
-            padding:8px 16px; margin:8px 8px 8px 0;
-            border-radius:20px; font-size:12px; font-weight:bold;
-            cursor:pointer; transition: all 0.3s;
-            box-shadow: 0 2px 8px rgba(0,57,166,0.3);
+            color: var(--rus-white); border: 1px solid rgba(255,255,255,0.3);
+            padding:8px 16px; margin:8px 8px 8px 0; border-radius:20px; font-size:12px;
+            font-weight:bold; cursor:pointer; box-shadow: 0 2px 8px rgba(0,57,166,0.3);
         }
-        #send-btn:active {
-            background: var(--rus-red);
-            box-shadow: 0 2px 12px rgba(213,43,30,0.5);
-        }
+        #send-btn:active { background: var(--rus-red); }
 
         .player-marker { display:flex; flex-direction:column; align-items:center; cursor:pointer; }
         .player-name-tag { font-weight:900; font-size:11px; text-shadow:1px 1px 2px #000; white-space:nowrap; margin-bottom:2px; background:rgba(0,0,0,0.85); padding:3px 6px; border-radius:8px; }
@@ -304,11 +289,9 @@
         .creator-tooltip { background:rgba(0,0,0,0.9)!important; border:1px solid var(--rus-blue)!important; color:var(--rus-white)!important; font-family:'Courier New',monospace!important; font-size:12px!important; padding:5px 10px!important; border-radius:5px!important; }
         #connection-status {
             position:fixed; top:50px; right:8px;
-            background: rgba(0,0,0,0.7);
-            backdrop-filter: blur(10px);
-            color: var(--rus-white); padding:4px 10px;
-            border-radius:15px; font-size:9px; z-index:7000;
-            display:none; font-family:monospace;
+            background: rgba(0,0,0,0.7); backdrop-filter: blur(10px);
+            color: var(--rus-white); padding:4px 10px; border-radius:15px;
+            font-size:9px; z-index:7000; display:none; font-family:monospace;
             border: 1px solid rgba(255,255,255,0.2);
         }
         .snap-tooltip { background:rgba(0,0,0,0.9)!important; border:1px solid var(--rus-red)!important; color:var(--rus-white)!important; font-family:'Courier New',monospace!important; font-size:10px!important; padding:3px 6px!important; border-radius:5px!important; }
@@ -354,7 +337,7 @@
             <span class="gear-btn" id="settingsGear" onclick="changeAccessCode()">⚙️</span>
         </div>
         <button onclick="doLogin()" class="auth-btn">⚡ ВОЙТИ ⚡</button>
-        <div class="auth-info">v10.6 • <span onclick="tryBecomeAdmin()">АДМИН</span></div>
+        <div class="auth-info">v10.8 • <span onclick="tryBecomeAdmin()">АДМИН</span></div>
         <div id="autoLoginMsg" style="color:#fff; font-size:12px; margin-top:10px; display:none;"></div>
     </div>
 </div>
@@ -471,81 +454,71 @@ function findNearestObject(clickLatLng){
     return closest;
 }
 
-function tryAutoLogin(){
-    const s=loadSession();
-    if(s&&s.team&&s.name){ currentUser.name=s.name; currentUser.team=s.team; currentUser.color=s.color;
-        document.getElementById('autoLoginMsg').textContent='↻ Автовход: '+s.name; document.getElementById('autoLoginMsg').style.display='block';
-        setTimeout(()=>document.getElementById('autoLoginMsg').style.display='none',2500);
-        socket.emit('join_room',{room:s.team,name:s.name,team:s.team,pass:'1234',accessCode:localStorage.getItem('scorpgeo_code')||'',deviceId:DEVICE_ID});
-        return true;
+// ===== УЛУЧШЕННОЕ ВОССТАНОВЛЕНИЕ СВЯЗИ =====
+function forceReconnect() {
+    const el = document.getElementById('connection-status');
+    if (!currentUser.name) return;
+    
+    if (socket.disconnected) {
+        el.textContent = '🔄 Переподключение...';
+        el.style.color = '#ff0';
+        el.style.display = 'block';
+        socket.connect();
     }
-    return false;
+    
+    setTimeout(() => {
+        if (socket.connected) {
+            socket.emit('rejoin_room', {
+                room: currentUser.team,
+                name: currentUser.name,
+                color: currentUser.color,
+                deviceId: DEVICE_ID
+            });
+            el.textContent = '🟢 Онлайн';
+            el.style.color = '#0f0';
+        } else {
+            socket.connect();
+            setTimeout(() => {
+                if (socket.connected && currentUser.name) {
+                    socket.emit('rejoin_room', {
+                        room: currentUser.team,
+                        name: currentUser.name,
+                        color: currentUser.color,
+                        deviceId: DEVICE_ID
+                    });
+                }
+                el.textContent = socket.connected ? '🟢 Онлайн' : '🔴 Офлайн';
+                el.style.color = socket.connected ? '#0f0' : '#f00';
+            }, 2000);
+        }
+        setTimeout(() => { el.style.display = 'none'; }, 2000);
+    }, 600);
 }
 
-document.addEventListener('visibilitychange',()=>{
-    const el=document.getElementById('connection-status');
-    if(document.visibilityState==='visible'){ el.textContent='🔄 Проверка...'; el.style.color='#ff0'; el.style.display='block'; if(socket.disconnected) socket.connect();
-        setTimeout(()=>{ if(socket.connected&&currentUser.name){ socket.emit('rejoin_room',{room:currentUser.team,name:currentUser.name,color:currentUser.color,deviceId:DEVICE_ID}); el.textContent='🟢 Онлайн'; el.style.color='#0f0'; } setTimeout(()=>el.style.display='none',2000); },500);
-    }else{ if(socket.connected&&currentUser.name) socket.emit('keep_alive',{name:currentUser.name,room:currentUser.team,deviceId:DEVICE_ID}); }
-});
-window.addEventListener('beforeunload',()=>{ if(currentUser.name) saveSession(); });
-window.addEventListener('resize',updateCanvasSize);
-function startKeepAlive(){ if(keepAliveInterval)clearInterval(keepAliveInterval); keepAliveInterval=setInterval(()=>{ if(socket.connected&&currentUser.name) socket.emit('keep_alive',{name:currentUser.name,room:currentUser.team,deviceId:DEVICE_ID}); },30000); }
-socket.on('connect',()=>{ const el=document.getElementById('connection-status'); el.textContent='🟢 ОНЛАЙН'; el.style.color='#0f0'; el.style.display='block'; setTimeout(()=>el.style.display='none',2000); });
-socket.on('disconnect',()=>{ const el=document.getElementById('connection-status'); el.textContent='🔴 ОФЛАЙН'; el.style.color='#f00'; el.style.display='block'; });
-
-function doLogin(){
-    const team=document.getElementById('teamName').value.trim().toUpperCase();
-    const name=document.getElementById('playerName').value.trim().toUpperCase();
-    const pass=document.getElementById('password').value;
-    const code=document.getElementById('accessCode').value.trim();
-    if(!team||!name||!pass||!code){ alert('Заполните все поля!'); return; }
-    currentUser.name=name; currentUser.team=team; localStorage.setItem('scorpgeo_code',code);
-    socket.emit('join_room',{room:team,name,team,pass,accessCode:code,deviceId:DEVICE_ID});
-}
-socket.on('login_success',(data)=>{ currentUser.color=data.color; playerColors[currentUser.name]=data.color; saveSession(); if(data.accessCode) currentAccessCode=data.accessCode;
-    document.getElementById('auth-screen').style.display='none'; document.getElementById('ui-panel').style.display='flex'; document.getElementById('chat-win').style.display='flex';
-    initMap(); initPencilCanvas(); startGeolocation(); startKeepAlive(); addChatMessage('СИСТЕМА',`${currentUser.name} на связи. Меток: ${data.objectsCount||0}`,'#fff'); });
-socket.on('login_failed',(err)=>{ clearSession(); alert('Ошибка: '+(err?.reason||'Неверные данные')); });
-
-socket.on('existing_players',(p)=>p.forEach(x=>{ if(x.name!==currentUser.name){ playerColors[x.name]=x.color; updatePlayerMarker(x.name,x.lat,x.lng,x.color); } }));
-socket.on('player_joined',(d)=>{ if(d.name!==currentUser.name){ playerColors[d.name]=d.color; updatePlayerMarker(d.name,d.lat,d.lng,d.color); addChatMessage('СИСТЕМА','→ '+d.name+' на связи','#fff'); } });
-socket.on('player_left',(d)=>{ if(playersMarkers[d.name]){ map.removeLayer(playersMarkers[d.name]); delete playersMarkers[d.name]; delete playerColors[d.name]; addChatMessage('СИСТЕМА','← '+d.name+' отключился','#faa'); } });
-socket.on('player_move',(d)=>{ if(d.name!==currentUser.name) updatePlayerMarker(d.name,d.lat,d.lng,d.color); });
-
-// ===== ОБЪЕКТЫ =====
-socket.on('draw',(obj)=>{
-    if(tacticalObjects[obj.id]){ tacticalObjects[obj.id].layers.forEach(l=>{ if(map&&map.hasLayer(l)) map.removeLayer(l); }); delete tacticalObjects[obj.id]; if(rulerTimers[obj.id]){ clearTimeout(rulerTimers[obj.id]); delete rulerTimers[obj.id]; } }
-    let layers=[]; const cn=obj.creator||'???';
-    if(obj.type==='enemy'||obj.type==='target'){
-        const mk=L.marker([obj.lat,obj.lng],{icon:L.divIcon({html:`<div style="font-size:34px;filter:drop-shadow(2px 2px 2px black);cursor:pointer;">${obj.type==='enemy'?'💀':'🎯'}</div>`,iconSize:[34,34],iconAnchor:[17,17],className:''}),zIndexOffset:500}).addTo(map);
-        mk.on('click',(e)=>{ if(activeTool==='eraser'){socket.emit('delete_obj',obj.id);return;} if(activeTool==='move'){ L.popup({closeButton:false,className:'creator-tooltip',autoClose:true}).setLatLng([obj.lat,obj.lng]).setContent(`👤 <b>${cn}</b>`).openOn(map); } });
-        layers.push(mk);
-    }else if(obj.type==='arrow'){
-        const ln=L.polyline([obj.start,obj.end],{color:'#d52b1e',weight:4,opacity:0.9,interactive:true}).addTo(map);
-        const ag=Math.atan2(obj.end.lat-obj.start.lat,obj.end.lng-obj.start.lng);
-        const hd=L.polygon([obj.end,{lat:obj.end.lat+Math.sin(ag+2.5)*8e-5,lng:obj.end.lng+Math.cos(ag+2.5)*8e-5},{lat:obj.end.lat+Math.sin(ag-2.5)*8e-5,lng:obj.end.lng+Math.cos(ag-2.5)*8e-5}],{color:'#d52b1e',fillColor:'#d52b1e',fillOpacity:0.9,interactive:true}).addTo(map);
-        const sh=(e)=>{ if(activeTool==='eraser'){socket.emit('delete_obj',obj.id);return;} if(activeTool==='move'){ L.popup({closeButton:false,className:'creator-tooltip',autoClose:true}).setLatLng(e.latlng).setContent(`👤 <b>${cn}</b>`).openOn(map); } };
-        ln.on('click',sh); hd.on('click',sh); layers.push(ln,hd);
-    }else if(obj.type==='ruler'){
-        const ln=L.polyline([obj.start,obj.end],{color:'#d52b1e',weight:3,dashArray:'10, 8',opacity:0.9,interactive:true}).addTo(map);
-        const d=map.distance([obj.start.lat,obj.start.lng],[obj.end.lat,obj.end.lng]);
-        const tx=d<1000?`${Math.round(d)} м`:`${(d/1000).toFixed(1)} км`;
-        const md={lat:(obj.start.lat+obj.end.lat)/2,lng:(obj.start.lng+obj.end.lng)/2};
-        const lb=L.marker([md.lat,md.lng],{icon:L.divIcon({html:`<div style="background:#000;color:#fff;padding:4px 8px;border:1px solid #d52b1e;border-radius:10px;font-size:12px;font-weight:bold;">📏 ${tx}</div>`,iconSize:[80,24],iconAnchor:[40,12],className:''}),interactive:false}).addTo(map);
-        ln.on('click',(e)=>{ if(activeTool==='eraser'){socket.emit('delete_obj',obj.id);return;} if(activeTool==='move'){ L.popup({closeButton:false,className:'creator-tooltip',autoClose:true}).setLatLng(e.latlng).setContent(`👤 <b>${cn}</b>`).openOn(map); } });
-        layers.push(ln,lb);
-        if(obj.creator===currentUser.name){ rulerTimers[obj.id]=setTimeout(()=>{ socket.emit('delete_obj',obj.id); },3000); }
-    }else if(obj.type==='pencil'){
-        const pl=L.polyline(obj.points,{color:'#d52b1e',weight:5,opacity:0.9,interactive:true}).addTo(map);
-        pl.on('click',(e)=>{ if(activeTool==='eraser'){socket.emit('delete_obj',obj.id);return;} if(activeTool==='move'){ L.popup({closeButton:false,className:'creator-tooltip',autoClose:true}).setLatLng(e.latlng).setContent(`👤 <b>${cn}</b>`).openOn(map); } });
-        layers.push(pl);
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+        forceReconnect();
+    } else {
+        if (socket.connected && currentUser.name) {
+            socket.emit('keep_alive', { name: currentUser.name, room: currentUser.team, deviceId: DEVICE_ID });
+        }
     }
-    tacticalObjects[obj.id]={type:obj.type,layers,creator:cn};
-    if(obj.creator===currentUser.name) myObjects.add(obj.id);
 });
-socket.on('remove_obj',(id)=>{ if(tacticalObjects[id]){ tacticalObjects[id].layers.forEach(l=>{ if(map&&map.hasLayer(l)) map.removeLayer(l); }); delete tacticalObjects[id]; myObjects.delete(id); if(rulerTimers[id]){ clearTimeout(rulerTimers[id]); delete rulerTimers[id]; } } });
-socket.on('receive_msg',(data)=>{ let n,t,c; if(typeof data==='string'){ const m=data.match(/^([^:]+):\s*(.+)$/); n=m?m[1]:'СИСТЕМА'; t=m?m[2]:data; c=playerColors[n]||'#ccc'; } else{ n=data.name||'Аноним'; t=data.text||''; c=data.color||playerColors[n]||'#ccc'; } addChatMessage(n,t,c); });
+
+window.addEventListener('focus', () => {
+    if (currentUser.name) forceReconnect();
+});
+
+function startKeepAlive() {
+    if (keepAliveInterval) clearInterval(keepAliveInterval);
+    keepAliveInterval = setInterval(() => {
+        if (socket.connected && currentUser.name) {
+            socket.emit('keep_alive', { name: currentUser.name, room: currentUser.team, deviceId: DEVICE_ID });
+        } else if (currentUser.name && socket.disconnected) {
+            forceReconnect();
+        }
+    }, 20000);
+}
 
 // ==================== КАРТА ====================
 function initMap(){ if(map)return; map=L.map('map',{zoomControl:false,attributionControl:false,maxZoom:22,minZoom:10,tap:true}).setView([55.7558,37.6176],18); tileLayer=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:22,maxNativeZoom:19}).addTo(map); map.on('click',handleMapClick); map.on('moveend',drawGrid); map.on('zoomend',drawGrid); drawGrid(); setTimeout(()=>{map.invalidateSize();drawGrid();},500); }
@@ -607,7 +580,7 @@ window.changeMap=changeMap; window.toggleChat=toggleChat; window.sendChatMessage
 window.deleteMyObjects=deleteMyObjects; window.reconnectApp=reconnectApp; window.exitApp=exitApp;
 window.changeAccessCode=changeAccessCode; window.tryBecomeAdmin=tryBecomeAdmin;
 
-console.log('🇷🇺 ScorpGEO v10.6 — Стеклянный интерфейс');
+console.log('🇷🇺 ScorpGEO v10.8 — Живучая связь');
 </script>
 </body>
 </html>
