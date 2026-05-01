@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="ScorpGEO">
     <meta name="theme-color" content="#000000">
-    <title>ScorpGEO v6.1</title>
+    <title>ScorpGEO v6.2</title>
     
     <link rel="manifest" href="/manifest.json">
     <link rel="apple-touch-icon" href="/icons/icon-512.png">
@@ -22,58 +22,57 @@
         body,html { width:100%; height:100%; background:#000; overflow:hidden; font-family:'Courier New',monospace; }
         
         #auth-screen { position:fixed; inset:0; z-index:10000; background:radial-gradient(ellipse at center,#0a1a0a 0%,#010101 100%); display:flex; flex-direction:column; align-items:center; justify-content:center; overflow:hidden; }
-        .radar-container { position:relative; width:180px; height:180px; margin-bottom:25px; }
+        .radar-container { position:relative; width:160px; height:160px; margin-bottom:20px; }
         .radar-circle { position:absolute; inset:0; border:2px solid #0f0; border-radius:50%; box-shadow:0 0 30px rgba(0,255,0,0.3),inset 0 0 30px rgba(0,255,0,0.1); background:radial-gradient(circle at center,rgba(0,20,0,0.9) 0%,rgba(0,40,0,0.7) 50%,rgba(0,0,0,0.9) 100%); animation:pulse 2s infinite; }
         @keyframes pulse { 0%,100%{box-shadow:0 0 30px rgba(0,255,0,0.3),inset 0 0 30px rgba(0,255,0,0.1)} 50%{box-shadow:0 0 50px rgba(0,255,0,0.5),inset 0 0 50px rgba(0,255,0,0.2)} }
         .radar-scan { position:absolute; inset:0; border-radius:50%; background:conic-gradient(from 0deg,transparent 0deg,transparent 30deg,rgba(0,255,0,0.3) 35deg,rgba(0,255,0,0.1) 40deg,transparent 45deg,transparent 360deg); animation:scan 3s linear infinite; }
         @keyframes scan { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
         .radar-grid { position:absolute; inset:0; border-radius:50%; background:radial-gradient(circle at center,transparent 24%,rgba(0,255,0,0.15) 25%,transparent 26%),radial-gradient(circle at center,transparent 49%,rgba(0,255,0,0.15) 50%,transparent 51%),radial-gradient(circle at center,transparent 74%,rgba(0,255,0,0.15) 75%,transparent 76%),linear-gradient(transparent 49%,rgba(0,255,0,0.2) 50%,transparent 51%),linear-gradient(90deg,transparent 49%,rgba(0,255,0,0.2) 50%,transparent 51%); }
-        .radar-dot { position:absolute; width:6px; height:6px; background:#f00; border-radius:50%; box-shadow:0 0 10px #f00,0 0 20px #f00; animation:blink 1.5s infinite; z-index:10; }
+        .radar-dot { position:absolute; width:5px; height:5px; background:#f00; border-radius:50%; box-shadow:0 0 8px #f00; animation:blink 1.5s infinite; z-index:10; }
         .dot1{top:30%;left:25%} .dot2{top:60%;left:70%} .dot3{top:25%;left:65%} .dot4{top:70%;left:20%} .dot5{top:45%;left:50%} .dot6{top:80%;left:55%} .dot7{top:15%;left:45%} .dot8{top:55%;left:35%}
-        @keyframes blink { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.3;transform:scale(1.5)} }
+        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
         
-        .auth-card { background:rgba(0,0,0,0.85); border:1px solid #0f0; box-shadow:0 0 30px rgba(0,255,0,0.2); padding:30px 25px; width:90%; max-width:360px; text-align:center; z-index:10001; }
-        .auth-title { font-size:2rem; font-weight:900; color:#0f0; margin-bottom:5px; text-shadow:0 0 20px rgba(0,255,0,0.5); letter-spacing:3px; }
-        .auth-subtitle { font-size:10px; color:#0a0; margin-bottom:25px; letter-spacing:5px; }
-        .auth-input { width:100%; background:#000; border:1px solid #0f0; color:#0f0; padding:14px; margin-bottom:12px; font-family:'Courier New',monospace; font-size:14px; text-align:center; outline:none; }
-        .auth-input:focus { border-color:#0f0; box-shadow:0 0 15px rgba(0,255,0,0.3); background:#020; }
-        .auth-input::placeholder { color:#050; letter-spacing:2px; }
-        .auth-btn { width:100%; background:#000; color:#0f0; border:2px solid #0f0; padding:14px; font-weight:bold; font-size:16px; cursor:pointer; font-family:'Courier New',monospace; letter-spacing:3px; margin-top:10px; }
-        .auth-btn:hover { background:#0f0; color:#000; box-shadow:0 0 30px rgba(0,255,0,0.5); }
-        .auth-btn:active { transform:scale(0.97); }
-        .gear-btn { position:absolute; right:12px; top:50%; transform:translateY(-50%); font-size:20px; cursor:pointer; color:#0f0; display:none; z-index:10; }
+        .auth-card { background:rgba(0,0,0,0.85); border:1px solid #0f0; box-shadow:0 0 30px rgba(0,255,0,0.2); padding:25px 20px; width:90%; max-width:340px; text-align:center; z-index:10001; }
+        .auth-title { font-size:1.6rem; font-weight:900; color:#0f0; margin-bottom:3px; text-shadow:0 0 15px rgba(0,255,0,0.5); letter-spacing:2px; }
+        .auth-subtitle { font-size:9px; color:#0a0; margin-bottom:20px; letter-spacing:4px; }
+        .auth-input { width:100%; background:#000; border:1px solid #0f0; color:#0f0; padding:12px; margin-bottom:10px; font-family:'Courier New',monospace; font-size:13px; text-align:center; outline:none; }
+        .auth-input:focus { border-color:#0f0; box-shadow:0 0 10px rgba(0,255,0,0.3); background:#020; }
+        .auth-input::placeholder { color:#040; letter-spacing:2px; font-size:11px; }
+        .auth-btn { width:100%; background:#000; color:#0f0; border:2px solid #0f0; padding:12px; font-weight:bold; font-size:15px; cursor:pointer; font-family:'Courier New',monospace; letter-spacing:2px; margin-top:8px; }
+        .auth-btn:active { background:#0f0; color:#000; }
+        
         .code-wrapper { position:relative; width:100%; }
         .code-wrapper .auth-input { padding-right:40px; }
+        .gear-btn { position:absolute; right:10px; top:50%; transform:translateY(-50%); font-size:22px; cursor:pointer; color:#0f0; display:none; z-index:10; }
         
         #map { position:absolute; top:0; left:0; right:0; bottom:0; z-index:1; background:#1a1e1a; }
         
-        .side-panel { position:fixed; left:0; top:44px; bottom:0; width:78px; background:rgba(0,0,0,0.96); border-right:2px solid #0f0; z-index:5000; display:none; flex-direction:column; overflow-y:auto; }
-        .tool-btn { width:100%; min-height:52px; display:flex; flex-direction:column; align-items:center; justify-content:center; border-bottom:1px solid #0a0; color:#0f0; cursor:pointer; font-size:9px; font-weight:bold; padding:4px 2px; }
-        .tool-btn b { font-size:20px; margin-bottom:2px; }
+        .side-panel { position:fixed; left:0; top:44px; bottom:0; width:72px; background:rgba(0,0,0,0.96); border-right:2px solid #0f0; z-index:5000; display:none; flex-direction:column; overflow-y:auto; }
+        .tool-btn { width:100%; min-height:50px; display:flex; flex-direction:column; align-items:center; justify-content:center; border-bottom:1px solid #0a0; color:#0f0; cursor:pointer; font-size:8px; font-weight:bold; padding:3px 2px; }
+        .tool-btn b { font-size:18px; margin-bottom:1px; }
         .tool-btn.active { background:#020; color:#fff; border-left:3px solid #0f0; }
-        .tool-btn:active { transform:scale(0.95); background:#030; }
         
         #grid-overlay { position:fixed; top:44px; left:0; right:0; bottom:0; pointer-events:none; z-index:900; }
-        .grid-letter-top { position:absolute; font-weight:900; font-family:'Courier New',monospace; background:rgba(0,0,0,0.9); color:#ccc; border:1px solid #666; border-radius:3px; transform:translate(-50%,-50%); z-index:950; font-size:12px; padding:4px 8px; }
-        .grid-number-right { position:absolute; font-weight:900; font-family:'Courier New',monospace; background:rgba(0,0,0,0.9); color:#ccc; border:1px solid #666; border-radius:3px; transform:translate(0,-50%); z-index:950; font-size:12px; padding:4px 8px; }
+        .grid-letter-top { position:absolute; font-weight:900; font-family:'Courier New',monospace; background:rgba(0,0,0,0.9); color:#ccc; border:1px solid #666; border-radius:3px; transform:translate(-50%,-50%); z-index:950; font-size:11px; padding:3px 7px; }
+        .grid-number-right { position:absolute; font-weight:900; font-family:'Courier New',monospace; background:rgba(0,0,0,0.9); color:#ccc; border:1px solid #666; border-radius:3px; transform:translate(0,-50%); z-index:950; font-size:11px; padding:3px 7px; }
         
-        #chat-win { position:fixed; bottom:10px; left:88px; right:10px; height:280px; background:rgba(0,0,0,0.95); border:1px solid #0f0; z-index:6000; display:none; flex-direction:column; border-radius:5px; padding-bottom:env(safe-area-inset-bottom,0px); }
-        #chat-messages { flex:1; overflow-y:auto; padding:10px; font-size:12px; font-family:'Courier New',monospace; }
-        .msg-line { margin-bottom:4px; padding:4px 6px; border-bottom:1px solid #0a0; word-break:break-word; }
-        .msg-name { font-weight:900; margin-right:5px; }
+        #chat-win { position:fixed; bottom:10px; left:82px; right:10px; height:260px; background:rgba(0,0,0,0.95); border:1px solid #0f0; z-index:6000; display:none; flex-direction:column; border-radius:5px; }
+        #chat-messages { flex:1; overflow-y:auto; padding:8px; font-size:11px; font-family:'Courier New',monospace; }
+        .msg-line { margin-bottom:3px; padding:3px 5px; border-bottom:1px solid #0a0; }
+        .msg-name { font-weight:900; margin-right:4px; }
         .msg-text { color:#ccc; }
-        #chat-input { background:#000; color:#0f0; border:1px solid #0f0; padding:10px; outline:none; font-size:12px; font-family:'Courier New',monospace; margin:5px; border-radius:3px; flex:1; }
-        #send-btn { background:#000; color:#0f0; border:1px solid #0f0; padding:8px 14px; font-size:12px; font-weight:bold; cursor:pointer; font-family:'Courier New',monospace; }
+        #chat-input { background:#000; color:#0f0; border:1px solid #0f0; padding:8px; outline:none; font-size:11px; font-family:'Courier New',monospace; margin:4px; border-radius:3px; flex:1; }
+        #send-btn { background:#000; color:#0f0; border:1px solid #0f0; padding:6px 12px; font-size:11px; font-weight:bold; cursor:pointer; }
         
         .player-marker { display:flex; flex-direction:column; align-items:center; cursor:pointer; }
-        .player-name-tag { font-weight:900; font-size:11px; text-shadow:1px 1px 2px #000; white-space:nowrap; margin-bottom:2px; background:rgba(0,0,0,0.85); padding:3px 6px; border-radius:10px; }
-        .player-dot { width:16px; height:16px; border-radius:50%; border:2px solid #fff; box-shadow:0 0 10px rgba(0,0,0,0.8); }
+        .player-name-tag { font-weight:900; font-size:10px; text-shadow:1px 1px 2px #000; white-space:nowrap; margin-bottom:1px; background:rgba(0,0,0,0.85); padding:2px 5px; border-radius:8px; }
+        .player-dot { width:14px; height:14px; border-radius:50%; border:2px solid #fff; }
         
-        #distance-bar { position:fixed; bottom:80px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.9); border:2px solid #f80; color:#ff0; padding:14px 24px; border-radius:30px; z-index:8000; display:none; font-family:'Courier New',monospace; font-size:20px; font-weight:900; text-align:center; box-shadow:0 0 40px rgba(255,136,0,0.5); animation:slideUp 0.3s ease-out; pointer-events:none; }
-        @keyframes slideUp { from{opacity:0;transform:translate(-50%,20px)} to{opacity:1;transform:translate(-50%,0)} }
+        #distance-bar { position:fixed; bottom:70px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.9); border:2px solid #f80; color:#ff0; padding:12px 20px; border-radius:25px; z-index:8000; display:none; font-family:'Courier New',monospace; font-size:18px; font-weight:900; text-align:center; animation:slideUp 0.3s ease-out; pointer-events:none; }
+        @keyframes slideUp { from{opacity:0;transform:translate(-50%,15px)} to{opacity:1;transform:translate(-50%,0)} }
         
-        .creator-tooltip { background:rgba(0,0,0,0.9)!important; border:1px solid #0f0!important; color:#0f0!important; font-family:'Courier New',monospace!important; font-size:12px!important; padding:5px 10px!important; border-radius:6px!important; }
-        #connection-status { position:fixed; top:50px; right:8px; background:rgba(0,0,0,0.85); color:#0f0; padding:4px 8px; border-radius:12px; font-size:9px; z-index:7000; display:none; font-family:monospace; border:1px solid #0f0; }
+        .creator-tooltip { background:rgba(0,0,0,0.9)!important; border:1px solid #0f0!important; color:#0f0!important; font-family:'Courier New',monospace!important; font-size:11px!important; padding:4px 8px!important; border-radius:5px!important; }
+        #connection-status { position:fixed; top:48px; right:8px; background:rgba(0,0,0,0.85); color:#0f0; padding:3px 7px; border-radius:10px; font-size:8px; z-index:7000; display:none; font-family:monospace; border:1px solid #0f0; }
     </style>
 </head>
 <body>
@@ -93,15 +92,18 @@
         <input type="text" id="playerName" class="auth-input" placeholder="ПОЗЫВНОЙ" maxlength="10" autocomplete="off">
         <input type="password" id="password" class="auth-input" placeholder="ПАРОЛЬ" maxlength="20" autocomplete="off">
         
-        <!-- КОД ДОСТУПА + ШЕСТЕРЕНКА -->
         <div class="code-wrapper">
-            <input type="text" id="accessCode" class="auth-input" placeholder="КОД ДОСТУПА" maxlength="10" autocomplete="off">
+            <input type="text" id="accessCode" class="auth-input" placeholder="УНИКАЛЬНЫЙ КОД" maxlength="10" autocomplete="off">
             <span class="gear-btn" id="settingsGear" onclick="changeAccessCode()">⚙️</span>
         </div>
         
         <button onclick="doLogin()" class="auth-btn">⚡ ВОЙТИ ⚡</button>
-        <div style="color:#050;font-size:9px;margin-top:15px;">v6.1 • КОД ДОСТУПА • ⚙️ АДМИН</div>
-        <div id="autoLoginMsg" style="color:#0f0;font-size:12px;margin-top:10px;display:none;"></div>
+        <div style="color:#050;font-size:8px;margin-top:12px;letter-spacing:1px;">
+            v6.2 • 
+            <span onclick="tryBecomeAdmin()" style="color:#0a0;cursor:pointer;text-decoration:underline;">АДМИН</span>
+            • КОД ДОСТУПА
+        </div>
+        <div id="autoLoginMsg" style="color:#0f0;font-size:11px;margin-top:8px;display:none;"></div>
     </div>
 </div>
 
@@ -127,7 +129,7 @@
 
 <div id="chat-win">
     <div id="chat-messages"></div>
-    <div style="display:flex;gap:4px;padding:5px;background:#000;border-top:1px solid #0a0;">
+    <div style="display:flex;gap:3px;padding:4px;background:#000;border-top:1px solid #0a0;">
         <input id="chat-input" placeholder="Сообщение..." onkeypress="if(event.key==='Enter')sendChatMessage()">
         <button id="send-btn" onclick="sendChatMessage()">📡</button>
     </div>
@@ -142,311 +144,305 @@ let isAdmin=false, currentAccessCode='';
 
 const METERS_PER_DEGREE=111320;
 const RUSSIAN_LETTERS=['А','Б','В','Г','Д','Е','Ё','Ж','З','И','Й','К','Л','М','Н','О','П','Р','С','Т','У','Ф','Х','Ц','Ч','Ш','Щ','Ъ','Ы','Ь','Э','Ю','Я'];
-
 const STORAGE_KEY='scorpgeo_session';
+const ADMIN_PASSWORD='Mpfp13zi';
+
 function saveSession(){ const s={team:currentUser.team,name:currentUser.name,color:currentUser.color,timestamp:Date.now()}; localStorage.setItem(STORAGE_KEY,JSON.stringify(s)); }
 function loadSession(){ try{ const d=localStorage.getItem(STORAGE_KEY); if(d){ const s=JSON.parse(d); if(Date.now()-s.timestamp<86400000) return s; } }catch(e){} return null; }
 function clearSession(){ localStorage.removeItem(STORAGE_KEY); }
 
 // ==================== АДМИН / КОД ДОСТУПА ====================
-function checkAdmin(){
-    if(localStorage.getItem('scorpgeo_admin')==='true'){
-        isAdmin=true;
-        document.getElementById('settingsGear').style.display='inline';
-    }
-}
-
 function tryBecomeAdmin(){
-    const pass=prompt('🔐 Введите админ-пароль:');
-    if(pass==='admin2026'){
-        isAdmin=true;
-        localStorage.setItem('scorpgeo_admin','true');
-        document.getElementById('settingsGear').style.display='inline';
-        alert('✅ Админ-доступ активирован');
-    }else{
-        alert('❌ Неверный админ-пароль');
+    const pass = prompt('🔐 Введите админ-пароль для смены кода доступа:');
+    if(pass === ADMIN_PASSWORD){
+        isAdmin = true;
+        document.getElementById('settingsGear').style.display = 'inline';
+        alert('✅ Доступ разрешен! Теперь вы можете изменить уникальный код.');
+    } else {
+        alert('❌ Неверный пароль!');
     }
 }
 
 function changeAccessCode(){
-    if(!isAdmin){ tryBecomeAdmin(); return; }
-    const newCode=prompt('Введите новый код доступа:',currentAccessCode||'');
-    if(newCode&&newCode.trim()){
-        const adminPass=prompt('Подтвердите админ-пароль:');
-        socket.emit('change_access_code',{newCode:newCode.trim(),adminPass:adminPass});
+    if(!isAdmin){
+        alert('Сначала нажмите "АДМИН" и введите пароль!');
+        return;
+    }
+    const newCode = prompt('Введите новый уникальный код доступа:');
+    if(newCode && newCode.trim()){
+        socket.emit('change_access_code', {
+            newCode: newCode.trim(),
+            adminPass: ADMIN_PASSWORD
+        });
     }
 }
 
-socket.on('code_changed',(data)=>{
+socket.on('code_changed', (data) => {
     if(data.success){
-        currentAccessCode=data.newCode;
-        document.getElementById('accessCode').value=data.newCode;
-        alert('✅ Код доступа изменен на: '+data.newCode);
-    }else{ alert('❌ '+data.error); }
+        currentAccessCode = data.newCode;
+        document.getElementById('accessCode').value = '';
+        alert('✅ Код доступа изменен! Новый код: ' + data.newCode + '\nСообщите его бойцам.');
+    } else {
+        alert('❌ Ошибка: ' + data.error);
+    }
 });
-
-socket.on('access_code',(data)=>{
-    currentAccessCode=data.code;
-    document.getElementById('accessCode').value=data.code;
-});
-
-// Запрашиваем код при загрузке
-socket.emit('get_access_code');
-checkAdmin();
 
 // ==================== АВТОВХОД ====================
 function tryAutoLogin(){
-    const s=loadSession();
-    if(s&&s.team&&s.name){
-        currentUser.name=s.name; currentUser.team=s.team; currentUser.color=s.color;
-        document.getElementById('autoLoginMsg').textContent='↻ Автовход: '+s.name;
-        document.getElementById('autoLoginMsg').style.display='block';
-        setTimeout(()=>document.getElementById('autoLoginMsg').style.display='none',2500);
-        socket.emit('join_room',{room:s.team,name:s.name,team:s.team,pass:'1234',accessCode:currentAccessCode||document.getElementById('accessCode').value});
+    const s = loadSession();
+    if(s && s.team && s.name){
+        currentUser.name = s.name; currentUser.team = s.team; currentUser.color = s.color;
+        document.getElementById('autoLoginMsg').textContent = '↻ Автовход: ' + s.name;
+        document.getElementById('autoLoginMsg').style.display = 'block';
+        setTimeout(() => document.getElementById('autoLoginMsg').style.display = 'none', 2500);
+        const code = document.getElementById('accessCode').value.trim() || localStorage.getItem('scorpgeo_code') || '';
+        socket.emit('join_room', { room: s.team, name: s.name, team: s.team, pass: '1234', accessCode: code });
         return true;
     }
     return false;
 }
 
 // ==================== АНТИ-БЛОКИРОВКА ====================
-document.addEventListener('visibilitychange',()=>{
-    const statusEl=document.getElementById('connection-status');
-    if(document.visibilityState==='visible'){
-        statusEl.textContent='🔄 Проверка...'; statusEl.style.color='#ff0'; statusEl.style.display='block';
+document.addEventListener('visibilitychange', () => {
+    const statusEl = document.getElementById('connection-status');
+    if(document.visibilityState === 'visible'){
+        statusEl.textContent = '🔄 Проверка...'; statusEl.style.color = '#ff0'; statusEl.style.display = 'block';
         if(socket.disconnected) socket.connect();
-        setTimeout(()=>{
-            if(socket.connected&&currentUser.name){
-                socket.emit('rejoin_room',{room:currentUser.team,name:currentUser.name,color:currentUser.color});
-                statusEl.textContent='🟢 Онлайн'; statusEl.style.color='#0f0';
-            }else if(!socket.connected&&currentUser.name){
+        setTimeout(() => {
+            if(socket.connected && currentUser.name){
+                socket.emit('rejoin_room', { room: currentUser.team, name: currentUser.name, color: currentUser.color });
+                statusEl.textContent = '🟢 Онлайн'; statusEl.style.color = '#0f0';
+            } else if(!socket.connected && currentUser.name){
                 socket.connect();
-                setTimeout(()=>{ if(socket.connected&&currentUser.name) socket.emit('rejoin_room',{room:currentUser.team,name:currentUser.name,color:currentUser.color}); },2000);
-                statusEl.textContent='🔴 Офлайн'; statusEl.style.color='#f00';
+                setTimeout(() => { if(socket.connected && currentUser.name) socket.emit('rejoin_room', { room: currentUser.team, name: currentUser.name, color: currentUser.color }); }, 2000);
             }
-            setTimeout(()=>statusEl.style.display='none',2000);
-        },500);
-    }else{ if(socket.connected&&currentUser.name) socket.emit('keep_alive',{name:currentUser.name,room:currentUser.team}); }
+            setTimeout(() => statusEl.style.display = 'none', 2000);
+        }, 500);
+    } else {
+        if(socket.connected && currentUser.name) socket.emit('keep_alive', { name: currentUser.name, room: currentUser.team });
+    }
 });
 
-window.addEventListener('beforeunload',()=>{ if(currentUser.name) saveSession(); });
-function startKeepAlive(){ if(keepAliveInterval)clearInterval(keepAliveInterval); keepAliveInterval=setInterval(()=>{ if(socket.connected&&currentUser.name) socket.emit('keep_alive',{name:currentUser.name,room:currentUser.team}); },30000); }
+window.addEventListener('beforeunload', () => { if(currentUser.name) saveSession(); });
+function startKeepAlive(){ if(keepAliveInterval) clearInterval(keepAliveInterval); keepAliveInterval = setInterval(() => { if(socket.connected && currentUser.name) socket.emit('keep_alive', { name: currentUser.name, room: currentUser.team }); }, 30000); }
 
-socket.on('connect',()=>{ const el=document.getElementById('connection-status'); el.textContent='🟢 ОНЛАЙН'; el.style.color='#0f0'; el.style.display='block'; setTimeout(()=>el.style.display='none',2000); });
-socket.on('disconnect',()=>{ const el=document.getElementById('connection-status'); el.textContent='🔴 ОФЛАЙН'; el.style.color='#f00'; el.style.display='block'; });
+socket.on('connect', () => { const el = document.getElementById('connection-status'); el.textContent = '🟢 ОНЛАЙН'; el.style.color = '#0f0'; el.style.display = 'block'; setTimeout(() => el.style.display = 'none', 2000); });
+socket.on('disconnect', () => { const el = document.getElementById('connection-status'); el.textContent = '🔴 ОФЛАЙН'; el.style.color = '#f00'; el.style.display = 'block'; });
 
 // ==================== ВХОД ====================
 function doLogin(){
-    const team=document.getElementById('teamName').value.trim().toUpperCase();
-    const name=document.getElementById('playerName').value.trim().toUpperCase();
-    const pass=document.getElementById('password').value;
-    const code=document.getElementById('accessCode').value.trim();
-    if(!team){alert('Введите команду!');return;}
-    if(!name){alert('Введите позывной!');return;}
-    if(!pass){alert('Введите пароль!');return;}
-    if(!code){alert('Введите код доступа!');return;}
-    currentUser.name=name; currentUser.team=team; currentAccessCode=code;
-    socket.emit('join_room',{room:team,name,team,pass,accessCode:code});
+    const team = document.getElementById('teamName').value.trim().toUpperCase();
+    const name = document.getElementById('playerName').value.trim().toUpperCase();
+    const pass = document.getElementById('password').value;
+    const code = document.getElementById('accessCode').value.trim();
+    if(!team){ alert('Введите команду!'); return; }
+    if(!name){ alert('Введите позывной!'); return; }
+    if(!pass){ alert('Введите пароль!'); return; }
+    if(!code){ alert('Введите уникальный код доступа!'); return; }
+    
+    currentUser.name = name; currentUser.team = team;
+    localStorage.setItem('scorpgeo_code', code);
+    socket.emit('join_room', { room: team, name, team, pass, accessCode: code });
 }
 
-socket.on('login_success',(data)=>{
-    currentUser.color=data.color; playerColors[currentUser.name]=data.color; saveSession();
-    if(data.accessCode){ currentAccessCode=data.accessCode; document.getElementById('accessCode').value=data.accessCode; }
-    document.getElementById('auth-screen').style.display='none';
-    document.getElementById('ui-panel').style.display='flex';
-    document.getElementById('chat-win').style.display='flex';
+socket.on('login_success', (data) => {
+    currentUser.color = data.color; playerColors[currentUser.name] = data.color; saveSession();
+    document.getElementById('auth-screen').style.display = 'none';
+    document.getElementById('ui-panel').style.display = 'flex';
+    document.getElementById('chat-win').style.display = 'flex';
     initMap(); startGeolocation(); startKeepAlive();
-    addChatMessage('СИСТЕМА',`${currentUser.name} на связи. Меток: ${data.objectsCount||0}`,'#0f0');
+    addChatMessage('СИСТЕМА', `${currentUser.name} на связи. Меток: ${data.objectsCount || 0}`, '#0f0');
 });
 
-socket.on('login_failed',(err)=>{ clearSession(); alert('Ошибка: '+(err?.reason||'Неверные данные')); });
+socket.on('login_failed', (err) => { clearSession(); alert('Ошибка: ' + (err?.reason || 'Неверные данные')); });
 
 // ==================== ИГРОКИ ====================
-socket.on('existing_players',(p)=>p.forEach(x=>{ if(x.name!==currentUser.name){ playerColors[x.name]=x.color; updatePlayerMarker(x.name,x.lat,x.lng,x.color); } }));
-socket.on('player_joined',(d)=>{ if(d.name!==currentUser.name){ playerColors[d.name]=d.color; updatePlayerMarker(d.name,d.lat,d.lng,d.color); addChatMessage('СИСТЕМА','→ '+d.name+' на связи','#0f0'); } });
-socket.on('player_left',(d)=>{ if(playersMarkers[d.name]){ map.removeLayer(playersMarkers[d.name]); delete playersMarkers[d.name]; delete playerColors[d.name]; addChatMessage('СИСТЕМА','← '+d.name+' отключился','#f44'); } });
-socket.on('player_move',(d)=>{ if(d.name!==currentUser.name) updatePlayerMarker(d.name,d.lat,d.lng,d.color); });
+socket.on('existing_players', (p) => p.forEach(x => { if(x.name !== currentUser.name){ playerColors[x.name] = x.color; updatePlayerMarker(x.name, x.lat, x.lng, x.color); } }));
+socket.on('player_joined', (d) => { if(d.name !== currentUser.name){ playerColors[d.name] = d.color; updatePlayerMarker(d.name, d.lat, d.lng, d.color); addChatMessage('СИСТЕМА', '→ ' + d.name + ' на связи', '#0f0'); } });
+socket.on('player_left', (d) => { if(playersMarkers[d.name]){ map.removeLayer(playersMarkers[d.name]); delete playersMarkers[d.name]; delete playerColors[d.name]; addChatMessage('СИСТЕМА', '← ' + d.name + ' отключился', '#f44'); } });
+socket.on('player_move', (d) => { if(d.name !== currentUser.name) updatePlayerMarker(d.name, d.lat, d.lng, d.color); });
 
 // ==================== ОБЪЕКТЫ ====================
-socket.on('draw',(obj)=>{
-    if(tacticalObjects[obj.id]){ tacticalObjects[obj.id].layers.forEach(l=>{ if(map&&map.hasLayer(l)) map.removeLayer(l); }); delete tacticalObjects[obj.id]; }
-    let layers=[]; const cn=obj.creator||'???';
-    if(obj.type==='enemy'||obj.type==='target'){
-        const mk=L.marker([obj.lat,obj.lng],{icon:L.divIcon({html:`<div style="font-size:34px;filter:drop-shadow(2px 2px 3px black);cursor:pointer;">${obj.type==='enemy'?'💀':'🎯'}</div>`,iconSize:[34,34],iconAnchor:[17,17],className:''}),zIndexOffset:500}).addTo(map);
-        mk.on('click',()=>{ if(activeTool==='eraser'){socket.emit('delete_obj',obj.id);return;} L.popup({closeButton:false,className:'creator-tooltip',autoClose:true}).setLatLng([obj.lat,obj.lng]).setContent(`👤 <b>${cn}</b>`).openOn(map); });
+socket.on('draw', (obj) => {
+    if(tacticalObjects[obj.id]){ tacticalObjects[obj.id].layers.forEach(l => { if(map && map.hasLayer(l)) map.removeLayer(l); }); delete tacticalObjects[obj.id]; }
+    let layers = []; const cn = obj.creator || '???';
+    if(obj.type === 'enemy' || obj.type === 'target'){
+        const mk = L.marker([obj.lat, obj.lng], { icon: L.divIcon({ html: `<div style="font-size:30px;filter:drop-shadow(2px 2px 2px black);cursor:pointer;">${obj.type === 'enemy' ? '💀' : '🎯'}</div>`, iconSize: [30, 30], iconAnchor: [15, 15], className: '' }), zIndexOffset: 500 }).addTo(map);
+        mk.on('click', () => { if(activeTool === 'eraser'){ socket.emit('delete_obj', obj.id); return; } L.popup({ closeButton: false, className: 'creator-tooltip', autoClose: true }).setLatLng([obj.lat, obj.lng]).setContent(`👤 <b>${cn}</b>`).openOn(map); });
         layers.push(mk);
-    }else if(obj.type==='arrow'){
-        const ln=L.polyline([obj.start,obj.end],{color:'#f44',weight:4,opacity:0.8,interactive:true}).addTo(map);
-        const ag=Math.atan2(obj.end.lat-obj.start.lat,obj.end.lng-obj.start.lng);
-        const hd=L.polygon([obj.end,{lat:obj.end.lat+Math.sin(ag+2.5)*8e-5,lng:obj.end.lng+Math.cos(ag+2.5)*8e-5},{lat:obj.end.lat+Math.sin(ag-2.5)*8e-5,lng:obj.end.lng+Math.cos(ag-2.5)*8e-5}],{color:'#f44',fillColor:'#f44',fillOpacity:0.8,interactive:true}).addTo(map);
-        const sh=(e)=>{ if(activeTool==='eraser'){socket.emit('delete_obj',obj.id);return;} L.popup({closeButton:false,className:'creator-tooltip',autoClose:true}).setLatLng(e.latlng).setContent(`👤 <b>${cn}</b>`).openOn(map); };
-        ln.on('click',sh); hd.on('click',sh); layers.push(ln,hd);
-    }else if(obj.type==='ruler'){
-        const ln=L.polyline([obj.start,obj.end],{color:'#ff0',weight:3,dashArray:'10,10',interactive:true}).addTo(map);
-        const d=map.distance([obj.start.lat,obj.start.lng],[obj.end.lat,obj.end.lng]);
-        const tx=d<1000?`${Math.round(d)} м`:`${(d/1000).toFixed(1)} км`;
-        const md={lat:(obj.start.lat+obj.end.lat)/2,lng:(obj.start.lng+obj.end.lng)/2};
-        L.marker([md.lat,md.lng],{icon:L.divIcon({html:`<div style="background:#000;color:#ff0;padding:4px 8px;border:1px solid #ff0;border-radius:12px;font-size:12px;font-weight:bold;">📏 ${tx}</div>`,iconSize:[80,24],iconAnchor:[40,12],className:''}),interactive:false}).addTo(map);
-        ln.on('click',(e)=>{ if(activeTool==='eraser'){socket.emit('delete_obj',obj.id);return;} L.popup({closeButton:false,className:'creator-tooltip',autoClose:true}).setLatLng(e.latlng).setContent(`👤 <b>${cn}</b>`).openOn(map); });
+    } else if(obj.type === 'arrow'){
+        const ln = L.polyline([obj.start, obj.end], { color: '#f44', weight: 3, opacity: 0.8, interactive: true }).addTo(map);
+        const ag = Math.atan2(obj.end.lat - obj.start.lat, obj.end.lng - obj.start.lng);
+        const hd = L.polygon([obj.end, { lat: obj.end.lat + Math.sin(ag + 2.5) * 8e-5, lng: obj.end.lng + Math.cos(ag + 2.5) * 8e-5 }, { lat: obj.end.lat + Math.sin(ag - 2.5) * 8e-5, lng: obj.end.lng + Math.cos(ag - 2.5) * 8e-5 }], { color: '#f44', fillColor: '#f44', fillOpacity: 0.8, interactive: true }).addTo(map);
+        const sh = (e) => { if(activeTool === 'eraser'){ socket.emit('delete_obj', obj.id); return; } L.popup({ closeButton: false, className: 'creator-tooltip', autoClose: true }).setLatLng(e.latlng).setContent(`👤 <b>${cn}</b>`).openOn(map); };
+        ln.on('click', sh); hd.on('click', sh); layers.push(ln, hd);
+    } else if(obj.type === 'ruler'){
+        const ln = L.polyline([obj.start, obj.end], { color: '#ff0', weight: 2, dashArray: '8,8', interactive: true }).addTo(map);
+        const d = map.distance([obj.start.lat, obj.start.lng], [obj.end.lat, obj.end.lng]);
+        const tx = d < 1000 ? `${Math.round(d)} м` : `${(d / 1000).toFixed(1)} км`;
+        const md = { lat: (obj.start.lat + obj.end.lat) / 2, lng: (obj.start.lng + obj.end.lng) / 2 };
+        L.marker([md.lat, md.lng], { icon: L.divIcon({ html: `<div style="background:#000;color:#ff0;padding:3px 6px;border:1px solid #ff0;border-radius:10px;font-size:10px;font-weight:bold;">📏 ${tx}</div>`, iconSize: [70, 22], iconAnchor: [35, 11], className: '' }), interactive: false }).addTo(map);
+        ln.on('click', (e) => { if(activeTool === 'eraser'){ socket.emit('delete_obj', obj.id); return; } L.popup({ closeButton: false, className: 'creator-tooltip', autoClose: true }).setLatLng(e.latlng).setContent(`👤 <b>${cn}</b>`).openOn(map); });
         layers.push(ln);
     }
-    tacticalObjects[obj.id]={type:obj.type,layers,creator:cn};
-    if(obj.creator===currentUser.name) myObjects.add(obj.id);
+    tacticalObjects[obj.id] = { type: obj.type, layers, creator: cn };
+    if(obj.creator === currentUser.name) myObjects.add(obj.id);
 });
-socket.on('remove_obj',(id)=>{ if(tacticalObjects[id]){ tacticalObjects[id].layers.forEach(l=>{ if(map&&map.hasLayer(l)) map.removeLayer(l); }); delete tacticalObjects[id]; myObjects.delete(id); } });
-socket.on('receive_msg',(data)=>{
-    let n,t,c;
-    if(typeof data==='string'){ const m=data.match(/^([^:]+):\s*(.+)$/); n=m?m[1]:'СИСТЕМА'; t=m?m[2]:data; c=playerColors[n]||'#ccc'; }
-    else{ n=data.name||'Аноним'; t=data.text||''; c=data.color||playerColors[n]||'#ccc'; }
-    addChatMessage(n,t,c);
+socket.on('remove_obj', (id) => { if(tacticalObjects[id]){ tacticalObjects[id].layers.forEach(l => { if(map && map.hasLayer(l)) map.removeLayer(l); }); delete tacticalObjects[id]; myObjects.delete(id); } });
+socket.on('receive_msg', (data) => {
+    let n, t, c;
+    if(typeof data === 'string'){ const m = data.match(/^([^:]+):\s*(.+)$/); n = m ? m[1] : 'СИСТЕМА'; t = m ? m[2] : data; c = playerColors[n] || '#ccc'; }
+    else{ n = data.name || 'Аноним'; t = data.text || ''; c = data.color || playerColors[n] || '#ccc'; }
+    addChatMessage(n, t, c);
 });
 
 // ==================== КАРТА ====================
 function initMap(){
-    if(map)return;
-    map=L.map('map',{zoomControl:true,attributionControl:false,maxZoom:22,minZoom:10,tap:true}).setView([55.7558,37.6176],18);
-    tileLayer=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:22,maxNativeZoom:19}).addTo(map);
-    map.on('click',handleMapClick); map.on('moveend',drawGrid); map.on('zoomend',drawGrid);
-    drawGrid(); setTimeout(()=>{map.invalidateSize();drawGrid();},500);
+    if(map) return;
+    map = L.map('map', { zoomControl: true, attributionControl: false, maxZoom: 22, minZoom: 10, tap: true }).setView([55.7558, 37.6176], 18);
+    tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 22, maxNativeZoom: 19 }).addTo(map);
+    map.on('click', handleMapClick); map.on('moveend', drawGrid); map.on('zoomend', drawGrid);
+    drawGrid(); setTimeout(() => { map.invalidateSize(); drawGrid(); }, 500);
 }
 function startGeolocation(){
-    if(!navigator.geolocation)return; if(watchId)navigator.geolocation.clearWatch(watchId);
-    watchId=navigator.geolocation.watchPosition(pos=>{updateMyPosition(pos.coords.latitude,pos.coords.longitude);socket.emit('gps_sync',{lat:pos.coords.latitude,lng:pos.coords.longitude});},err=>console.warn('GPS:',err.message),{enableHighAccuracy:true,maximumAge:3000,timeout:10000});
+    if(!navigator.geolocation) return; if(watchId) navigator.geolocation.clearWatch(watchId);
+    watchId = navigator.geolocation.watchPosition(pos => { updateMyPosition(pos.coords.latitude, pos.coords.longitude); socket.emit('gps_sync', { lat: pos.coords.latitude, lng: pos.coords.longitude }); }, err => console.warn('GPS:', err.message), { enableHighAccuracy: true, maximumAge: 3000, timeout: 10000 });
 }
-function updateMyPosition(lat,lng){
-    if(!map)return;
-    if(playersMarkers[currentUser.name]) playersMarkers[currentUser.name].setLatLng([lat,lng]);
-    else playersMarkers[currentUser.name]=L.marker([lat,lng],{icon:createPlayerIcon(currentUser.name,currentUser.color),zIndexOffset:1000}).addTo(map);
+function updateMyPosition(lat, lng){
+    if(!map) return;
+    if(playersMarkers[currentUser.name]) playersMarkers[currentUser.name].setLatLng([lat, lng]);
+    else playersMarkers[currentUser.name] = L.marker([lat, lng], { icon: createPlayerIcon(currentUser.name, currentUser.color), zIndexOffset: 1000 }).addTo(map);
 }
-function createPlayerIcon(name,color){ return L.divIcon({html:`<div class="player-marker"><div class="player-name-tag" style="color:${color}">${name}</div><div class="player-dot" style="background:${color}"></div></div>`,iconSize:[70,36],iconAnchor:[35,28],className:''}); }
+function createPlayerIcon(name, color){ return L.divIcon({ html: `<div class="player-marker"><div class="player-name-tag" style="color:${color}">${name}</div><div class="player-dot" style="background:${color}"></div></div>`, iconSize: [60, 32], iconAnchor: [30, 24], className: '' }); }
 
-function updatePlayerMarker(name,lat,lng,color){
-    if(!map||!name||name===currentUser.name)return;
-    if(playersMarkers[name]){ playersMarkers[name].setLatLng([lat,lng]); }
-    else{
-        const marker=L.marker([lat,lng],{icon:createPlayerIcon(name,color||'#fff'),zIndexOffset:900}).addTo(map);
-        playersMarkers[name]=marker;
-        marker.on('click',(e)=>{
-            if(!playersMarkers[currentUser.name])return;
+function updatePlayerMarker(name, lat, lng, color){
+    if(!map || !name || name === currentUser.name) return;
+    if(playersMarkers[name]){ playersMarkers[name].setLatLng([lat, lng]); }
+    else {
+        const marker = L.marker([lat, lng], { icon: createPlayerIcon(name, color || '#fff'), zIndexOffset: 900 }).addTo(map);
+        playersMarkers[name] = marker;
+        marker.on('click', (e) => {
+            if(!playersMarkers[currentUser.name]) return;
             L.DomEvent.stopPropagation(e);
-            const d=map.distance(playersMarkers[currentUser.name].getLatLng(),marker.getLatLng());
-            const txt=d<1000?`${Math.round(d)} м`:`${(d/1000).toFixed(1)} км`;
-            const bar=document.getElementById('distance-bar');
-            bar.innerHTML=`📏 <b style="color:${playerColors[name]||'#fff'}">${name}</b> — ${txt}`;
-            bar.style.display='block'; bar.style.animation='none'; bar.offsetHeight;
-            bar.style.animation='slideUp 0.3s ease-out';
-            if(distanceTimer)clearTimeout(distanceTimer);
-            distanceTimer=setTimeout(()=>{ bar.style.display='none'; },5000);
+            const d = map.distance(playersMarkers[currentUser.name].getLatLng(), marker.getLatLng());
+            const txt = d < 1000 ? `${Math.round(d)} м` : `${(d / 1000).toFixed(1)} км`;
+            const bar = document.getElementById('distance-bar');
+            bar.innerHTML = `📏 <b style="color:${playerColors[name] || '#fff'}">${name}</b> — ${txt}`;
+            bar.style.display = 'block'; bar.style.animation = 'none'; bar.offsetHeight;
+            bar.style.animation = 'slideUp 0.3s ease-out';
+            if(distanceTimer) clearTimeout(distanceTimer);
+            distanceTimer = setTimeout(() => { bar.style.display = 'none'; }, 5000);
         });
     }
 }
 
-function centerOnMe(){ if(playersMarkers[currentUser.name]) map.setView(playersMarkers[currentUser.name].getLatLng(),18); else alert('Позиция не определена'); }
+function centerOnMe(){ if(playersMarkers[currentUser.name]) map.setView(playersMarkers[currentUser.name].getLatLng(), 18); else alert('Позиция не определена'); }
 
 function handleMapClick(e){
-    const{lat,lng}=e.latlng;
-    if(activeTool==='enemy'||activeTool==='target'){
-        socket.emit('new_obj',{id:`${activeTool}_${Date.now()}_${Math.random().toString(36).substr(2,9)}`,type:activeTool,lat,lng,creator:currentUser.name});
-    }else if(activeTool==='arrow'||activeTool==='ruler'){
-        rulerPoints.push({lat,lng});
-        if(rulerPoints.length===2){
-            socket.emit('new_obj',{id:`${activeTool}_${Date.now()}_${Math.random().toString(36).substr(2,9)}`,type:activeTool,start:rulerPoints[0],end:rulerPoints[1],creator:currentUser.name});
-            rulerPoints=[];
-        }else{ L.popup().setLatLng([lat,lng]).setContent('<b>👆 Вторая точка</b>').openOn(map); }
+    const { lat, lng } = e.latlng;
+    if(activeTool === 'enemy' || activeTool === 'target'){
+        socket.emit('new_obj', { id: `${activeTool}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, type: activeTool, lat, lng, creator: currentUser.name });
+    } else if(activeTool === 'arrow' || activeTool === 'ruler'){
+        rulerPoints.push({ lat, lng });
+        if(rulerPoints.length === 2){
+            socket.emit('new_obj', { id: `${activeTool}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, type: activeTool, start: rulerPoints[0], end: rulerPoints[1], creator: currentUser.name });
+            rulerPoints = [];
+        } else { L.popup().setLatLng([lat, lng]).setContent('<b>👆 Вторая точка</b>').openOn(map); }
     }
 }
 
-function deleteMyObjects(){ const ids=Array.from(myObjects); ids.forEach(id=>socket.emit('delete_obj',id)); myObjects.clear(); }
+function deleteMyObjects(){ const ids = Array.from(myObjects); ids.forEach(id => socket.emit('delete_obj', id)); myObjects.clear(); }
 
-function getGridSizeForZoom(zoom){ if(zoom>=19)return 20; if(zoom>=18)return 30; if(zoom>=17)return 50; if(zoom>=16)return 100; if(zoom>=15)return 200; if(zoom>=14)return 400; return 0; }
+function getGridSizeForZoom(zoom){ if(zoom >= 19) return 20; if(zoom >= 18) return 30; if(zoom >= 17) return 50; if(zoom >= 16) return 100; if(zoom >= 15) return 200; if(zoom >= 14) return 400; return 0; }
 
 function drawGrid(){
-    if(!map)return;
-    const overlay=document.getElementById('grid-overlay'); overlay.innerHTML='';
-    const zoom=map.getZoom(); const GRID_SIZE=getGridSizeForZoom(zoom);
-    if(GRID_SIZE===0){ if(gridLayer){map.removeLayer(gridLayer);gridLayer=null;} return; }
-    const GRID_STEP=(GRID_SIZE/METERS_PER_DEGREE);
-    const bounds=map.getBounds();
-    const sLa=Math.floor(bounds.getSouth()/GRID_STEP)*GRID_STEP;
-    const eLa=Math.ceil(bounds.getNorth()/GRID_STEP)*GRID_STEP;
-    const sLn=Math.floor(bounds.getWest()/GRID_STEP)*GRID_STEP;
-    const eLn=Math.ceil(bounds.getEast()/GRID_STEP)*GRID_STEP;
-    if(gridLayer) map.removeLayer(gridLayer); gridLayer=L.layerGroup().addTo(map);
-    const lw=GRID_SIZE>=200?1.5:GRID_SIZE>=100?1.2:1;
-    for(let lng=sLn;lng<=eLn;lng+=GRID_STEP) L.polyline([[sLa,lng],[eLa,lng]],{color:'#555',weight:lw,opacity:0.4}).addTo(gridLayer);
-    for(let lat=sLa;lat<=eLa;lat+=GRID_STEP) L.polyline([[lat,sLn],[lat,eLn]],{color:'#555',weight:lw,opacity:0.4}).addTo(gridLayer);
-    let fs,pp;
-    if(GRID_SIZE>=400){ fs='16px'; pp='5px 12px'; } else if(GRID_SIZE>=200){ fs='14px'; pp='4px 10px'; } else{ fs='11px'; pp='3px 7px'; }
-    let ci=0;
-    for(let lng=sLn;lng<=eLn;lng+=GRID_STEP){
-        const p=map.latLngToContainerPoint([bounds.getNorth(),lng+GRID_STEP/2]);
-        if(p.x>30&&p.x<window.innerWidth-30){
-            const d=document.createElement('div'); d.className='grid-letter-top';
-            d.textContent=RUSSIAN_LETTERS[ci%RUSSIAN_LETTERS.length];
-            d.style.left=p.x+'px'; d.style.top=Math.max(25,p.y-18)+'px';
-            d.style.fontSize=fs; d.style.padding=pp; overlay.appendChild(d);
+    if(!map) return;
+    const overlay = document.getElementById('grid-overlay'); overlay.innerHTML = '';
+    const zoom = map.getZoom(); const GRID_SIZE = getGridSizeForZoom(zoom);
+    if(GRID_SIZE === 0){ if(gridLayer){ map.removeLayer(gridLayer); gridLayer = null; } return; }
+    const GRID_STEP = (GRID_SIZE / METERS_PER_DEGREE);
+    const bounds = map.getBounds();
+    const sLa = Math.floor(bounds.getSouth() / GRID_STEP) * GRID_STEP;
+    const eLa = Math.ceil(bounds.getNorth() / GRID_STEP) * GRID_STEP;
+    const sLn = Math.floor(bounds.getWest() / GRID_STEP) * GRID_STEP;
+    const eLn = Math.ceil(bounds.getEast() / GRID_STEP) * GRID_STEP;
+    if(gridLayer) map.removeLayer(gridLayer); gridLayer = L.layerGroup().addTo(map);
+    const lw = GRID_SIZE >= 200 ? 1.5 : GRID_SIZE >= 100 ? 1.2 : 1;
+    for(let lng = sLn; lng <= eLn; lng += GRID_STEP) L.polyline([[sLa, lng], [eLa, lng]], { color: '#555', weight: lw, opacity: 0.4 }).addTo(gridLayer);
+    for(let lat = sLa; lat <= eLa; lat += GRID_STEP) L.polyline([[lat, sLn], [lat, eLn]], { color: '#555', weight: lw, opacity: 0.4 }).addTo(gridLayer);
+    let fs, pp;
+    if(GRID_SIZE >= 400){ fs = '14px'; pp = '4px 10px'; } else if(GRID_SIZE >= 200){ fs = '12px'; pp = '3px 8px'; } else{ fs = '10px'; pp = '2px 6px'; }
+    let ci = 0;
+    for(let lng = sLn; lng <= eLn; lng += GRID_STEP){
+        const p = map.latLngToContainerPoint([bounds.getNorth(), lng + GRID_STEP / 2]);
+        if(p.x > 25 && p.x < window.innerWidth - 25){
+            const d = document.createElement('div'); d.className = 'grid-letter-top';
+            d.textContent = RUSSIAN_LETTERS[ci % RUSSIAN_LETTERS.length];
+            d.style.left = p.x + 'px'; d.style.top = Math.max(22, p.y - 15) + 'px';
+            d.style.fontSize = fs; d.style.padding = pp; overlay.appendChild(d);
         }
         ci++;
     }
-    let ri=0;
-    for(let lat=sLa;lat<=eLa;lat+=GRID_STEP){
-        const p=map.latLngToContainerPoint([lat+GRID_STEP/2,eLn]);
-        if(p.y>30&&p.y<window.innerHeight-30){
-            const d=document.createElement('div'); d.className='grid-number-right';
-            d.textContent=ri%100; d.style.right='10px'; d.style.top=p.y+'px';
-            d.style.fontSize=fs; d.style.padding=pp; overlay.appendChild(d);
+    let ri = 0;
+    for(let lat = sLa; lat <= eLa; lat += GRID_STEP){
+        const p = map.latLngToContainerPoint([lat + GRID_STEP / 2, eLn]);
+        if(p.y > 25 && p.y < window.innerHeight - 25){
+            const d = document.createElement('div'); d.className = 'grid-number-right';
+            d.textContent = ri % 100; d.style.right = '8px'; d.style.top = p.y + 'px';
+            d.style.fontSize = fs; d.style.padding = pp; overlay.appendChild(d);
         }
         ri++;
     }
 }
 
-function sendChatMessage(){ const i=document.getElementById('chat-input'); const t=i.value.trim(); if(!t)return; socket.emit('chat_msg',{name:currentUser.name,text:t,color:currentUser.color}); i.value=''; i.focus(); }
-function addChatMessage(n,t,c){ const ct=document.getElementById('chat-messages'); const d=document.createElement('div'); d.className='msg-line'; d.innerHTML=`<span class="msg-name" style="color:${c}">${esc(n)}:</span><span class="msg-text">${esc(t)}</span>`; ct.appendChild(d); ct.scrollTop=ct.scrollHeight; }
-function esc(t){ const d=document.createElement('div'); d.textContent=t; return d.innerHTML; }
-function toggleChat(){ const c=document.getElementById('chat-win'); c.style.display=c.style.display==='flex'?'none':'flex'; if(c.style.display==='flex')document.getElementById('chat-input').focus(); }
+function sendChatMessage(){ const i = document.getElementById('chat-input'); const t = i.value.trim(); if(!t) return; socket.emit('chat_msg', { name: currentUser.name, text: t, color: currentUser.color }); i.value = ''; i.focus(); }
+function addChatMessage(n, t, c){ const ct = document.getElementById('chat-messages'); const d = document.createElement('div'); d.className = 'msg-line'; d.innerHTML = `<span class="msg-name" style="color:${c}">${esc(n)}:</span><span class="msg-text">${esc(t)}</span>`; ct.appendChild(d); ct.scrollTop = ct.scrollHeight; }
+function esc(t){ const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
+function toggleChat(){ const c = document.getElementById('chat-win'); c.style.display = c.style.display === 'flex' ? 'none' : 'flex'; if(c.style.display === 'flex') document.getElementById('chat-input').focus(); }
 
 function setTool(t){
-    activeTool=t; rulerPoints=[];
-    document.getElementById('distance-bar').style.display='none';
-    if(distanceTimer){clearTimeout(distanceTimer);distanceTimer=null;}
-    document.querySelectorAll('.tool-btn').forEach(b=>b.classList.remove('active'));
-    const btn=document.getElementById(`btn-${t}`); if(btn)btn.classList.add('active');
-    if(map)map.closePopup();
+    activeTool = t; rulerPoints = [];
+    document.getElementById('distance-bar').style.display = 'none';
+    if(distanceTimer){ clearTimeout(distanceTimer); distanceTimer = null; }
+    document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+    const btn = document.getElementById(`btn-${t}`); if(btn) btn.classList.add('active');
+    if(map) map.closePopup();
 }
 
-function changeMap(type){ if(tileLayer)map.removeLayer(tileLayer); tileLayer=L.tileLayer(type==='sat'?'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}':'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:type==='sat'?20:22,maxNativeZoom:type==='sat'?20:19}).addTo(map); drawGrid(); }
+function changeMap(type){ if(tileLayer) map.removeLayer(tileLayer); tileLayer = L.tileLayer(type === 'sat' ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}' : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: type === 'sat' ? 20 : 22, maxNativeZoom: type === 'sat' ? 20 : 19 }).addTo(map); drawGrid(); }
 
 function reconnectApp(){
-    const statusEl=document.getElementById('connection-status');
-    statusEl.textContent='🔄 Переподключение...'; statusEl.style.color='#ff0'; statusEl.style.display='block';
+    const statusEl = document.getElementById('connection-status');
+    statusEl.textContent = '🔄 Переподключение...'; statusEl.style.color = '#ff0'; statusEl.style.display = 'block';
     if(socket.disconnected) socket.connect();
-    setTimeout(()=>{
-        if(socket.connected&&currentUser.name){
-            socket.emit('rejoin_room',{room:currentUser.team,name:currentUser.name,color:currentUser.color});
-            statusEl.textContent='🟢 Готово'; statusEl.style.color='#0f0';
-        }else{ statusEl.textContent='🔴 Ошибка'; statusEl.style.color='#f00'; }
-        setTimeout(()=>statusEl.style.display='none',2000);
-    },1500);
+    setTimeout(() => {
+        if(socket.connected && currentUser.name){
+            socket.emit('rejoin_room', { room: currentUser.team, name: currentUser.name, color: currentUser.color });
+            statusEl.textContent = '🟢 Готово'; statusEl.style.color = '#0f0';
+        } else { statusEl.textContent = '🔴 Ошибка'; statusEl.style.color = '#f00'; }
+        setTimeout(() => statusEl.style.display = 'none', 2000);
+    }, 1500);
 }
 
 function exitApp(){
     if(confirm('Выйти?')){
-        socket.emit('explicit_exit',{name:currentUser.name,room:currentUser.team});
+        socket.emit('explicit_exit', { name: currentUser.name, room: currentUser.team });
         clearSession();
-        if(watchId)navigator.geolocation.clearWatch(watchId);
-        if(keepAliveInterval)clearInterval(keepAliveInterval);
-        setTimeout(()=>{socket.disconnect();location.reload();},300);
+        if(watchId) navigator.geolocation.clearWatch(watchId);
+        if(keepAliveInterval) clearInterval(keepAliveInterval);
+        setTimeout(() => { socket.disconnect(); location.reload(); }, 300);
     }
 }
 
-const autoLoggedIn=tryAutoLogin();
-if(!autoLoggedIn) document.getElementById('auth-screen').style.display='flex';
+const autoLoggedIn = tryAutoLogin();
+if(!autoLoggedIn) document.getElementById('auth-screen').style.display = 'flex';
 
-window.doLogin=doLogin; window.setTool=setTool; window.centerOnMe=centerOnMe;
-window.changeMap=changeMap; window.toggleChat=toggleChat; window.sendChatMessage=sendChatMessage;
-window.deleteMyObjects=deleteMyObjects; window.reconnectApp=reconnectApp; window.exitApp=exitApp;
-window.changeAccessCode=changeAccessCode; window.tryBecomeAdmin=tryBecomeAdmin;
+window.doLogin = doLogin; window.setTool = setTool; window.centerOnMe = centerOnMe;
+window.changeMap = changeMap; window.toggleChat = toggleChat; window.sendChatMessage = sendChatMessage;
+window.deleteMyObjects = deleteMyObjects; window.reconnectApp = reconnectApp; window.exitApp = exitApp;
+window.changeAccessCode = changeAccessCode; window.tryBecomeAdmin = tryBecomeAdmin;
 
-console.log('🦂 ScorpGEO v6.1 — Код доступа + ⚙️ Админ');
+console.log('🦂 ScorpGEO v6.2 — АДМИН → пароль → ⚙️');
 </script>
 </body>
 </html>
