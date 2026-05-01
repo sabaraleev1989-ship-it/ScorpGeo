@@ -18,7 +18,7 @@ const PORT = process.env.PORT || 3000;
 const ROOM_PASSWORD = '1234';
 const DISCONNECT_TIMEOUT = 900000;
 const DATA_FILE = path.join(__dirname, 'tactical_data.json');
-let ACCESS_CODE = '2026'; // НАЧАЛЬНЫЙ КОД ДОСТУПА
+let ACCESS_CODE = '2026'; // Начальный код (потом поменяете через ⚙️)
 
 const rooms = {};
 const playerSockets = {};
@@ -61,7 +61,6 @@ for (const [roomName, data] of Object.entries(savedData)) {
         messages: data.messages || [],
         lastActive: data.lastActive || Date.now()
     };
-    console.log(`📂 Комната ${roomName}: ${Object.keys(data.objects || {}).length} объектов`);
 }
 
 setInterval(saveData, 300000);
@@ -102,14 +101,12 @@ function getOrCreateRoom(roomName) {
 io.on('connection', (socket) => {
     console.log(`🔌 Подключение: ${socket.id}`);
 
-    // Отправить текущий код доступа
     socket.on('get_access_code', () => {
         socket.emit('access_code', { code: ACCESS_CODE });
     });
 
-    // Сменить код доступа (только админ)
     socket.on('change_access_code', (data) => {
-        if (data.adminPass === 'admin2026') {
+        if (data.adminPass === 'Mpfp13zi') {
             ACCESS_CODE = data.newCode;
             console.log(`🔑 Код доступа изменен на: ${ACCESS_CODE}`);
             socket.emit('code_changed', { success: true, newCode: ACCESS_CODE });
@@ -227,6 +224,7 @@ io.on('connection', (socket) => {
         socket.disconnect(true);
     });
 
+    // GPS, объекты, чат, disconnect — без изменений как в v6.1
     socket.on('gps_sync', (data) => {
         if (!data || !data.lat || !data.lng) return;
         const playerInfo = playerSockets[socket.id];
@@ -316,7 +314,7 @@ app.get('/api/status', (req, res) => {
 });
 
 server.listen(PORT, '0.0.0.0', () => {
-    console.log('🦂 ScorpGEO v6.1 с кодом доступа');
+    console.log('🦂 ScorpGEO v6.2 с кодом доступа');
     console.log(`🔑 Код доступа: ${ACCESS_CODE}`);
     console.log(`📍 Порт: ${PORT}`);
 });
