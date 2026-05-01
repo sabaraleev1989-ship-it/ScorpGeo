@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="ScorpGEO">
     <meta name="theme-color" content="#000000">
-    <title>ScorpGEO v8.3</title>
+    <title>ScorpGEO v8.4</title>
     
     <link rel="manifest" href="/manifest.json">
     <link rel="apple-touch-icon" href="/icons/icon-512.png">
@@ -46,6 +46,9 @@
         .gear-btn { position:absolute; right:10px; top:50%; transform:translateY(-50%); font-size:22px; cursor:pointer; color:#0f0; display:none; z-index:10; }
         
         #map { position:absolute; top:0; left:0; right:0; bottom:0; z-index:1; background:#1a1e1a; }
+        
+        /* СЛОЙ ДЛЯ РИСОВАНИЯ */
+        #drawing-layer { position:absolute; top:0; left:0; right:0; bottom:0; z-index:100; display:none; cursor:crosshair; touch-action:none; }
         
         .side-panel { position:fixed; left:0; top:44px; bottom:0; width:72px; background:rgba(0,0,0,0.96); border-right:2px solid #0f0; z-index:5000; display:none; flex-direction:column; overflow-y:auto; }
         .tool-btn { width:100%; min-height:46px; display:flex; flex-direction:column; align-items:center; justify-content:center; border-bottom:1px solid #0a0; color:#0f0; cursor:pointer; font-size:7px; font-weight:bold; padding:3px 2px; }
@@ -110,7 +113,7 @@
             <span class="gear-btn" id="settingsGear" onclick="changeAccessCode()">⚙️</span>
         </div>
         <button onclick="doLogin()" class="auth-btn">⚡ ВОЙТИ ⚡</button>
-        <div style="color:#050;font-size:8px;margin-top:12px;">v8.3 • <span onclick="tryBecomeAdmin()" style="color:#0a0;cursor:pointer;text-decoration:underline;">АДМИН</span> • ✏️🧭🔄</div>
+        <div style="color:#050;font-size:8px;margin-top:12px;">v8.4 • <span onclick="tryBecomeAdmin()" style="color:#0a0;cursor:pointer;text-decoration:underline;">АДМИН</span> • ✏️🧭</div>
         <div id="autoLoginMsg" style="color:#0f0;font-size:11px;margin-top:8px;display:none;"></div>
     </div>
 </div>
@@ -135,6 +138,8 @@
 </div>
 
 <div id="map"></div>
+<!-- СЛОЙ ДЛЯ РИСОВАНИЯ -->
+<canvas id="drawing-layer"></canvas>
 <div id="grid-overlay"></div>
 <div id="distance-bar"></div>
 
@@ -156,7 +161,7 @@ const socket=io({ transports:['websocket','polling'], reconnection:true, reconne
 let map, activeTool='move', currentUser={name:'',team:'',color:'#0f0'};
 let playersMarkers={}, tacticalObjects={}, myObjects=new Set(), rulerPoints=[], gridLayer=null, tileLayer=null, playerColors={}, watchId=null, keepAliveInterval=null, distanceTimer=null, rulerTimers={};
 let isAdmin=false, currentAccessCode='', compassHeading=0, compassVisible=false;
-let pencilPoints=[], pencilLine=null, isDrawing=false;
+let pencilCanvas, pencilCtx, isDrawing=false, pencilPoints=[], currentPencilId=null;
 
 const METERS_PER_DEGREE=111320;
 const RUSSIAN_LETTERS=['А','Б','В','Г','Д','Е','Ё','Ж','З','И','Й','К','Л','М','Н','О','П','Р','С','Т','У','Ф','Х','Ц','Ч','Ш','Щ','Ъ','Ы','Ь','Э','Ю','Я'];
@@ -175,39 +180,66 @@ socket.on('code_changed',(data)=>{ if(data.success){ currentAccessCode=data.newC
 function toggleCompass(){ compassVisible=!compassVisible; document.getElementById('compass').style.display=compassVisible?'block':'none'; const btn=document.getElementById('btn-compass'); if(compassVisible) btn.classList.add('active'); else btn.classList.remove('active'); }
 function updateCompass(){ if(!compassVisible) return; const svg=document.getElementById('compass-svg'); if(svg) svg.style.transform=`rotate(${compassHeading}deg)`; }
 function handleOrientation(e){ if(e.webkitCompassHeading!==undefined){ compassHeading=e.webkitCompassHeading||0; } else if(e.alpha!==null){ compassHeading=360-(e.alpha||0); } updateCompass(); }
-if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function'){
-    document.addEventListener('click',function rp(){ DeviceOrientationEvent.requestPermission().then(r=>{ if(r==='granted') window.addEventListener('deviceorientation',handleOrientation,true); }); document.removeEventListener('click',rp); },{once:true});
-}else{ window.addEventListener('deviceorientation',handleOrientation,true); }
-function requestCompassPermission(){ if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function'){ DeviceOrientationEvent.requestPermission().then(r=>{ if(r==='granted'){ window.addEventListener('deviceorientation',handleOrientation,true); alert('✅ Компас активирован!'); } }); }else{ alert('Компас уже активен'); } }
+if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function'){document.addEventListener('click',function rp(){DeviceOrientationEvent.requestPermission().then(r=>{if(r==='granted')window.addEventListener('deviceorientation',handleOrientation,true);});document.removeEventListener('click',rp);},{once:true});}else{window.addEventListener('deviceorientation',handleOrientation,true);}
+function requestCompassPermission(){if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function'){DeviceOrientationEvent.requestPermission().then(r=>{if(r==='granted'){window.addEventListener('deviceorientation',handleOrientation,true);alert('✅ Компас активирован!');}});}else{alert('Компас уже активен');}}
 window.requestCompassPermission=requestCompassPermission; window.toggleCompass=toggleCompass;
 
-// ===== КАРАНДАШ (ИСПРАВЛЕННЫЙ) =====
-function startPencil(e){
+// ===== КАРАНДАШ НА CANVAS =====
+function initPencilCanvas(){
+    pencilCanvas=document.getElementById('drawing-layer');
+    pencilCanvas.width=window.innerWidth;
+    pencilCanvas.height=window.innerHeight;
+    pencilCtx=pencilCanvas.getContext('2d');
+    
+    pencilCanvas.addEventListener('pointerdown',startDrawing);
+    pencilCanvas.addEventListener('pointermove',drawOnCanvas);
+    pencilCanvas.addEventListener('pointerup',endDrawing);
+    pencilCanvas.addEventListener('pointerout',endDrawing);
+}
+
+function startDrawing(e){
     if(activeTool!=='pencil') return;
     isDrawing=true;
-    map.dragging.disable(); // Отключаем перетаскивание карты
-    pencilPoints=[[e.latlng.lat,e.latlng.lng]];
-    if(pencilLine) map.removeLayer(pencilLine);
-    pencilLine=L.polyline(pencilPoints,{color:'#ff4444',weight:4,opacity:0.9}).addTo(map);
+    pencilPoints=[];
+    const rect=pencilCanvas.getBoundingClientRect();
+    const x=e.clientX-rect.left;
+    const y=e.clientY-rect.top;
+    const latlng=map.containerPointToLatLng([x,y]);
+    pencilPoints.push([latlng.lat,latlng.lng]);
+    pencilCtx.beginPath();
+    pencilCtx.moveTo(x,y);
+    pencilCtx.strokeStyle='#ff4444';
+    pencilCtx.lineWidth=4;
+    pencilCtx.lineCap='round';
 }
 
-function movePencil(e){
+function drawOnCanvas(e){
     if(!isDrawing||activeTool!=='pencil') return;
-    pencilPoints.push([e.latlng.lat,e.latlng.lng]);
-    if(pencilLine) pencilLine.setLatLngs(pencilPoints);
+    const rect=pencilCanvas.getBoundingClientRect();
+    const x=e.clientX-rect.left;
+    const y=e.clientY-rect.top;
+    const latlng=map.containerPointToLatLng([x,y]);
+    pencilPoints.push([latlng.lat,latlng.lng]);
+    pencilCtx.lineTo(x,y);
+    pencilCtx.stroke();
 }
 
-function endPencil(){
+function endDrawing(){
     if(!isDrawing) return;
     isDrawing=false;
-    map.dragging.enable(); // Включаем обратно
+    pencilCtx.clearRect(0,0,pencilCanvas.width,pencilCanvas.height);
     if(pencilPoints.length>1){
-        const id='pencil_'+Date.now()+'_'+Math.random().toString(36).substr(2,9);
-        socket.emit('new_obj',{id:id,type:'pencil',points:pencilPoints,creator:currentUser.name});
+        currentPencilId='pencil_'+Date.now()+'_'+Math.random().toString(36).substr(2,9);
+        socket.emit('new_obj',{id:currentPencilId,type:'pencil',points:pencilPoints,creator:currentUser.name});
     }
-    if(pencilLine) map.removeLayer(pencilLine);
-    pencilLine=null;
     pencilPoints=[];
+}
+
+function updateCanvasSize(){
+    if(pencilCanvas){
+        pencilCanvas.width=window.innerWidth;
+        pencilCanvas.height=window.innerHeight;
+    }
 }
 
 function tryAutoLogin(){
@@ -228,6 +260,7 @@ document.addEventListener('visibilitychange',()=>{
     }else{ if(socket.connected&&currentUser.name) socket.emit('keep_alive',{name:currentUser.name,room:currentUser.team,deviceId:DEVICE_ID}); }
 });
 window.addEventListener('beforeunload',()=>{ if(currentUser.name) saveSession(); });
+window.addEventListener('resize',updateCanvasSize);
 function startKeepAlive(){ if(keepAliveInterval)clearInterval(keepAliveInterval); keepAliveInterval=setInterval(()=>{ if(socket.connected&&currentUser.name) socket.emit('keep_alive',{name:currentUser.name,room:currentUser.team,deviceId:DEVICE_ID}); },30000); }
 socket.on('connect',()=>{ const el=document.getElementById('connection-status'); el.textContent='🟢 ОНЛАЙН'; el.style.color='#0f0'; el.style.display='block'; setTimeout(()=>el.style.display='none',2000); });
 socket.on('disconnect',()=>{ const el=document.getElementById('connection-status'); el.textContent='🔴 ОФЛАЙН'; el.style.color='#f00'; el.style.display='block'; });
@@ -243,7 +276,7 @@ function doLogin(){
 }
 socket.on('login_success',(data)=>{ currentUser.color=data.color; playerColors[currentUser.name]=data.color; saveSession(); if(data.accessCode) currentAccessCode=data.accessCode;
     document.getElementById('auth-screen').style.display='none'; document.getElementById('ui-panel').style.display='flex'; document.getElementById('chat-win').style.display='flex';
-    initMap(); startGeolocation(); startKeepAlive(); addChatMessage('СИСТЕМА',`${currentUser.name} на связи. Меток: ${data.objectsCount||0}`,'#0f0'); });
+    initMap(); initPencilCanvas(); startGeolocation(); startKeepAlive(); addChatMessage('СИСТЕМА',`${currentUser.name} на связи. Меток: ${data.objectsCount||0}`,'#0f0'); });
 socket.on('login_failed',(err)=>{ clearSession(); alert('Ошибка: '+(err?.reason||'Неверные данные')); });
 
 socket.on('existing_players',(p)=>p.forEach(x=>{ if(x.name!==currentUser.name){ playerColors[x.name]=x.color; updatePlayerMarker(x.name,x.lat,x.lng,x.color); } }));
@@ -285,29 +318,11 @@ socket.on('draw',(obj)=>{
 socket.on('remove_obj',(id)=>{ if(tacticalObjects[id]){ tacticalObjects[id].layers.forEach(l=>{ if(map&&map.hasLayer(l)) map.removeLayer(l); }); delete tacticalObjects[id]; myObjects.delete(id); if(rulerTimers[id]){ clearTimeout(rulerTimers[id]); delete rulerTimers[id]; } } });
 socket.on('receive_msg',(data)=>{ let n,t,c; if(typeof data==='string'){ const m=data.match(/^([^:]+):\s*(.+)$/); n=m?m[1]:'СИСТЕМА'; t=m?m[2]:data; c=playerColors[n]||'#ccc'; } else{ n=data.name||'Аноним'; t=data.text||''; c=data.color||playerColors[n]||'#ccc'; } addChatMessage(n,t,c); });
 
-// ==================== КАРТА (С ПОВОРОТОМ) ====================
+// ==================== КАРТА ====================
 function initMap(){
     if(map)return;
-    map=L.map('map',{
-        zoomControl:false,
-        attributionControl:false,
-        maxZoom:22,
-        minZoom:10,
-        tap:true,
-        rotate:true,        // ВКЛЮЧАЕМ ПОВОРОТ
-        touchRotate:true,   // ПОВОРОТ ДВУМЯ ПАЛЬЦАМИ
-        rotateControl:false // Без кнопки поворота
-    }).setView([55.7558,37.6176],18);
-    
+    map=L.map('map',{zoomControl:false,attributionControl:false,maxZoom:22,minZoom:10,tap:true,rotate:true,touchRotate:true,rotateControl:false}).setView([55.7558,37.6176],18);
     tileLayer=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:22,maxNativeZoom:19}).addTo(map);
-    
-    map.on('mousedown',startPencil);
-    map.on('mousemove',movePencil);
-    map.on('mouseup',endPencil);
-    map.on('touchstart',startPencil);
-    map.on('touchmove',movePencil);
-    map.on('touchend',endPencil);
-    
     map.on('click',handleMapClick);
     map.on('moveend',drawGrid);
     map.on('zoomend',drawGrid);
@@ -333,9 +348,8 @@ function handleMapClick(e){
 }
 function deleteMyObjects(){ const ids=Array.from(myObjects); ids.forEach(id=>socket.emit('delete_obj',id)); myObjects.clear(); }
 
-// ===== СЕТКА ВОЗВРАЩЕНА (ZOOM 18-20) =====
-let gridEnabled=true;
-function getGridSizeForZoom(zoom){ if(!gridEnabled||zoom<18||zoom>20) return 0; return 20; }
+// ===== СЕТКА =====
+function getGridSizeForZoom(zoom){ if(zoom<18||zoom>20) return 0; return 20; }
 
 function drawGrid(){
     if(!map)return; const overlay=document.getElementById('grid-overlay'); overlay.innerHTML=''; const zoom=map.getZoom(); const GRID_SIZE=getGridSizeForZoom(zoom);
@@ -360,7 +374,20 @@ function sendChatMessage(){ const i=document.getElementById('chat-input'); const
 function addChatMessage(n,t,c){ const ct=document.getElementById('chat-messages'); const d=document.createElement('div'); d.className='msg-line'; d.innerHTML=`<span class="msg-name" style="color:${c}">${esc(n)}:</span><span class="msg-text">${esc(t)}</span>`; ct.appendChild(d); ct.scrollTop=ct.scrollHeight; }
 function esc(t){ const d=document.createElement('div'); d.textContent=t; return d.innerHTML; }
 function toggleChat(){ const c=document.getElementById('chat-win'); c.style.display=c.style.display==='flex'?'none':'flex'; if(c.style.display==='flex')document.getElementById('chat-input').focus(); }
-function setTool(t){ activeTool=t; rulerPoints=[]; pencilPoints=[]; if(pencilLine){map.removeLayer(pencilLine);pencilLine=null;} isDrawing=false; map.dragging.enable(); document.getElementById('distance-bar').style.display='none'; if(distanceTimer){clearTimeout(distanceTimer);distanceTimer=null;} document.querySelectorAll('.tool-btn').forEach(b=>b.classList.remove('active')); const btn=document.getElementById(`btn-${t}`); if(btn)btn.classList.add('active'); if(map)map.closePopup(); }
+function setTool(t){
+    activeTool=t; rulerPoints=[]; pencilPoints=[];
+    isDrawing=false;
+    if(pencilCtx) pencilCtx.clearRect(0,0,pencilCanvas.width,pencilCanvas.height);
+    // Показываем/скрываем слой рисования
+    const drawLayer=document.getElementById('drawing-layer');
+    if(t==='pencil'){ drawLayer.style.display='block'; map.dragging.disable(); }
+    else{ drawLayer.style.display='none'; map.dragging.enable(); }
+    document.getElementById('distance-bar').style.display='none';
+    if(distanceTimer){clearTimeout(distanceTimer);distanceTimer=null;}
+    document.querySelectorAll('.tool-btn').forEach(b=>b.classList.remove('active'));
+    const btn=document.getElementById(`btn-${t}`); if(btn)btn.classList.add('active');
+    if(map&&t!=='pencil') map.closePopup();
+}
 function changeMap(type){ if(tileLayer)map.removeLayer(tileLayer); tileLayer=L.tileLayer(type==='sat'?'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}':'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:type==='sat'?20:22,maxNativeZoom:type==='sat'?20:19}).addTo(map); drawGrid(); }
 function reconnectApp(){ const el=document.getElementById('connection-status'); el.textContent='🔄 Переподключение...'; el.style.color='#ff0'; el.style.display='block'; if(socket.disconnected) socket.connect(); setTimeout(()=>{ if(socket.connected&&currentUser.name){ socket.emit('rejoin_room',{room:currentUser.team,name:currentUser.name,color:currentUser.color,deviceId:DEVICE_ID}); el.textContent='🟢 Готово'; el.style.color='#0f0'; } else{ el.textContent='🔴 Ошибка'; el.style.color='#f00'; } setTimeout(()=>el.style.display='none',2000); },1500); }
 function exitApp(){ if(confirm('Выйти?')){ socket.emit('explicit_exit',{name:currentUser.name,room:currentUser.team}); clearSession(); if(watchId)navigator.geolocation.clearWatch(watchId); if(keepAliveInterval)clearInterval(keepAliveInterval); setTimeout(()=>{socket.disconnect();location.reload();},300); } }
@@ -372,7 +399,7 @@ window.changeMap=changeMap; window.toggleChat=toggleChat; window.sendChatMessage
 window.deleteMyObjects=deleteMyObjects; window.reconnectApp=reconnectApp; window.exitApp=exitApp;
 window.changeAccessCode=changeAccessCode; window.tryBecomeAdmin=tryBecomeAdmin;
 
-console.log('🦂 ScorpGEO v8.3 — ✏️ Карандаш | 🧭 Компас | 🔄 Поворот');
+console.log('🦂 ScorpGEO v8.4 — ✏️ Canvas | 🔄 Поворот');
 </script>
 </body>
 </html>
