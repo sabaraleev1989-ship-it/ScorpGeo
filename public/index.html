@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="ScorpGEO">
     <meta name="theme-color" content="#000000">
-    <title>ScorpGEO v5.9</title>
+    <title>ScorpGEO v6.0</title>
     
     <link rel="manifest" href="/manifest.json">
     <link rel="apple-touch-icon" href="/icons/icon-512.png">
@@ -42,22 +42,13 @@
         
         #map { position:absolute; top:0; left:0; right:0; bottom:0; z-index:1; background:#1a1e1a; }
         
-        /* ПАНЕЛЬ — ОТСТУП 44px ДЛЯ PWA */
-        .side-panel { 
-            position:fixed; left:0; top:44px; bottom:0; width:78px; 
-            background:rgba(0,0,0,0.96); border-right:2px solid #0f0; 
-            z-index:5000; display:none; flex-direction:column; overflow-y:auto;
-        }
+        .side-panel { position:fixed; left:0; top:44px; bottom:0; width:78px; background:rgba(0,0,0,0.96); border-right:2px solid #0f0; z-index:5000; display:none; flex-direction:column; overflow-y:auto; }
         .tool-btn { width:100%; min-height:52px; display:flex; flex-direction:column; align-items:center; justify-content:center; border-bottom:1px solid #0a0; color:#0f0; cursor:pointer; font-size:9px; font-weight:bold; padding:4px 2px; }
         .tool-btn b { font-size:20px; margin-bottom:2px; }
         .tool-btn.active { background:#020; color:#fff; border-left:3px solid #0f0; }
         .tool-btn:active { transform:scale(0.95); background:#030; }
         
-        /* СЕТКА — ОТСТУП 44px */
-        #grid-overlay { 
-            position:fixed; top:44px; left:0; right:0; bottom:0;
-            pointer-events:none; z-index:900;
-        }
+        #grid-overlay { position:fixed; top:44px; left:0; right:0; bottom:0; pointer-events:none; z-index:900; }
         .grid-letter-top { position:absolute; font-weight:900; font-family:'Courier New',monospace; background:rgba(0,0,0,0.9); color:#ccc; border:1px solid #666; border-radius:3px; transform:translate(-50%,-50%); z-index:950; font-size:12px; padding:4px 8px; }
         .grid-number-right { position:absolute; font-weight:900; font-family:'Courier New',monospace; background:rgba(0,0,0,0.9); color:#ccc; border:1px solid #666; border-radius:3px; transform:translate(0,-50%); z-index:950; font-size:12px; padding:4px 8px; }
         
@@ -97,7 +88,7 @@
         <input type="text" id="playerName" class="auth-input" placeholder="ПОЗЫВНОЙ" maxlength="10" autocomplete="off">
         <input type="password" id="password" class="auth-input" placeholder="ПАРОЛЬ" maxlength="20" autocomplete="off">
         <button onclick="doLogin()" class="auth-btn">⚡ ВОЙТИ ⚡</button>
-        <div class="auth-info" style="color:#050;font-size:9px;margin-top:15px;">PWA FIX • ОТСТУПЫ • КНОПКИ ДОСТУПНЫ</div>
+        <div style="color:#050;font-size:9px;margin-top:15px;">v6.0 • АВТО-ПЕРЕПОДКЛЮЧЕНИЕ</div>
         <div id="autoLoginMsg" style="color:#0f0;font-size:12px;margin-top:10px;display:none;"></div>
     </div>
 </div>
@@ -131,7 +122,7 @@
 </div>
 
 <script>
-const socket = io({ transports:['websocket','polling'], reconnection:true, reconnectionDelay:1000, reconnectionDelayMax:5000, reconnectionAttempts:Infinity, timeout:20000, pingInterval:25000, pingTimeout:60000, autoConnect:true });
+const socket = io({ transports:['websocket','polling'], reconnection:true, reconnectionDelay:500, reconnectionDelayMax:3000, reconnectionAttempts:20, timeout:10000, pingInterval:20000, pingTimeout:50000, autoConnect:true });
 
 let map, activeTool='move', currentUser={name:'',team:'',color:'#0f0'};
 let playersMarkers={}, tacticalObjects={}, myObjects=new Set(), rulerPoints=[], gridLayer=null, tileLayer=null, playerColors={}, watchId=null, keepAliveInterval=null, distanceTimer=null;
@@ -157,15 +148,65 @@ function tryAutoLogin(){
     return false;
 }
 
-document.addEventListener('visibilitychange',()=>{
-    if(document.visibilityState==='visible'){
-        if(socket.disconnected&&currentUser.name){ socket.connect(); setTimeout(()=>{ if(socket.connected) socket.emit('rejoin_room',{room:currentUser.team,name:currentUser.name,color:currentUser.color}); },1000); }
-    }else{ if(socket.connected&&currentUser.name) socket.emit('keep_alive',{name:currentUser.name,room:currentUser.team}); }
+// ===== НОВЫЙ ОБРАБОТЧИК: АВТО-ВОССТАНОВЛЕНИЕ ПРИ ВОЗВРАТЕ =====
+document.addEventListener('visibilitychange', () => {
+    const statusEl = document.getElementById('connection-status');
+    
+    if (document.visibilityState === 'visible') {
+        console.log('📱 Приложение активно — проверка связи...');
+        statusEl.textContent = '🔄 Проверка...';
+        statusEl.style.color = '#ff0';
+        statusEl.style.display = 'block';
+        
+        // Принудительно проверяем соединение
+        if (socket.disconnected) {
+            console.log('🔄 Соединение потеряно — переподключаем...');
+            socket.connect();
+        }
+        
+        // Ждем и восстанавливаем сессию
+        setTimeout(() => {
+            if (socket.connected && currentUser.name) {
+                socket.emit('rejoin_room', {
+                    room: currentUser.team,
+                    name: currentUser.name,
+                    color: currentUser.color
+                });
+                statusEl.textContent = '🟢 Онлайн';
+                statusEl.style.color = '#0f0';
+                console.log('✅ Сессия восстановлена');
+            } else if (!socket.connected && currentUser.name) {
+                console.log('⚠️ Повторная попытка...');
+                socket.connect();
+                setTimeout(() => {
+                    if (socket.connected && currentUser.name) {
+                        socket.emit('rejoin_room', {
+                            room: currentUser.team,
+                            name: currentUser.name,
+                            color: currentUser.color
+                        });
+                        statusEl.textContent = '🟢 Онлайн';
+                        statusEl.style.color = '#0f0';
+                    } else {
+                        statusEl.textContent = '🔴 Офлайн';
+                        statusEl.style.color = '#f00';
+                    }
+                }, 2000);
+            }
+            setTimeout(() => { statusEl.style.display = 'none'; }, 2000);
+        }, 500);
+    } else {
+        console.log('💤 Приложение свернуто');
+        if (socket.connected && currentUser.name) {
+            socket.emit('keep_alive', { name: currentUser.name, room: currentUser.team });
+        }
+    }
 });
-window.addEventListener('beforeunload',()=>{ if(currentUser.name) saveSession(); });
-function startKeepAlive(){ if(keepAliveInterval)clearInterval(keepAliveInterval); keepAliveInterval=setInterval(()=>{ if(socket.connected&&currentUser.name) socket.emit('keep_alive',{name:currentUser.name,room:currentUser.team}); },60000); }
 
-socket.on('connect',()=>{ const el=document.getElementById('connection-status'); el.textContent='🟢 ОНЛАЙН'; el.style.color='#0f0'; el.style.display='block'; setTimeout(()=>el.style.display='none',3000); });
+window.addEventListener('beforeunload',()=>{ if(currentUser.name) saveSession(); });
+function startKeepAlive(){ if(keepAliveInterval)clearInterval(keepAliveInterval); keepAliveInterval=setInterval(()=>{ if(socket.connected&&currentUser.name) socket.emit('keep_alive',{name:currentUser.name,room:currentUser.team}); },30000); }
+
+socket.on('connect',()=>{ const el=document.getElementById('connection-status'); el.textContent='🟢 ОНЛАЙН'; el.style.color='#0f0'; el.style.display='block'; setTimeout(()=>el.style.display='none',2000); });
 socket.on('disconnect',()=>{ const el=document.getElementById('connection-status'); el.textContent='🔴 ОФЛАЙН'; el.style.color='#f00'; el.style.display='block'; });
 
 function doLogin(){
@@ -343,22 +384,15 @@ function changeMap(type){ if(tileLayer)map.removeLayer(tileLayer); tileLayer=L.t
 
 function reconnectApp(){
     const statusEl=document.getElementById('connection-status');
-    if(socket.disconnected){
-        statusEl.textContent='🔄 Переподключение...'; statusEl.style.color='#ff0'; statusEl.style.display='block';
-        socket.connect();
-        setTimeout(()=>{
-            if(socket.connected&&currentUser.name){
-                socket.emit('rejoin_room',{room:currentUser.team,name:currentUser.name,color:currentUser.color});
-                statusEl.textContent='🟢 Связь восстановлена'; statusEl.style.color='#0f0';
-                addChatMessage('СИСТЕМА','🔄 Связь восстановлена','#0af');
-            }else{ statusEl.textContent='🔴 Нет связи'; statusEl.style.color='#f00'; }
-            setTimeout(()=>statusEl.style.display='none',3000);
-        },1500);
-    }else{
-        statusEl.textContent='🟢 Связь активна'; statusEl.style.color='#0f0'; statusEl.style.display='block';
+    statusEl.textContent='🔄 Переподключение...'; statusEl.style.color='#ff0'; statusEl.style.display='block';
+    if(socket.disconnected) socket.connect();
+    setTimeout(()=>{
+        if(socket.connected&&currentUser.name){
+            socket.emit('rejoin_room',{room:currentUser.team,name:currentUser.name,color:currentUser.color});
+            statusEl.textContent='🟢 Готово'; statusEl.style.color='#0f0';
+        }else{ statusEl.textContent='🔴 Ошибка'; statusEl.style.color='#f00'; }
         setTimeout(()=>statusEl.style.display='none',2000);
-        if(currentUser.name) socket.emit('rejoin_room',{room:currentUser.team,name:currentUser.name,color:currentUser.color});
-    }
+    },1500);
 }
 
 function exitApp(){
