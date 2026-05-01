@@ -9,14 +9,14 @@ const server = http.createServer(app);
 const io = new Server(server, {
     cors: { origin: "*", methods: ["GET", "POST"] },
     transports: ['websocket', 'polling'],
-    pingTimeout: 120000,    // 2 минуты без пинга
-    pingInterval: 30000,    // Пинг каждые 30 секунд
+    pingTimeout: 120000,
+    pingInterval: 30000,
     connectTimeout: 30000
 });
 
 const PORT = process.env.PORT || 3000;
 const ROOM_PASSWORD = '1234';
-const DISCONNECT_TIMEOUT = 300000; // 5 МИНУТ
+const DISCONNECT_TIMEOUT = 300000; // 5 минут для неявного отключения
 const DATA_FILE = path.join(__dirname, 'tactical_data.json');
 
 const rooms = {};
@@ -62,7 +62,7 @@ for (const [roomName, data] of Object.entries(savedData)) {
     console.log(`📂 Комната ${roomName}: ${Object.keys(data.objects || {}).length} объектов`);
 }
 
-setInterval(saveData, 300000); // Сохранение каждые 5 минут
+setInterval(saveData, 300000);
 
 // ==================== ОЧИСТКА В ПОЛНОЧЬ ====================
 function getTimeUntilMidnight() {
@@ -129,6 +129,7 @@ io.on('connection', (socket) => {
             }
             roomData.players[name].socketId = socket.id;
             roomData.players[name].pendingDisconnect = false;
+            roomData.players[name].explicitExit = false;
             roomData.players[name].lastSeen = Date.now();
         } else {
             roomData.players[name] = {
@@ -137,6 +138,7 @@ io.on('connection', (socket) => {
                 socketId: socket.id,
                 team: team || room,
                 pendingDisconnect: false,
+                explicitExit: false,
                 lastSeen: Date.now()
             };
         }
@@ -181,6 +183,7 @@ io.on('connection', (socket) => {
         }
         roomData.players[name].socketId = socket.id;
         roomData.players[name].pendingDisconnect = false;
+        roomData.players[name].explicitExit = false;
         roomData.players[name].lastSeen = Date.now();
         
         playerSockets[socket.id] = { name, team: room, room, color: color || roomData.players[name].color };
@@ -205,6 +208,41 @@ io.on('connection', (socket) => {
                 roomData.players[name].disconnectTimer = null;
             }
         }
+    });
+
+    // ===== ЯВНЫЙ ВЫХОД ПО КНОПКЕ =====
+    socket.on('explicit_exit', (data) => {
+        const playerInfo = playerSockets[socket.id];
+        if (!playerInfo) return;
+        
+        const { room, name } = playerInfo;
+        const roomData = rooms[room];
+        
+        console.log(`🚪 Явный выход: ${name} из ${room}`);
+        
+        if (roomData && roomData.players[name]) {
+            roomData.players[name].explicitExit = true;
+            
+            if (roomData.players[name].disconnectTimer) {
+                clearTimeout(roomData.players[name].disconnectTimer);
+            }
+            
+            delete roomData.players[name];
+            
+            const leaveMsg = {
+                name: '⚡СИСТЕМА',
+                text: `Боец ${name} вышел`,
+                color: '#ff4444',
+                timestamp: Date.now()
+            };
+            roomData.messages.push(leaveMsg);
+            io.to(room).emit('receive_msg', leaveMsg);
+            io.to(room).emit('player_left', { name });
+        }
+        
+        delete playerSockets[socket.id];
+        saveData();
+        socket.disconnect(true);
     });
 
     socket.on('gps_sync', (data) => {
@@ -267,7 +305,7 @@ io.on('connection', (socket) => {
         io.to(room).emit('receive_msg', message);
     });
 
-    // ===== ОТКЛЮЧЕНИЕ С ТАЙМАУТОМ 5 МИНУТ =====
+    // ===== ОТКЛЮЧЕНИЕ =====
     socket.on('disconnect', (reason) => {
         const playerInfo = playerSockets[socket.id];
         if (!playerInfo) return;
@@ -275,44 +313,77 @@ io.on('connection', (socket) => {
         const { room, name } = playerInfo;
         const roomData = rooms[room];
         
-        console.log(`🔌 Отключение: ${name} [${reason}] — ждем 5 минут`);
+        console.log(`🔌 Отключение: ${name} [${reason}]`);
         
         if (roomData && roomData.players[name]) {
-            roomData.players[name].pendingDisconnect = true;
-            roomData.players[name].disconnectTime = Date.now();
-            
-            // Таймер на 5 МИНУТ
-            roomData.players[name].disconnectTimer = setTimeout(() => {
-                const player = roomData.players[name];
-                if (player && player.pendingDisconnect) {
-                    const elapsed = Date.now() - (player.disconnectTime || 0);
-                    if (elapsed >= DISCONNECT_TIMEOUT - 5000) {
-                        console.log(`🗑️ ${name} удален (не вернулся за 5 мин)`);
-                        delete roomData.players[name];
-                        
-                        const leaveMsg = {
-                            name: '⚡СИСТЕМА',
-                            text: `Боец ${name} отключился (5 мин)`,
-                            color: '#ff4444',
-                            timestamp: Date.now()
-                        };
-                        roomData.messages.push(leaveMsg);
-                        io.to(room).emit('receive_msg', leaveMsg);
-                        io.to(room).emit('player_left', { name });
-                        
-                        // Удаляем комнату если пуста 24 часа
-                        if (Object.keys(roomData.players).length === 0) {
-                            setTimeout(() => {
-                                if (rooms[room] && Object.keys(rooms[room].players).length === 0) {
-                                    delete rooms[room];
-                                    console.log(`🗑️ Комната ${room} удалена`);
-                                    saveData();
-                                }
-                            }, 86400000);
+            // Если явный выход — удаляем сразу
+            if (reason === 'io client disconnect' || roomData.players[name].explicitExit) {
+                console.log(`🚪 ${name} вышел сам — удаляем сразу`);
+                
+                // Отменяем таймер если есть
+                if (roomData.players[name].disconnectTimer) {
+                    clearTimeout(roomData.players[name].disconnectTimer);
+                }
+                
+                delete roomData.players[name];
+                
+                const leaveMsg = {
+                    name: '⚡СИСТЕМА',
+                    text: `Боец ${name} вышел`,
+                    color: '#ff4444',
+                    timestamp: Date.now()
+                };
+                roomData.messages.push(leaveMsg);
+                io.to(room).emit('receive_msg', leaveMsg);
+                io.to(room).emit('player_left', { name });
+                
+                if (Object.keys(roomData.players).length === 0) {
+                    setTimeout(() => {
+                        if (rooms[room] && Object.keys(rooms[room].players).length === 0) {
+                            delete rooms[room];
+                            console.log(`🗑️ Комната ${room} удалена`);
+                            saveData();
+                        }
+                    }, 86400000);
+                }
+            } else {
+                // Неявное отключение — ждем 5 минут
+                console.log(`⏳ ${name} отключен — ждем 5 минут`);
+                
+                roomData.players[name].pendingDisconnect = true;
+                roomData.players[name].disconnectTime = Date.now();
+                
+                roomData.players[name].disconnectTimer = setTimeout(() => {
+                    const player = roomData.players[name];
+                    if (player && player.pendingDisconnect) {
+                        const elapsed = Date.now() - (player.disconnectTime || 0);
+                        if (elapsed >= DISCONNECT_TIMEOUT - 5000) {
+                            console.log(`🗑️ ${name} удален (не вернулся за 5 мин)`);
+                            delete roomData.players[name];
+                            
+                            const leaveMsg = {
+                                name: '⚡СИСТЕМА',
+                                text: `Боец ${name} отключился (5 мин)`,
+                                color: '#ff4444',
+                                timestamp: Date.now()
+                            };
+                            roomData.messages.push(leaveMsg);
+                            io.to(room).emit('receive_msg', leaveMsg);
+                            io.to(room).emit('player_left', { name });
+                            
+                            if (Object.keys(roomData.players).length === 0) {
+                                setTimeout(() => {
+                                    if (rooms[room] && Object.keys(rooms[room].players).length === 0) {
+                                        delete rooms[room];
+                                        console.log(`🗑️ Комната ${room} удалена`);
+                                        saveData();
+                                    }
+                                }, 86400000);
+                            }
                         }
                     }
-                }
-            }, DISCONNECT_TIMEOUT);
+                }, DISCONNECT_TIMEOUT);
+            }
         }
         
         delete playerSockets[socket.id];
@@ -341,14 +412,16 @@ app.get('/api/clear', (req, res) => { clearAllObjects(); res.json({ success: tru
 // ==================== ЗАПУСК ====================
 server.listen(PORT, '0.0.0.0', () => {
     console.log('════════════════════════════════════════');
-    console.log('⚡ SCORPION TACTICAL v5.3 ⚡');
+    console.log('⚡ SCORPION TACTICAL v5.5 ⚡');
     console.log('════════════════════════════════════════');
     console.log(`📍 Порт: ${PORT}`);
-    console.log(`⏱️ Таймаут отключения: ${DISCONNECT_TIMEOUT / 60000} МИНУТ`);
+    console.log(`⏱️ Таймаут неявного отключения: ${DISCONNECT_TIMEOUT / 60000} МИНУТ`);
+    console.log(`🚪 Явный выход (кнопка): МГНОВЕННО`);
     console.log(`🕛 Очистка через: ${Math.floor(getTimeUntilMidnight() / 60000)} мин`);
     console.log('────────────────────────────────────────');
-    console.log('✅ Объекты — до полуночи');
-    console.log('✅ Игроки — таймаут 5 минут');
+    console.log('✅ Метки — до полуночи');
+    console.log('✅ Кнопка Выход — удаляет сразу');
+    console.log('✅ Блокировка телефона — 5 минут');
     console.log('════════════════════════════════════════');
 });
 
