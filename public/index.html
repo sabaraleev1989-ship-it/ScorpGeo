@@ -6,24 +6,20 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#000000">
-    <title>SCORPION TACTICAL v5.1</title>
+    <title>SCORPION TACTICAL v5.2</title>
     
     <link rel="manifest" href="/manifest.json">
     <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='192' height='192' viewBox='0 0 192 192'%3E%3Ccircle cx='96' cy='96' r='90' fill='none' stroke='%2300ff00' stroke-width='4'/%3E%3Ctext x='96' y='105' text-anchor='middle' fill='%2300ff00' font-size='14' font-family='monospace' font-weight='bold'%3ESCORPION%3C/text%3E%3C/svg%3E">
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
-    </script>
-    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js">
-    </script>
-    <script src="https://cdn.tailwindcss.com">
-    </script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
     
     <style>
         * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; -webkit-user-select:none; user-select:none; }
         body,html { width:100%; height:100%; background:#000; overflow:hidden; font-family:'Courier New',monospace; }
         
-        /* ЭКРАН ВХОДА */
         #auth-screen {
             position:fixed; inset:0; z-index:10000;
             background:radial-gradient(ellipse at center,#0a1a0a 0%,#010101 100%);
@@ -71,23 +67,18 @@
         .auto-login-msg { color:#0f0; font-size:12px; margin-top:10px; animation:fadeInOut 2s forwards; }
         @keyframes fadeInOut { 0%{opacity:0} 20%{opacity:1} 80%{opacity:1} 100%{opacity:0} }
         
-        /* КАРТА */
         #map { position:absolute; inset:0; z-index:1; background:#1a1e1a; }
         
-        /* ПАНЕЛЬ ИНСТРУМЕНТОВ (КРУПНЫЕ ИКОНКИ) */
         .side-panel { position:fixed; left:0; top:0; bottom:0; width:78px; background:rgba(0,0,0,0.96); border-right:2px solid #0f0; z-index:5000; display:none; flex-direction:column; overflow-y:auto; }
         .tool-btn { width:100%; min-height:62px; display:flex; flex-direction:column; align-items:center; justify-content:center; border-bottom:1px solid #0a0; color:#0f0; cursor:pointer; font-size:10px; font-weight:bold; padding:5px 2px; transition:all 0.2s; }
         .tool-btn b { font-size:22px; margin-bottom:3px; }
-        .tool-btn span { line-height:1.1; }
         .tool-btn.active { background:#020; color:#fff; border-left:3px solid #0f0; }
         .tool-btn:active { transform:scale(0.95); background:#030; }
         
-        /* СЕТКА */
         #grid-overlay { position:fixed; inset:0; pointer-events:none; z-index:900; }
-        .grid-letter-top { position:absolute; font-size:12px; font-weight:900; font-family:'Courier New',monospace; background:rgba(0,0,0,0.85); color:#bbb; padding:3px 7px; border:1px solid #555; border-radius:3px; transform:translate(-50%,-50%); z-index:950; }
-        .grid-number-right { position:absolute; font-size:12px; font-weight:900; font-family:'Courier New',monospace; background:rgba(0,0,0,0.85); color:#bbb; padding:3px 7px; border:1px solid #555; border-radius:3px; transform:translate(0,-50%); z-index:950; }
+        .grid-letter-top { position:absolute; font-weight:900; font-family:'Courier New',monospace; background:rgba(0,0,0,0.85); color:#bbb; border:1px solid #555; border-radius:3px; transform:translate(-50%,-50%); z-index:950; }
+        .grid-number-right { position:absolute; font-weight:900; font-family:'Courier New',monospace; background:rgba(0,0,0,0.85); color:#bbb; border:1px solid #555; border-radius:3px; transform:translate(0,-50%); z-index:950; }
         
-        /* ЧАТ */
         #chat-win { position:fixed; bottom:10px; left:88px; right:10px; height:170px; background:rgba(0,0,0,0.95); border:1px solid #0f0; z-index:6000; display:none; flex-direction:column; border-radius:5px; }
         #chat-messages { flex:1; overflow-y:auto; padding:8px; font-size:11px; font-family:'Courier New',monospace; }
         .msg-line { margin-bottom:4px; padding:3px 5px; border-bottom:1px solid #0a0; word-break:break-word; animation:fadeIn 0.3s; }
@@ -97,26 +88,22 @@
         #chat-input { background:#000; color:#0f0; border:1px solid #0f0; padding:8px; outline:none; font-size:11px; font-family:'Courier New',monospace; margin:4px; border-radius:3px; flex:1; }
         #send-btn { background:#000; color:#0f0; border:1px solid #0f0; padding:6px 12px; font-size:11px; font-weight:bold; cursor:pointer; font-family:'Courier New',monospace; }
         
-        /* МАРКЕРЫ ИГРОКОВ */
-        .player-marker { display:flex; flex-direction:column; align-items:center; }
-        .player-name-tag { font-weight:900; font-size:10px; text-shadow:1px 1px 2px #000; white-space:nowrap; margin-bottom:2px; background:rgba(0,0,0,0.8); padding:2px 5px; border-radius:8px; }
-        .player-dot { width:14px; height:14px; border-radius:50%; border:2px solid #fff; box-shadow:0 0 8px rgba(0,0,0,0.7); }
+        .player-marker { display:flex; flex-direction:column; align-items:center; cursor:pointer; }
+        .player-name-tag { font-weight:900; font-size:10px; text-shadow:1px 1px 2px #000; white-space:nowrap; margin-bottom:2px; background:rgba(0,0,0,0.8); padding:2px 5px; border-radius:8px; pointer-events:auto; }
+        .player-dot { width:14px; height:14px; border-radius:50%; border:2px solid #fff; box-shadow:0 0 8px rgba(0,0,0,0.7); pointer-events:auto; }
         
-        /* ПЛАШКА РАССТОЯНИЯ (СНИЗУ) */
         #distance-bar {
             position:fixed; bottom:60px; left:50%; transform:translateX(-50%);
             background:rgba(0,0,0,0.9); border:2px solid #f80; color:#ff0;
-            padding:12px 20px; border-radius:25px; z-index:8000; display:none;
-            font-family:'Courier New',monospace; font-size:18px; font-weight:900;
-            text-align:center; box-shadow:0 0 30px rgba(255,136,0,0.4);
+            padding:14px 24px; border-radius:30px; z-index:8000; display:none;
+            font-family:'Courier New',monospace; font-size:20px; font-weight:900;
+            text-align:center; box-shadow:0 0 40px rgba(255,136,0,0.5);
             animation:slideUp 0.3s ease-out;
             pointer-events:none;
         }
         @keyframes slideUp { from{opacity:0;transform:translate(-50%,20px)} to{opacity:1;transform:translate(-50%,0)} }
         
-        /* ПОДСКАЗКА АВТОРА */
         .creator-tooltip { background:rgba(0,0,0,0.9)!important; border:1px solid #0f0!important; color:#0f0!important; font-family:'Courier New',monospace!important; font-size:12px!important; padding:5px 10px!important; border-radius:6px!important; }
-        
         #connection-status { position:fixed; top:8px; right:8px; background:rgba(0,0,0,0.85); color:#0f0; padding:4px 8px; border-radius:12px; font-size:9px; z-index:7000; display:none; font-family:monospace; border:1px solid #0f0; }
         
         @media(max-width:640px) {
@@ -130,7 +117,6 @@
 
 <div id="connection-status">🟢 ОНЛАЙН</div>
 
-<!-- ЭКРАН ВХОДА -->
 <div id="auth-screen">
     <div class="radar-container">
         <div class="radar-circle"></div>
@@ -153,7 +139,6 @@
     </div>
 </div>
 
-<!-- ПАНЕЛЬ ИНСТРУМЕНТОВ -->
 <div class="side-panel" id="ui-panel">
     <div onclick="setTool('move')" id="btn-move" class="tool-btn active"><b>🖐️</b><span>Рука</span></div>
     <div onclick="centerOnMe()" class="tool-btn"><b>📍</b><span>Я тут</span></div>
@@ -171,11 +156,8 @@
 
 <div id="map"></div>
 <div id="grid-overlay"></div>
-
-<!-- ПЛАШКА РАССТОЯНИЯ -->
 <div id="distance-bar"></div>
 
-<!-- ЧАТ -->
 <div id="chat-win">
     <div id="chat-messages"></div>
     <div style="display:flex;gap:4px;padding:4px;background:#000;border-top:1px solid #0a0;">
@@ -222,7 +204,6 @@ document.addEventListener('visibilitychange',()=>{
     }else{ if(socket.connected&&currentUser.name) socket.emit('keep_alive',{name:currentUser.name,room:currentUser.team}); }
 });
 window.addEventListener('beforeunload',()=>{ if(currentUser.name) saveSession(); });
-
 function startKeepAlive(){ if(keepAliveInterval)clearInterval(keepAliveInterval); keepAliveInterval=setInterval(()=>{ if(socket.connected&&currentUser.name) socket.emit('keep_alive',{name:currentUser.name,room:currentUser.team}); },20000); }
 
 socket.on('connect',()=>{ const el=document.getElementById('connection-status'); el.textContent='🟢 ОНЛАЙН'; el.style.color='#0f0'; el.style.display='block'; setTimeout(()=>el.style.display='none',3000); });
@@ -328,44 +309,55 @@ function createPlayerIcon(name,color){
     return L.divIcon({html:`<div class="player-marker"><div class="player-name-tag" style="color:${color}">${name}</div><div class="player-dot" style="background:${color}"></div></div>`,iconSize:[70,36],iconAnchor:[35,28],className:''});
 }
 
+// ===== ИСПРАВЛЕНО: ОБРАБОТЧИК НАЖАТИЯ НА МАРКЕР ИГРОКА =====
 function updatePlayerMarker(name,lat,lng,color){
     if(!map||!name||name===currentUser.name)return;
-    if(playersMarkers[name]){ playersMarkers[name].setLatLng([lat,lng]); }
-    else{
+    if(playersMarkers[name]){
+        playersMarkers[name].setLatLng([lat,lng]);
+    }else{
         const icon=createPlayerIcon(name,color||'#fff');
-        playersMarkers[name]=L.marker([lat,lng],{icon,zIndexOffset:900}).addTo(map);
-        const marker=playersMarkers[name];
-        let pressTimer, startPos;
-        const start=(e)=>{ startPos=e.latlng; pressTimer=setTimeout(()=>showDistanceBar(name,startPos),400); };
-        const stop=()=>{ clearTimeout(pressTimer); };
-        marker.on('mousedown',start); marker.on('mouseup',stop); marker.on('mouseout',stop);
-        marker.on('touchstart',start); marker.on('touchend',stop); marker.on('touchcancel',stop);
+        const marker=L.marker([lat,lng],{icon,zIndexOffset:900}).addTo(map);
+        playersMarkers[name]=marker;
+        
+        // Переменные для удержания
+        let pressTimer=null;
+        let pressStartPos=null;
+        
+        // Функция показа расстояния
+        const showDist=()=>{
+            if(!playersMarkers[currentUser.name])return;
+            const myPos=playersMarkers[currentUser.name].getLatLng();
+            const targetPos=marker.getLatLng();
+            const d=map.distance(myPos,targetPos);
+            const txt=d<1000?`${Math.round(d)} м`:`${(d/1000).toFixed(1)} км`;
+            
+            const bar=document.getElementById('distance-bar');
+            bar.innerHTML=`📏 <b style="color:${playerColors[name]||'#fff'}">${name}</b> — ${txt}`;
+            bar.style.display='block';
+            bar.style.animation='none';
+            bar.offsetHeight;
+            bar.style.animation='slideUp 0.3s ease-out';
+            
+            if(distanceTimer)clearTimeout(distanceTimer);
+            distanceTimer=setTimeout(()=>{ bar.style.display='none'; },5000);
+        };
+        
+        // Обработчики для мыши
+        marker.on('mousedown',(e)=>{
+            pressStartPos=e.latlng;
+            pressTimer=setTimeout(showDist,400); // 400мс удержания
+        });
+        marker.on('mouseup',()=>{ clearTimeout(pressTimer); });
+        marker.on('mouseout',()=>{ clearTimeout(pressTimer); });
+        
+        // Обработчики для тача (телефон)
+        marker.on('touchstart',(e)=>{
+            pressStartPos=e.latlng;
+            pressTimer=setTimeout(showDist,400);
+        });
+        marker.on('touchend',()=>{ clearTimeout(pressTimer); });
+        marker.on('touchcancel',()=>{ clearTimeout(pressTimer); });
     }
-}
-
-// ===== КРАСИВАЯ ПЛАШКА РАССТОЯНИЯ СНИЗУ =====
-function showDistanceBar(name,targetPos){
-    if(!playersMarkers[currentUser.name])return;
-    const myPos=playersMarkers[currentUser.name].getLatLng();
-    const d=map.distance(myPos,targetPos);
-    const txt=d<1000?`${Math.round(d)} м`:`${(d/1000).toFixed(1)} км`;
-    
-    const bar=document.getElementById('distance-bar');
-    bar.innerHTML=`📏 <b style="color:${playerColors[name]||'#fff'}">${name}</b> — ${txt}`;
-    bar.style.display='block';
-    bar.style.animation='none';
-    bar.offsetHeight; // reflow
-    bar.style.animation='slideUp 0.3s ease-out';
-    
-    if(distanceTimer)clearTimeout(distanceTimer);
-    distanceTimer=setTimeout(()=>{
-        bar.style.display='none';
-    },5000);
-}
-
-function hideDistanceBar(){
-    const bar=document.getElementById('distance-bar');
-    bar.style.display='none';
 }
 
 function centerOnMe(){
@@ -373,7 +365,7 @@ function centerOnMe(){
     else{alert('Позиция не определена');}
 }
 
-// ==================== КЛИКИ ====================
+// ==================== КЛИКИ ПО КАРТЕ ====================
 function handleMapClick(e){
     const{lat,lng}=e.latlng;
     if(activeTool==='enemy'||activeTool==='target'){
@@ -389,12 +381,16 @@ function handleMapClick(e){
 
 function deleteMyObjects(){ const ids=Array.from(myObjects); ids.forEach(id=>socket.emit('delete_obj',id)); myObjects.clear(); }
 
-// ==================== СЕТКА (ДИНАМИЧЕСКИЙ РАЗМЕР) ====================
+// ==================== СЕТКА (БЕЗ КАШИ) ====================
 function getGridSizeForZoom(zoom){
-    if(zoom>=18) return 20;   // Крупно — маленькие квадраты
-    if(zoom>=16) return 30;   // Средне
-    if(zoom>=14) return 60;   // Отдаление — большие квадраты
-    return 0;                 // Слишком далеко — без сетки
+    // Чем меньше зум (отдаление) — тем больше квадраты
+    if(zoom>=19) return 20;   // Очень близко — 20м
+    if(zoom>=18) return 30;   // Близко — 30м
+    if(zoom>=17) return 50;   // Средне — 50м
+    if(zoom>=16) return 100;  // Отдаление — 100м
+    if(zoom>=15) return 200;  // Далеко — 200м
+    if(zoom>=14) return 400;  // Очень далеко — 400м
+    return 0;                  // Совсем далеко — без сетки
 }
 
 function drawGrid(){
@@ -405,7 +401,6 @@ function drawGrid(){
     const zoom=map.getZoom();
     const GRID_SIZE=getGridSizeForZoom(zoom);
     
-    // Если сетка не нужна — убираем
     if(GRID_SIZE===0){
         if(gridLayer){ map.removeLayer(gridLayer); gridLayer=null; }
         return;
@@ -421,39 +416,45 @@ function drawGrid(){
     if(gridLayer) map.removeLayer(gridLayer);
     gridLayer=L.layerGroup().addTo(map);
     
-    // Цвет линий зависит от размера сетки
-    const lineColor=GRID_SIZE>=60?'#555':'#444';
-    const lineOpacity=GRID_SIZE>=60?0.6:0.4;
-    const lineWeight=GRID_SIZE>=60?2.5:1.5;
+    // Стиль линий зависит от размера
+    const lineColor='#555';
+    const lineOpacity=0.5;
+    const lineWeight=GRID_SIZE>=200?3:GRID_SIZE>=100?2.5:1.5;
     
     for(let lng=startLng;lng<=endLng;lng+=GRID_STEP)
         L.polyline([[startLat,lng],[endLat,lng]],{color:lineColor,weight:lineWeight,opacity:lineOpacity}).addTo(gridLayer);
     for(let lat=startLat;lat<=endLat;lat+=GRID_STEP)
         L.polyline([[lat,startLng],[lat,endLng]],{color:lineColor,weight:lineWeight,opacity:lineOpacity}).addTo(gridLayer);
     
-    // Размер букв/цифр зависит от зума
-    const fontSize=GRID_SIZE>=60?'15px':'12px';
-    const padding=GRID_SIZE>=60?'4px 10px':'3px 7px';
+    // Размер шрифта для букв/цифр
+    let fontSize, padX, padY;
+    if(GRID_SIZE>=400){ fontSize='18px'; padX='6px 14px'; }
+    else if(GRID_SIZE>=200){ fontSize='15px'; padX='5px 12px'; }
+    else if(GRID_SIZE>=100){ fontSize='13px'; padX='4px 10px'; }
+    else{ fontSize='11px'; padX='3px 7px'; }
     
+    // Буквы сверху
     let ci=0;
     for(let lng=startLng;lng<=endLng;lng+=GRID_STEP){
         const p=map.latLngToContainerPoint([bounds.getNorth(),lng+GRID_STEP/2]);
-        if(p.x>25&&p.x<window.innerWidth-25){
+        if(p.x>30&&p.x<window.innerWidth-30){
             const d=document.createElement('div'); d.className='grid-letter-top';
             d.textContent=RUSSIAN_LETTERS[ci%RUSSIAN_LETTERS.length];
-            d.style.left=p.x+'px'; d.style.top=Math.max(20,p.y-15)+'px';
-            d.style.fontSize=fontSize; d.style.padding=padding;
+            d.style.left=p.x+'px'; d.style.top=Math.max(22,p.y-18)+'px';
+            d.style.fontSize=fontSize; d.style.padding=padX;
             overlay.appendChild(d);
         }
         ci++;
     }
+    
+    // Цифры справа
     let ri=0;
     for(let lat=startLat;lat<=endLat;lat+=GRID_STEP){
         const p=map.latLngToContainerPoint([lat+GRID_STEP/2,endLng]);
-        if(p.y>25&&p.y<window.innerHeight-25){
+        if(p.y>30&&p.y<window.innerHeight-30){
             const d=document.createElement('div'); d.className='grid-number-right';
-            d.textContent=ri%100; d.style.right='8px'; d.style.top=p.y+'px';
-            d.style.fontSize=fontSize; d.style.padding=padding;
+            d.textContent=ri%100; d.style.right='10px'; d.style.top=p.y+'px';
+            d.style.fontSize=fontSize; d.style.padding=padX;
             overlay.appendChild(d);
         }
         ri++;
@@ -478,7 +479,7 @@ function toggleChat(){ const c=document.getElementById('chat-win'); c.style.disp
 // ==================== ИНСТРУМЕНТЫ ====================
 function setTool(t){
     activeTool=t; rulerPoints=[];
-    hideDistanceBar();
+    const bar=document.getElementById('distance-bar'); bar.style.display='none';
     if(distanceTimer){clearTimeout(distanceTimer);distanceTimer=null;}
     document.querySelectorAll('.tool-btn').forEach(b=>b.classList.remove('active'));
     const btn=document.getElementById(`btn-${t}`); if(btn)btn.classList.add('active');
@@ -491,7 +492,7 @@ function changeMap(type){
 }
 function exitApp(){
     if(confirm('Выйти? Сессия удалится.')){
-        clearSession(); hideDistanceBar();
+        clearSession();
         if(watchId)navigator.geolocation.clearWatch(watchId);
         if(keepAliveInterval)clearInterval(keepAliveInterval);
         if(distanceTimer)clearTimeout(distanceTimer);
@@ -510,7 +511,7 @@ window.doLogin=doLogin; window.setTool=setTool; window.centerOnMe=centerOnMe;
 window.changeMap=changeMap; window.toggleChat=toggleChat; window.sendChatMessage=sendChatMessage;
 window.deleteMyObjects=deleteMyObjects; window.exitApp=exitApp;
 
-console.log('⚡ SCORPION v5.1 — Сетка: крупнее→исчезает | Расстояние: плашка снизу | Иконки: крупные');
+console.log('⚡ SCORPION v5.2 — Расстояние: удержание 0.4с | Сетка: 20→400м | Без каши');
 </script>
 
 <script>
