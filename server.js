@@ -16,7 +16,7 @@ const io = new Server(server, {
 
 const PORT = process.env.PORT || 3000;
 const ROOM_PASSWORD = '1234';
-const DISCONNECT_TIMEOUT = 900000; // 15 МИНУТ для неявного отключения
+const DISCONNECT_TIMEOUT = 900000; // 15 МИНУТ
 const DATA_FILE = path.join(__dirname, 'tactical_data.json');
 
 const rooms = {};
@@ -25,7 +25,6 @@ const playerSockets = {};
 app.use(express.static(path.join(__dirname, 'public')));
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
-// ==================== ЗАГРУЗКА/СОХРАНЕНИЕ ====================
 function loadData() {
     try {
         if (fs.existsSync(DATA_FILE)) {
@@ -64,7 +63,6 @@ for (const [roomName, data] of Object.entries(savedData)) {
 
 setInterval(saveData, 300000);
 
-// ==================== ОЧИСТКА В ПОЛНОЧЬ ====================
 function getTimeUntilMidnight() {
     const now = new Date();
     const midnight = new Date(now);
@@ -93,7 +91,6 @@ function clearAllObjects() {
 setTimeout(() => { clearAllObjects(); setInterval(clearAllObjects, 24 * 60 * 60 * 1000); }, getTimeUntilMidnight());
 console.log(`🕛 Очистка через ${Math.floor(getTimeUntilMidnight() / 60000)} минут`);
 
-// ==================== ЦВЕТА ====================
 function getRandomColor() {
     const colors = ['#ff4444','#44ff44','#4444ff','#ffff44','#ff44ff','#44ffff','#ff8844','#8844ff','#44ff88','#ff4488','#88ff44','#ffaa00','#00aaff','#aa00ff','#ff00aa','#00ffaa','#aaff00'];
     return colors[Math.floor(Math.random() * colors.length)];
@@ -107,7 +104,6 @@ function getOrCreateRoom(roomName) {
     return rooms[roomName];
 }
 
-// ==================== SOCKET.IO ====================
 io.on('connection', (socket) => {
     console.log(`🔌 Подключение: ${socket.id} [${new Date().toLocaleTimeString()}]`);
 
@@ -206,7 +202,6 @@ io.on('connection', (socket) => {
         }
     });
 
-    // ===== ЯВНЫЙ ВЫХОД =====
     socket.on('explicit_exit', (data) => {
         const playerInfo = playerSockets[socket.id];
         if (!playerInfo) return;
@@ -281,7 +276,6 @@ io.on('connection', (socket) => {
         io.to(room).emit('receive_msg', message);
     });
 
-    // ===== ОТКЛЮЧЕНИЕ =====
     socket.on('disconnect', (reason) => {
         const playerInfo = playerSockets[socket.id];
         if (!playerInfo) return;
@@ -320,7 +314,6 @@ io.on('connection', (socket) => {
     });
 });
 
-// ==================== МОНИТОРИНГ ====================
 app.get('/api/status', (req, res) => {
     const now = new Date();
     const midnight = new Date(now); midnight.setHours(24, 0, 0, 0);
@@ -336,13 +329,12 @@ app.get('/api/status', (req, res) => {
 
 app.get('/api/clear', (req, res) => { clearAllObjects(); res.json({ success: true }); });
 
-// ==================== ЗАПУСК ====================
 server.listen(PORT, '0.0.0.0', () => {
     console.log('════════════════════════════════════════');
-    console.log('⚡ SCORPION TACTICAL v5.6 ⚡');
+    console.log('🦂 ScorpGEO TACTICAL v5.6 🦂');
     console.log('════════════════════════════════════════');
     console.log(`📍 Порт: ${PORT}`);
-    console.log(`⏱️ Таймаут неявного отключения: ${DISCONNECT_TIMEOUT / 60000} МИНУТ`);
+    console.log(`⏱️ Таймаут: ${DISCONNECT_TIMEOUT / 60000} МИНУТ`);
     console.log(`🚪 Явный выход: МГНОВЕННО`);
     console.log(`🕛 Очистка через: ${Math.floor(getTimeUntilMidnight() / 60000)} мин`);
     console.log('════════════════════════════════════════');
