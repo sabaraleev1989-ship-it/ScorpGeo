@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="ScorpGEO">
     <meta name="theme-color" content="#000000">
-    <title>ScorpGEO v6.2</title>
+    <title>ScorpGEO v6.3</title>
     
     <link rel="manifest" href="/manifest.json">
     <link rel="apple-touch-icon" href="/icons/icon-512.png">
@@ -99,9 +99,9 @@
         
         <button onclick="doLogin()" class="auth-btn">⚡ ВОЙТИ ⚡</button>
         <div style="color:#050;font-size:8px;margin-top:12px;letter-spacing:1px;">
-            v6.2 • 
+            v6.3 • 
             <span onclick="tryBecomeAdmin()" style="color:#0a0;cursor:pointer;text-decoration:underline;">АДМИН</span>
-            • КОД ДОСТУПА
+            • 1 УСТРОЙСТВО • ЛИНЕЙКА 5С
         </div>
         <div id="autoLoginMsg" style="color:#0f0;font-size:11px;margin-top:8px;display:none;"></div>
     </div>
@@ -136,10 +136,21 @@
 </div>
 
 <script>
-const socket = io({ transports:['websocket','polling'], reconnection:true, reconnectionDelay:500, reconnectionDelayMax:3000, reconnectionAttempts:20, timeout:10000, pingInterval:20000, pingTimeout:50000, autoConnect:true });
+// ==================== DEVICE ID (один вход с устройства) ====================
+function getDeviceId() {
+    let id = localStorage.getItem('scorpgeo_device_id');
+    if (!id) {
+        id = 'dev_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        localStorage.setItem('scorpgeo_device_id', id);
+    }
+    return id;
+}
+const DEVICE_ID = getDeviceId();
+
+const socket = io({ transports:['websocket','polling'], reconnection:true, reconnectionDelay:500, reconnectionDelayMax:3000, reconnectionAttempts:20, timeout:10000, pingInterval:20000, pingTimeout:50000, autoConnect:true, query: { deviceId: DEVICE_ID } });
 
 let map, activeTool='move', currentUser={name:'',team:'',color:'#0f0'};
-let playersMarkers={}, tacticalObjects={}, myObjects=new Set(), rulerPoints=[], gridLayer=null, tileLayer=null, playerColors={}, watchId=null, keepAliveInterval=null, distanceTimer=null;
+let playersMarkers={}, tacticalObjects={}, myObjects=new Set(), rulerPoints=[], gridLayer=null, tileLayer=null, playerColors={}, watchId=null, keepAliveInterval=null, distanceTimer=null, rulerTimers={};
 let isAdmin=false, currentAccessCode='';
 
 const METERS_PER_DEGREE=111320;
@@ -147,302 +158,290 @@ const RUSSIAN_LETTERS=['А','Б','В','Г','Д','Е','Ё','Ж','З','И','Й','�
 const STORAGE_KEY='scorpgeo_session';
 const ADMIN_PASSWORD='Mpfp13zi';
 
-function saveSession(){ const s={team:currentUser.team,name:currentUser.name,color:currentUser.color,timestamp:Date.now()}; localStorage.setItem(STORAGE_KEY,JSON.stringify(s)); }
-function loadSession(){ try{ const d=localStorage.getItem(STORAGE_KEY); if(d){ const s=JSON.parse(d); if(Date.now()-s.timestamp<86400000) return s; } }catch(e){} return null; }
+function saveSession(){ const s={team:currentUser.team,name:currentUser.name,color:currentUser.color,deviceId:DEVICE_ID,timestamp:Date.now()}; localStorage.setItem(STORAGE_KEY,JSON.stringify(s)); }
+function loadSession(){ try{ const d=localStorage.getItem(STORAGE_KEY); if(d){ const s=JSON.parse(d); if(Date.now()-s.timestamp<86400000 && s.deviceId===DEVICE_ID) return s; } }catch(e){} return null; }
 function clearSession(){ localStorage.removeItem(STORAGE_KEY); }
 
-// ==================== АДМИН / КОД ДОСТУПА ====================
 function tryBecomeAdmin(){
-    const pass = prompt('🔐 Введите админ-пароль для смены кода доступа:');
-    if(pass === ADMIN_PASSWORD){
-        isAdmin = true;
-        document.getElementById('settingsGear').style.display = 'inline';
-        alert('✅ Доступ разрешен! Теперь вы можете изменить уникальный код.');
-    } else {
-        alert('❌ Неверный пароль!');
-    }
+    const pass=prompt('🔐 Введите админ-пароль для смены кода доступа:');
+    if(pass===ADMIN_PASSWORD){ isAdmin=true; document.getElementById('settingsGear').style.display='inline'; alert('✅ Доступ разрешен!'); }
+    else{ alert('❌ Неверный пароль!'); }
 }
 
 function changeAccessCode(){
-    if(!isAdmin){
-        alert('Сначала нажмите "АДМИН" и введите пароль!');
-        return;
-    }
-    const newCode = prompt('Введите новый уникальный код доступа:');
-    if(newCode && newCode.trim()){
-        socket.emit('change_access_code', {
-            newCode: newCode.trim(),
-            adminPass: ADMIN_PASSWORD
-        });
-    }
+    if(!isAdmin){ alert('Сначала нажмите "АДМИН" и введите пароль!'); return; }
+    const newCode=prompt('Введите новый уникальный код доступа:');
+    if(newCode&&newCode.trim()){ socket.emit('change_access_code',{newCode:newCode.trim(),adminPass:ADMIN_PASSWORD}); }
 }
 
-socket.on('code_changed', (data) => {
-    if(data.success){
-        currentAccessCode = data.newCode;
-        document.getElementById('accessCode').value = '';
-        alert('✅ Код доступа изменен! Новый код: ' + data.newCode + '\nСообщите его бойцам.');
-    } else {
-        alert('❌ Ошибка: ' + data.error);
-    }
+socket.on('code_changed',(data)=>{
+    if(data.success){ currentAccessCode=data.newCode; document.getElementById('accessCode').value=''; alert('✅ Код изменен: '+data.newCode); }
+    else{ alert('❌ '+data.error); }
 });
 
 // ==================== АВТОВХОД ====================
 function tryAutoLogin(){
-    const s = loadSession();
-    if(s && s.team && s.name){
-        currentUser.name = s.name; currentUser.team = s.team; currentUser.color = s.color;
-        document.getElementById('autoLoginMsg').textContent = '↻ Автовход: ' + s.name;
-        document.getElementById('autoLoginMsg').style.display = 'block';
-        setTimeout(() => document.getElementById('autoLoginMsg').style.display = 'none', 2500);
-        const code = document.getElementById('accessCode').value.trim() || localStorage.getItem('scorpgeo_code') || '';
-        socket.emit('join_room', { room: s.team, name: s.name, team: s.team, pass: '1234', accessCode: code });
+    const s=loadSession();
+    if(s&&s.team&&s.name){
+        currentUser.name=s.name; currentUser.team=s.team; currentUser.color=s.color;
+        document.getElementById('autoLoginMsg').textContent='↻ Автовход: '+s.name;
+        document.getElementById('autoLoginMsg').style.display='block';
+        setTimeout(()=>document.getElementById('autoLoginMsg').style.display='none',2500);
+        const code=document.getElementById('accessCode').value.trim()||localStorage.getItem('scorpgeo_code')||'';
+        socket.emit('join_room',{room:s.team,name:s.name,team:s.team,pass:'1234',accessCode:code,deviceId:DEVICE_ID});
         return true;
     }
     return false;
 }
 
-// ==================== АНТИ-БЛОКИРОВКА ====================
-document.addEventListener('visibilitychange', () => {
-    const statusEl = document.getElementById('connection-status');
-    if(document.visibilityState === 'visible'){
-        statusEl.textContent = '🔄 Проверка...'; statusEl.style.color = '#ff0'; statusEl.style.display = 'block';
+document.addEventListener('visibilitychange',()=>{
+    const statusEl=document.getElementById('connection-status');
+    if(document.visibilityState==='visible'){
+        statusEl.textContent='🔄 Проверка...'; statusEl.style.color='#ff0'; statusEl.style.display='block';
         if(socket.disconnected) socket.connect();
-        setTimeout(() => {
-            if(socket.connected && currentUser.name){
-                socket.emit('rejoin_room', { room: currentUser.team, name: currentUser.name, color: currentUser.color });
-                statusEl.textContent = '🟢 Онлайн'; statusEl.style.color = '#0f0';
-            } else if(!socket.connected && currentUser.name){
-                socket.connect();
-                setTimeout(() => { if(socket.connected && currentUser.name) socket.emit('rejoin_room', { room: currentUser.team, name: currentUser.name, color: currentUser.color }); }, 2000);
-            }
-            setTimeout(() => statusEl.style.display = 'none', 2000);
-        }, 500);
-    } else {
-        if(socket.connected && currentUser.name) socket.emit('keep_alive', { name: currentUser.name, room: currentUser.team });
-    }
+        setTimeout(()=>{
+            if(socket.connected&&currentUser.name){ socket.emit('rejoin_room',{room:currentUser.team,name:currentUser.name,color:currentUser.color,deviceId:DEVICE_ID}); statusEl.textContent='🟢 Онлайн'; statusEl.style.color='#0f0'; }
+            else if(!socket.connected&&currentUser.name){ socket.connect(); setTimeout(()=>{ if(socket.connected&&currentUser.name) socket.emit('rejoin_room',{room:currentUser.team,name:currentUser.name,color:currentUser.color,deviceId:DEVICE_ID}); },2000); }
+            setTimeout(()=>statusEl.style.display='none',2000);
+        },500);
+    }else{ if(socket.connected&&currentUser.name) socket.emit('keep_alive',{name:currentUser.name,room:currentUser.team,deviceId:DEVICE_ID}); }
 });
 
-window.addEventListener('beforeunload', () => { if(currentUser.name) saveSession(); });
-function startKeepAlive(){ if(keepAliveInterval) clearInterval(keepAliveInterval); keepAliveInterval = setInterval(() => { if(socket.connected && currentUser.name) socket.emit('keep_alive', { name: currentUser.name, room: currentUser.team }); }, 30000); }
+window.addEventListener('beforeunload',()=>{ if(currentUser.name) saveSession(); });
+function startKeepAlive(){ if(keepAliveInterval)clearInterval(keepAliveInterval); keepAliveInterval=setInterval(()=>{ if(socket.connected&&currentUser.name) socket.emit('keep_alive',{name:currentUser.name,room:currentUser.team,deviceId:DEVICE_ID}); },30000); }
 
-socket.on('connect', () => { const el = document.getElementById('connection-status'); el.textContent = '🟢 ОНЛАЙН'; el.style.color = '#0f0'; el.style.display = 'block'; setTimeout(() => el.style.display = 'none', 2000); });
-socket.on('disconnect', () => { const el = document.getElementById('connection-status'); el.textContent = '🔴 ОФЛАЙН'; el.style.color = '#f00'; el.style.display = 'block'; });
+socket.on('connect',()=>{ const el=document.getElementById('connection-status'); el.textContent='🟢 ОНЛАЙН'; el.style.color='#0f0'; el.style.display='block'; setTimeout(()=>el.style.display='none',2000); });
+socket.on('disconnect',()=>{ const el=document.getElementById('connection-status'); el.textContent='🔴 ОФЛАЙН'; el.style.color='#f00'; el.style.display='block'; });
 
 // ==================== ВХОД ====================
 function doLogin(){
-    const team = document.getElementById('teamName').value.trim().toUpperCase();
-    const name = document.getElementById('playerName').value.trim().toUpperCase();
-    const pass = document.getElementById('password').value;
-    const code = document.getElementById('accessCode').value.trim();
-    if(!team){ alert('Введите команду!'); return; }
-    if(!name){ alert('Введите позывной!'); return; }
-    if(!pass){ alert('Введите пароль!'); return; }
-    if(!code){ alert('Введите уникальный код доступа!'); return; }
-    
-    currentUser.name = name; currentUser.team = team;
-    localStorage.setItem('scorpgeo_code', code);
-    socket.emit('join_room', { room: team, name, team, pass, accessCode: code });
+    const team=document.getElementById('teamName').value.trim().toUpperCase();
+    const name=document.getElementById('playerName').value.trim().toUpperCase();
+    const pass=document.getElementById('password').value;
+    const code=document.getElementById('accessCode').value.trim();
+    if(!team){alert('Введите команду!');return;} if(!name){alert('Введите позывной!');return;}
+    if(!pass){alert('Введите пароль!');return;} if(!code){alert('Введите уникальный код!');return;}
+    currentUser.name=name; currentUser.team=team;
+    localStorage.setItem('scorpgeo_code',code);
+    socket.emit('join_room',{room:team,name,team,pass,accessCode:code,deviceId:DEVICE_ID});
 }
 
-socket.on('login_success', (data) => {
-    currentUser.color = data.color; playerColors[currentUser.name] = data.color; saveSession();
-    document.getElementById('auth-screen').style.display = 'none';
-    document.getElementById('ui-panel').style.display = 'flex';
-    document.getElementById('chat-win').style.display = 'flex';
+socket.on('login_success',(data)=>{
+    currentUser.color=data.color; playerColors[currentUser.name]=data.color; saveSession();
+    if(data.accessCode){currentAccessCode=data.accessCode;}
+    document.getElementById('auth-screen').style.display='none';
+    document.getElementById('ui-panel').style.display='flex';
+    document.getElementById('chat-win').style.display='flex';
     initMap(); startGeolocation(); startKeepAlive();
-    addChatMessage('СИСТЕМА', `${currentUser.name} на связи. Меток: ${data.objectsCount || 0}`, '#0f0');
+    addChatMessage('СИСТЕМА',`${currentUser.name} на связи. Меток: ${data.objectsCount||0}`,'#0f0');
 });
 
-socket.on('login_failed', (err) => { clearSession(); alert('Ошибка: ' + (err?.reason || 'Неверные данные')); });
+socket.on('login_failed',(err)=>{ clearSession(); alert('Ошибка: '+(err?.reason||'Неверные данные')); });
 
 // ==================== ИГРОКИ ====================
-socket.on('existing_players', (p) => p.forEach(x => { if(x.name !== currentUser.name){ playerColors[x.name] = x.color; updatePlayerMarker(x.name, x.lat, x.lng, x.color); } }));
-socket.on('player_joined', (d) => { if(d.name !== currentUser.name){ playerColors[d.name] = d.color; updatePlayerMarker(d.name, d.lat, d.lng, d.color); addChatMessage('СИСТЕМА', '→ ' + d.name + ' на связи', '#0f0'); } });
-socket.on('player_left', (d) => { if(playersMarkers[d.name]){ map.removeLayer(playersMarkers[d.name]); delete playersMarkers[d.name]; delete playerColors[d.name]; addChatMessage('СИСТЕМА', '← ' + d.name + ' отключился', '#f44'); } });
-socket.on('player_move', (d) => { if(d.name !== currentUser.name) updatePlayerMarker(d.name, d.lat, d.lng, d.color); });
+socket.on('existing_players',(p)=>p.forEach(x=>{ if(x.name!==currentUser.name){ playerColors[x.name]=x.color; updatePlayerMarker(x.name,x.lat,x.lng,x.color); } }));
+socket.on('player_joined',(d)=>{ if(d.name!==currentUser.name){ playerColors[d.name]=d.color; updatePlayerMarker(d.name,d.lat,d.lng,d.color); addChatMessage('СИСТЕМА','→ '+d.name+' на связи','#0f0'); } });
+socket.on('player_left',(d)=>{ if(playersMarkers[d.name]){ map.removeLayer(playersMarkers[d.name]); delete playersMarkers[d.name]; delete playerColors[d.name]; addChatMessage('СИСТЕМА','← '+d.name+' отключился','#f44'); } });
+socket.on('player_move',(d)=>{ if(d.name!==currentUser.name) updatePlayerMarker(d.name,d.lat,d.lng,d.color); });
 
 // ==================== ОБЪЕКТЫ ====================
-socket.on('draw', (obj) => {
-    if(tacticalObjects[obj.id]){ tacticalObjects[obj.id].layers.forEach(l => { if(map && map.hasLayer(l)) map.removeLayer(l); }); delete tacticalObjects[obj.id]; }
-    let layers = []; const cn = obj.creator || '???';
-    if(obj.type === 'enemy' || obj.type === 'target'){
-        const mk = L.marker([obj.lat, obj.lng], { icon: L.divIcon({ html: `<div style="font-size:30px;filter:drop-shadow(2px 2px 2px black);cursor:pointer;">${obj.type === 'enemy' ? '💀' : '🎯'}</div>`, iconSize: [30, 30], iconAnchor: [15, 15], className: '' }), zIndexOffset: 500 }).addTo(map);
-        mk.on('click', () => { if(activeTool === 'eraser'){ socket.emit('delete_obj', obj.id); return; } L.popup({ closeButton: false, className: 'creator-tooltip', autoClose: true }).setLatLng([obj.lat, obj.lng]).setContent(`👤 <b>${cn}</b>`).openOn(map); });
-        layers.push(mk);
-    } else if(obj.type === 'arrow'){
-        const ln = L.polyline([obj.start, obj.end], { color: '#f44', weight: 3, opacity: 0.8, interactive: true }).addTo(map);
-        const ag = Math.atan2(obj.end.lat - obj.start.lat, obj.end.lng - obj.start.lng);
-        const hd = L.polygon([obj.end, { lat: obj.end.lat + Math.sin(ag + 2.5) * 8e-5, lng: obj.end.lng + Math.cos(ag + 2.5) * 8e-5 }, { lat: obj.end.lat + Math.sin(ag - 2.5) * 8e-5, lng: obj.end.lng + Math.cos(ag - 2.5) * 8e-5 }], { color: '#f44', fillColor: '#f44', fillOpacity: 0.8, interactive: true }).addTo(map);
-        const sh = (e) => { if(activeTool === 'eraser'){ socket.emit('delete_obj', obj.id); return; } L.popup({ closeButton: false, className: 'creator-tooltip', autoClose: true }).setLatLng(e.latlng).setContent(`👤 <b>${cn}</b>`).openOn(map); };
-        ln.on('click', sh); hd.on('click', sh); layers.push(ln, hd);
-    } else if(obj.type === 'ruler'){
-        const ln = L.polyline([obj.start, obj.end], { color: '#ff0', weight: 2, dashArray: '8,8', interactive: true }).addTo(map);
-        const d = map.distance([obj.start.lat, obj.start.lng], [obj.end.lat, obj.end.lng]);
-        const tx = d < 1000 ? `${Math.round(d)} м` : `${(d / 1000).toFixed(1)} км`;
-        const md = { lat: (obj.start.lat + obj.end.lat) / 2, lng: (obj.start.lng + obj.end.lng) / 2 };
-        L.marker([md.lat, md.lng], { icon: L.divIcon({ html: `<div style="background:#000;color:#ff0;padding:3px 6px;border:1px solid #ff0;border-radius:10px;font-size:10px;font-weight:bold;">📏 ${tx}</div>`, iconSize: [70, 22], iconAnchor: [35, 11], className: '' }), interactive: false }).addTo(map);
-        ln.on('click', (e) => { if(activeTool === 'eraser'){ socket.emit('delete_obj', obj.id); return; } L.popup({ closeButton: false, className: 'creator-tooltip', autoClose: true }).setLatLng(e.latlng).setContent(`👤 <b>${cn}</b>`).openOn(map); });
-        layers.push(ln);
+socket.on('draw',(obj)=>{
+    if(tacticalObjects[obj.id]){
+        tacticalObjects[obj.id].layers.forEach(l=>{ if(map&&map.hasLayer(l)) map.removeLayer(l); });
+        delete tacticalObjects[obj.id];
+        if(rulerTimers[obj.id]){ clearTimeout(rulerTimers[obj.id]); delete rulerTimers[obj.id]; }
     }
-    tacticalObjects[obj.id] = { type: obj.type, layers, creator: cn };
-    if(obj.creator === currentUser.name) myObjects.add(obj.id);
+    let layers=[]; const cn=obj.creator||'???';
+    
+    if(obj.type==='enemy'||obj.type==='target'){
+        const mk=L.marker([obj.lat,obj.lng],{icon:L.divIcon({html:`<div style="font-size:30px;filter:drop-shadow(2px 2px 2px black);cursor:pointer;">${obj.type==='enemy'?'💀':'🎯'}</div>`,iconSize:[30,30],iconAnchor:[15,15],className:''}),zIndexOffset:500}).addTo(map);
+        mk.on('click',()=>{ if(activeTool==='eraser'){socket.emit('delete_obj',obj.id);return;} L.popup({closeButton:false,className:'creator-tooltip',autoClose:true}).setLatLng([obj.lat,obj.lng]).setContent(`👤 <b>${cn}</b>`).openOn(map); });
+        layers.push(mk);
+    }else if(obj.type==='arrow'){
+        const ln=L.polyline([obj.start,obj.end],{color:'#f44',weight:3,opacity:0.8,interactive:true}).addTo(map);
+        const ag=Math.atan2(obj.end.lat-obj.start.lat,obj.end.lng-obj.start.lng);
+        const hd=L.polygon([obj.end,{lat:obj.end.lat+Math.sin(ag+2.5)*8e-5,lng:obj.end.lng+Math.cos(ag+2.5)*8e-5},{lat:obj.end.lat+Math.sin(ag-2.5)*8e-5,lng:obj.end.lng+Math.cos(ag-2.5)*8e-5}],{color:'#f44',fillColor:'#f44',fillOpacity:0.8,interactive:true}).addTo(map);
+        const sh=(e)=>{ if(activeTool==='eraser'){socket.emit('delete_obj',obj.id);return;} L.popup({closeButton:false,className:'creator-tooltip',autoClose:true}).setLatLng(e.latlng).setContent(`👤 <b>${cn}</b>`).openOn(map); };
+        ln.on('click',sh); hd.on('click',sh); layers.push(ln,hd);
+    }else if(obj.type==='ruler'){
+        const ln=L.polyline([obj.start,obj.end],{color:'#ff0',weight:2,dashArray:'8,8',interactive:true}).addTo(map);
+        const d=map.distance([obj.start.lat,obj.start.lng],[obj.end.lat,obj.end.lng]);
+        const tx=d<1000?`${Math.round(d)} м`:`${(d/1000).toFixed(1)} км`;
+        const md={lat:(obj.start.lat+obj.end.lat)/2,lng:(obj.start.lng+obj.end.lng)/2};
+        const lb=L.marker([md.lat,md.lng],{icon:L.divIcon({html:`<div style="background:#000;color:#ff0;padding:3px 6px;border:1px solid #ff0;border-radius:10px;font-size:10px;font-weight:bold;">📏 ${tx}</div>`,iconSize:[70,22],iconAnchor:[35,11],className:''}),interactive:false}).addTo(map);
+        ln.on('click',(e)=>{ if(activeTool==='eraser'){socket.emit('delete_obj',obj.id);return;} L.popup({closeButton:false,className:'creator-tooltip',autoClose:true}).setLatLng(e.latlng).setContent(`👤 <b>${cn}</b>`).openOn(map); });
+        layers.push(ln,lb);
+        
+        // АВТОУДАЛЕНИЕ ЛИНЕЙКИ ЧЕРЕЗ 5 СЕКУНД
+        if(obj.creator===currentUser.name){
+            rulerTimers[obj.id]=setTimeout(()=>{ socket.emit('delete_obj',obj.id); },5000);
+        }
+    }
+    tacticalObjects[obj.id]={type:obj.type,layers,creator:cn};
+    if(obj.creator===currentUser.name) myObjects.add(obj.id);
 });
-socket.on('remove_obj', (id) => { if(tacticalObjects[id]){ tacticalObjects[id].layers.forEach(l => { if(map && map.hasLayer(l)) map.removeLayer(l); }); delete tacticalObjects[id]; myObjects.delete(id); } });
-socket.on('receive_msg', (data) => {
-    let n, t, c;
-    if(typeof data === 'string'){ const m = data.match(/^([^:]+):\s*(.+)$/); n = m ? m[1] : 'СИСТЕМА'; t = m ? m[2] : data; c = playerColors[n] || '#ccc'; }
-    else{ n = data.name || 'Аноним'; t = data.text || ''; c = data.color || playerColors[n] || '#ccc'; }
-    addChatMessage(n, t, c);
+
+socket.on('remove_obj',(id)=>{
+    if(tacticalObjects[id]){
+        tacticalObjects[id].layers.forEach(l=>{ if(map&&map.hasLayer(l)) map.removeLayer(l); });
+        delete tacticalObjects[id]; myObjects.delete(id);
+        if(rulerTimers[id]){ clearTimeout(rulerTimers[id]); delete rulerTimers[id]; }
+    }
+});
+
+socket.on('receive_msg',(data)=>{
+    let n,t,c;
+    if(typeof data==='string'){ const m=data.match(/^([^:]+):\s*(.+)$/); n=m?m[1]:'СИСТЕМА'; t=m?m[2]:data; c=playerColors[n]||'#ccc'; }
+    else{ n=data.name||'Аноним'; t=data.text||''; c=data.color||playerColors[n]||'#ccc'; }
+    addChatMessage(n,t,c);
 });
 
 // ==================== КАРТА ====================
 function initMap(){
-    if(map) return;
-    map = L.map('map', { zoomControl: true, attributionControl: false, maxZoom: 22, minZoom: 10, tap: true }).setView([55.7558, 37.6176], 18);
-    tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 22, maxNativeZoom: 19 }).addTo(map);
-    map.on('click', handleMapClick); map.on('moveend', drawGrid); map.on('zoomend', drawGrid);
-    drawGrid(); setTimeout(() => { map.invalidateSize(); drawGrid(); }, 500);
+    if(map)return;
+    map=L.map('map',{zoomControl:true,attributionControl:false,maxZoom:22,minZoom:10,tap:true}).setView([55.7558,37.6176],18);
+    tileLayer=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:22,maxNativeZoom:19}).addTo(map);
+    map.on('click',handleMapClick); map.on('moveend',drawGrid); map.on('zoomend',drawGrid);
+    drawGrid(); setTimeout(()=>{map.invalidateSize();drawGrid();},500);
 }
 function startGeolocation(){
-    if(!navigator.geolocation) return; if(watchId) navigator.geolocation.clearWatch(watchId);
-    watchId = navigator.geolocation.watchPosition(pos => { updateMyPosition(pos.coords.latitude, pos.coords.longitude); socket.emit('gps_sync', { lat: pos.coords.latitude, lng: pos.coords.longitude }); }, err => console.warn('GPS:', err.message), { enableHighAccuracy: true, maximumAge: 3000, timeout: 10000 });
+    if(!navigator.geolocation)return; if(watchId)navigator.geolocation.clearWatch(watchId);
+    watchId=navigator.geolocation.watchPosition(pos=>{updateMyPosition(pos.coords.latitude,pos.coords.longitude);socket.emit('gps_sync',{lat:pos.coords.latitude,lng:pos.coords.longitude});},err=>console.warn('GPS:',err.message),{enableHighAccuracy:true,maximumAge:3000,timeout:10000});
 }
-function updateMyPosition(lat, lng){
-    if(!map) return;
-    if(playersMarkers[currentUser.name]) playersMarkers[currentUser.name].setLatLng([lat, lng]);
-    else playersMarkers[currentUser.name] = L.marker([lat, lng], { icon: createPlayerIcon(currentUser.name, currentUser.color), zIndexOffset: 1000 }).addTo(map);
+function updateMyPosition(lat,lng){
+    if(!map)return;
+    if(playersMarkers[currentUser.name]) playersMarkers[currentUser.name].setLatLng([lat,lng]);
+    else playersMarkers[currentUser.name]=L.marker([lat,lng],{icon:createPlayerIcon(currentUser.name,currentUser.color),zIndexOffset:1000}).addTo(map);
 }
-function createPlayerIcon(name, color){ return L.divIcon({ html: `<div class="player-marker"><div class="player-name-tag" style="color:${color}">${name}</div><div class="player-dot" style="background:${color}"></div></div>`, iconSize: [60, 32], iconAnchor: [30, 24], className: '' }); }
+function createPlayerIcon(name,color){ return L.divIcon({html:`<div class="player-marker"><div class="player-name-tag" style="color:${color}">${name}</div><div class="player-dot" style="background:${color}"></div></div>`,iconSize:[60,32],iconAnchor:[30,24],className:''}); }
 
-function updatePlayerMarker(name, lat, lng, color){
-    if(!map || !name || name === currentUser.name) return;
-    if(playersMarkers[name]){ playersMarkers[name].setLatLng([lat, lng]); }
-    else {
-        const marker = L.marker([lat, lng], { icon: createPlayerIcon(name, color || '#fff'), zIndexOffset: 900 }).addTo(map);
-        playersMarkers[name] = marker;
-        marker.on('click', (e) => {
-            if(!playersMarkers[currentUser.name]) return;
+function updatePlayerMarker(name,lat,lng,color){
+    if(!map||!name||name===currentUser.name)return;
+    if(playersMarkers[name]){ playersMarkers[name].setLatLng([lat,lng]); }
+    else{
+        const marker=L.marker([lat,lng],{icon:createPlayerIcon(name,color||'#fff'),zIndexOffset:900}).addTo(map);
+        playersMarkers[name]=marker;
+        marker.on('click',(e)=>{
+            if(!playersMarkers[currentUser.name])return;
             L.DomEvent.stopPropagation(e);
-            const d = map.distance(playersMarkers[currentUser.name].getLatLng(), marker.getLatLng());
-            const txt = d < 1000 ? `${Math.round(d)} м` : `${(d / 1000).toFixed(1)} км`;
-            const bar = document.getElementById('distance-bar');
-            bar.innerHTML = `📏 <b style="color:${playerColors[name] || '#fff'}">${name}</b> — ${txt}`;
-            bar.style.display = 'block'; bar.style.animation = 'none'; bar.offsetHeight;
-            bar.style.animation = 'slideUp 0.3s ease-out';
-            if(distanceTimer) clearTimeout(distanceTimer);
-            distanceTimer = setTimeout(() => { bar.style.display = 'none'; }, 5000);
+            const d=map.distance(playersMarkers[currentUser.name].getLatLng(),marker.getLatLng());
+            const txt=d<1000?`${Math.round(d)} м`:`${(d/1000).toFixed(1)} км`;
+            const bar=document.getElementById('distance-bar');
+            bar.innerHTML=`📏 <b style="color:${playerColors[name]||'#fff'}">${name}</b> — ${txt}`;
+            bar.style.display='block'; bar.style.animation='none'; bar.offsetHeight;
+            bar.style.animation='slideUp 0.3s ease-out';
+            if(distanceTimer)clearTimeout(distanceTimer);
+            distanceTimer=setTimeout(()=>{ bar.style.display='none'; },5000);
         });
     }
 }
 
-function centerOnMe(){ if(playersMarkers[currentUser.name]) map.setView(playersMarkers[currentUser.name].getLatLng(), 18); else alert('Позиция не определена'); }
+function centerOnMe(){ if(playersMarkers[currentUser.name]) map.setView(playersMarkers[currentUser.name].getLatLng(),18); else alert('Позиция не определена'); }
 
 function handleMapClick(e){
-    const { lat, lng } = e.latlng;
-    if(activeTool === 'enemy' || activeTool === 'target'){
-        socket.emit('new_obj', { id: `${activeTool}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, type: activeTool, lat, lng, creator: currentUser.name });
-    } else if(activeTool === 'arrow' || activeTool === 'ruler'){
-        rulerPoints.push({ lat, lng });
-        if(rulerPoints.length === 2){
-            socket.emit('new_obj', { id: `${activeTool}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, type: activeTool, start: rulerPoints[0], end: rulerPoints[1], creator: currentUser.name });
-            rulerPoints = [];
-        } else { L.popup().setLatLng([lat, lng]).setContent('<b>👆 Вторая точка</b>').openOn(map); }
+    const{lat,lng}=e.latlng;
+    if(activeTool==='enemy'||activeTool==='target'){
+        socket.emit('new_obj',{id:`${activeTool}_${Date.now()}_${Math.random().toString(36).substr(2,9)}`,type:activeTool,lat,lng,creator:currentUser.name});
+    }else if(activeTool==='arrow'||activeTool==='ruler'){
+        rulerPoints.push({lat,lng});
+        if(rulerPoints.length===2){
+            const rulerId=`${activeTool}_${Date.now()}_${Math.random().toString(36).substr(2,9)}`;
+            socket.emit('new_obj',{id:rulerId,type:activeTool,start:rulerPoints[0],end:rulerPoints[1],creator:currentUser.name});
+            rulerPoints=[];
+        }else{ L.popup().setLatLng([lat,lng]).setContent('<b>👆 Вторая точка</b>').openOn(map); }
     }
 }
 
-function deleteMyObjects(){ const ids = Array.from(myObjects); ids.forEach(id => socket.emit('delete_obj', id)); myObjects.clear(); }
+function deleteMyObjects(){ const ids=Array.from(myObjects); ids.forEach(id=>socket.emit('delete_obj',id)); myObjects.clear(); }
 
-function getGridSizeForZoom(zoom){ if(zoom >= 19) return 20; if(zoom >= 18) return 30; if(zoom >= 17) return 50; if(zoom >= 16) return 100; if(zoom >= 15) return 200; if(zoom >= 14) return 400; return 0; }
+function getGridSizeForZoom(zoom){ if(zoom>=19)return 20; if(zoom>=18)return 30; if(zoom>=17)return 50; if(zoom>=16)return 100; if(zoom>=15)return 200; if(zoom>=14)return 400; return 0; }
 
 function drawGrid(){
-    if(!map) return;
-    const overlay = document.getElementById('grid-overlay'); overlay.innerHTML = '';
-    const zoom = map.getZoom(); const GRID_SIZE = getGridSizeForZoom(zoom);
-    if(GRID_SIZE === 0){ if(gridLayer){ map.removeLayer(gridLayer); gridLayer = null; } return; }
-    const GRID_STEP = (GRID_SIZE / METERS_PER_DEGREE);
-    const bounds = map.getBounds();
-    const sLa = Math.floor(bounds.getSouth() / GRID_STEP) * GRID_STEP;
-    const eLa = Math.ceil(bounds.getNorth() / GRID_STEP) * GRID_STEP;
-    const sLn = Math.floor(bounds.getWest() / GRID_STEP) * GRID_STEP;
-    const eLn = Math.ceil(bounds.getEast() / GRID_STEP) * GRID_STEP;
-    if(gridLayer) map.removeLayer(gridLayer); gridLayer = L.layerGroup().addTo(map);
-    const lw = GRID_SIZE >= 200 ? 1.5 : GRID_SIZE >= 100 ? 1.2 : 1;
-    for(let lng = sLn; lng <= eLn; lng += GRID_STEP) L.polyline([[sLa, lng], [eLa, lng]], { color: '#555', weight: lw, opacity: 0.4 }).addTo(gridLayer);
-    for(let lat = sLa; lat <= eLa; lat += GRID_STEP) L.polyline([[lat, sLn], [lat, eLn]], { color: '#555', weight: lw, opacity: 0.4 }).addTo(gridLayer);
-    let fs, pp;
-    if(GRID_SIZE >= 400){ fs = '14px'; pp = '4px 10px'; } else if(GRID_SIZE >= 200){ fs = '12px'; pp = '3px 8px'; } else{ fs = '10px'; pp = '2px 6px'; }
-    let ci = 0;
-    for(let lng = sLn; lng <= eLn; lng += GRID_STEP){
-        const p = map.latLngToContainerPoint([bounds.getNorth(), lng + GRID_STEP / 2]);
-        if(p.x > 25 && p.x < window.innerWidth - 25){
-            const d = document.createElement('div'); d.className = 'grid-letter-top';
-            d.textContent = RUSSIAN_LETTERS[ci % RUSSIAN_LETTERS.length];
-            d.style.left = p.x + 'px'; d.style.top = Math.max(22, p.y - 15) + 'px';
-            d.style.fontSize = fs; d.style.padding = pp; overlay.appendChild(d);
+    if(!map)return;
+    const overlay=document.getElementById('grid-overlay'); overlay.innerHTML='';
+    const zoom=map.getZoom(); const GRID_SIZE=getGridSizeForZoom(zoom);
+    if(GRID_SIZE===0){ if(gridLayer){map.removeLayer(gridLayer);gridLayer=null;} return; }
+    const GRID_STEP=(GRID_SIZE/METERS_PER_DEGREE);
+    const bounds=map.getBounds();
+    const sLa=Math.floor(bounds.getSouth()/GRID_STEP)*GRID_STEP;
+    const eLa=Math.ceil(bounds.getNorth()/GRID_STEP)*GRID_STEP;
+    const sLn=Math.floor(bounds.getWest()/GRID_STEP)*GRID_STEP;
+    const eLn=Math.ceil(bounds.getEast()/GRID_STEP)*GRID_STEP;
+    if(gridLayer) map.removeLayer(gridLayer); gridLayer=L.layerGroup().addTo(map);
+    const lw=GRID_SIZE>=200?1.5:GRID_SIZE>=100?1.2:1;
+    for(let lng=sLn;lng<=eLn;lng+=GRID_STEP) L.polyline([[sLa,lng],[eLa,lng]],{color:'#555',weight:lw,opacity:0.4}).addTo(gridLayer);
+    for(let lat=sLa;lat<=eLa;lat+=GRID_STEP) L.polyline([[lat,sLn],[lat,eLn]],{color:'#555',weight:lw,opacity:0.4}).addTo(gridLayer);
+    let fs,pp;
+    if(GRID_SIZE>=400){ fs='14px'; pp='4px 10px'; } else if(GRID_SIZE>=200){ fs='12px'; pp='3px 8px'; } else{ fs='10px'; pp='2px 6px'; }
+    let ci=0;
+    for(let lng=sLn;lng<=eLn;lng+=GRID_STEP){
+        const p=map.latLngToContainerPoint([bounds.getNorth(),lng+GRID_STEP/2]);
+        if(p.x>25&&p.x<window.innerWidth-25){
+            const d=document.createElement('div'); d.className='grid-letter-top';
+            d.textContent=RUSSIAN_LETTERS[ci%RUSSIAN_LETTERS.length];
+            d.style.left=p.x+'px'; d.style.top=Math.max(22,p.y-15)+'px';
+            d.style.fontSize=fs; d.style.padding=pp; overlay.appendChild(d);
         }
         ci++;
     }
-    let ri = 0;
-    for(let lat = sLa; lat <= eLa; lat += GRID_STEP){
-        const p = map.latLngToContainerPoint([lat + GRID_STEP / 2, eLn]);
-        if(p.y > 25 && p.y < window.innerHeight - 25){
-            const d = document.createElement('div'); d.className = 'grid-number-right';
-            d.textContent = ri % 100; d.style.right = '8px'; d.style.top = p.y + 'px';
-            d.style.fontSize = fs; d.style.padding = pp; overlay.appendChild(d);
+    let ri=0;
+    for(let lat=sLa;lat<=eLa;lat+=GRID_STEP){
+        const p=map.latLngToContainerPoint([lat+GRID_STEP/2,eLn]);
+        if(p.y>25&&p.y<window.innerHeight-25){
+            const d=document.createElement('div'); d.className='grid-number-right';
+            d.textContent=ri%100; d.style.right='8px'; d.style.top=p.y+'px';
+            d.style.fontSize=fs; d.style.padding=pp; overlay.appendChild(d);
         }
         ri++;
     }
 }
 
-function sendChatMessage(){ const i = document.getElementById('chat-input'); const t = i.value.trim(); if(!t) return; socket.emit('chat_msg', { name: currentUser.name, text: t, color: currentUser.color }); i.value = ''; i.focus(); }
-function addChatMessage(n, t, c){ const ct = document.getElementById('chat-messages'); const d = document.createElement('div'); d.className = 'msg-line'; d.innerHTML = `<span class="msg-name" style="color:${c}">${esc(n)}:</span><span class="msg-text">${esc(t)}</span>`; ct.appendChild(d); ct.scrollTop = ct.scrollHeight; }
-function esc(t){ const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
-function toggleChat(){ const c = document.getElementById('chat-win'); c.style.display = c.style.display === 'flex' ? 'none' : 'flex'; if(c.style.display === 'flex') document.getElementById('chat-input').focus(); }
+function sendChatMessage(){ const i=document.getElementById('chat-input'); const t=i.value.trim(); if(!t)return; socket.emit('chat_msg',{name:currentUser.name,text:t,color:currentUser.color}); i.value=''; i.focus(); }
+function addChatMessage(n,t,c){ const ct=document.getElementById('chat-messages'); const d=document.createElement('div'); d.className='msg-line'; d.innerHTML=`<span class="msg-name" style="color:${c}">${esc(n)}:</span><span class="msg-text">${esc(t)}</span>`; ct.appendChild(d); ct.scrollTop=ct.scrollHeight; }
+function esc(t){ const d=document.createElement('div'); d.textContent=t; return d.innerHTML; }
+function toggleChat(){ const c=document.getElementById('chat-win'); c.style.display=c.style.display==='flex'?'none':'flex'; if(c.style.display==='flex')document.getElementById('chat-input').focus(); }
 
 function setTool(t){
-    activeTool = t; rulerPoints = [];
-    document.getElementById('distance-bar').style.display = 'none';
-    if(distanceTimer){ clearTimeout(distanceTimer); distanceTimer = null; }
-    document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
-    const btn = document.getElementById(`btn-${t}`); if(btn) btn.classList.add('active');
-    if(map) map.closePopup();
+    activeTool=t; rulerPoints=[];
+    document.getElementById('distance-bar').style.display='none';
+    if(distanceTimer){clearTimeout(distanceTimer);distanceTimer=null;}
+    document.querySelectorAll('.tool-btn').forEach(b=>b.classList.remove('active'));
+    const btn=document.getElementById(`btn-${t}`); if(btn)btn.classList.add('active');
+    if(map)map.closePopup();
 }
 
-function changeMap(type){ if(tileLayer) map.removeLayer(tileLayer); tileLayer = L.tileLayer(type === 'sat' ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}' : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: type === 'sat' ? 20 : 22, maxNativeZoom: type === 'sat' ? 20 : 19 }).addTo(map); drawGrid(); }
+function changeMap(type){ if(tileLayer)map.removeLayer(tileLayer); tileLayer=L.tileLayer(type==='sat'?'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}':'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:type==='sat'?20:22,maxNativeZoom:type==='sat'?20:19}).addTo(map); drawGrid(); }
 
 function reconnectApp(){
-    const statusEl = document.getElementById('connection-status');
-    statusEl.textContent = '🔄 Переподключение...'; statusEl.style.color = '#ff0'; statusEl.style.display = 'block';
+    const statusEl=document.getElementById('connection-status');
+    statusEl.textContent='🔄 Переподключение...'; statusEl.style.color='#ff0'; statusEl.style.display='block';
     if(socket.disconnected) socket.connect();
-    setTimeout(() => {
-        if(socket.connected && currentUser.name){
-            socket.emit('rejoin_room', { room: currentUser.team, name: currentUser.name, color: currentUser.color });
-            statusEl.textContent = '🟢 Готово'; statusEl.style.color = '#0f0';
-        } else { statusEl.textContent = '🔴 Ошибка'; statusEl.style.color = '#f00'; }
-        setTimeout(() => statusEl.style.display = 'none', 2000);
-    }, 1500);
+    setTimeout(()=>{
+        if(socket.connected&&currentUser.name){ socket.emit('rejoin_room',{room:currentUser.team,name:currentUser.name,color:currentUser.color,deviceId:DEVICE_ID}); statusEl.textContent='🟢 Готово'; statusEl.style.color='#0f0'; }
+        else{ statusEl.textContent='🔴 Ошибка'; statusEl.style.color='#f00'; }
+        setTimeout(()=>statusEl.style.display='none',2000);
+    },1500);
 }
 
 function exitApp(){
     if(confirm('Выйти?')){
-        socket.emit('explicit_exit', { name: currentUser.name, room: currentUser.team });
+        socket.emit('explicit_exit',{name:currentUser.name,room:currentUser.team});
         clearSession();
-        if(watchId) navigator.geolocation.clearWatch(watchId);
-        if(keepAliveInterval) clearInterval(keepAliveInterval);
-        setTimeout(() => { socket.disconnect(); location.reload(); }, 300);
+        if(watchId)navigator.geolocation.clearWatch(watchId);
+        if(keepAliveInterval)clearInterval(keepAliveInterval);
+        setTimeout(()=>{socket.disconnect();location.reload();},300);
     }
 }
 
-const autoLoggedIn = tryAutoLogin();
-if(!autoLoggedIn) document.getElementById('auth-screen').style.display = 'flex';
+const autoLoggedIn=tryAutoLogin();
+if(!autoLoggedIn) document.getElementById('auth-screen').style.display='flex';
 
-window.doLogin = doLogin; window.setTool = setTool; window.centerOnMe = centerOnMe;
-window.changeMap = changeMap; window.toggleChat = toggleChat; window.sendChatMessage = sendChatMessage;
-window.deleteMyObjects = deleteMyObjects; window.reconnectApp = reconnectApp; window.exitApp = exitApp;
-window.changeAccessCode = changeAccessCode; window.tryBecomeAdmin = tryBecomeAdmin;
+window.doLogin=doLogin; window.setTool=setTool; window.centerOnMe=centerOnMe;
+window.changeMap=changeMap; window.toggleChat=toggleChat; window.sendChatMessage=sendChatMessage;
+window.deleteMyObjects=deleteMyObjects; window.reconnectApp=reconnectApp; window.exitApp=exitApp;
+window.changeAccessCode=changeAccessCode; window.tryBecomeAdmin=tryBecomeAdmin;
 
-console.log('🦂 ScorpGEO v6.2 — АДМИН → пароль → ⚙️');
+console.log('🦂 ScorpGEO v6.3 — 1 устройство • Линейка 5с • Метки фикс');
 </script>
 </body>
 </html>
