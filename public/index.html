@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="ScorpGEO">
     <meta name="theme-color" content="#000000">
-    <title>ScorpGEO v6.8</title>
+    <title>ScorpGEO v6.9</title>
     
     <link rel="manifest" href="/manifest.json">
     <link rel="apple-touch-icon" href="/icons/icon-512.png">
@@ -73,23 +73,22 @@
         
         .creator-tooltip { background:rgba(0,0,0,0.9)!important; border:1px solid #0f0!important; color:#0f0!important; font-family:'Courier New',monospace!important; font-size:11px!important; padding:4px 8px!important; border-radius:5px!important; }
         #connection-status { position:fixed; top:48px; right:8px; background:rgba(0,0,0,0.85); color:#0f0; padding:3px 7px; border-radius:10px; font-size:8px; z-index:7000; display:none; font-family:monospace; border:1px solid #0f0; }
-        
-        /* КОМПАС */
-        #compass { position:fixed; top:100px; right:35px; z-index:8000; }
-        #compass-inner { background:rgba(0,0,0,0.85); border:1px solid #0f0; border-radius:50%; width:36px; height:36px; display:flex; align-items:center; justify-content:center; pointer-events:auto; cursor:pointer; }
-        #compass-arrow { font-size:18px; transition:transform 0.5s ease; }
     </style>
 </head>
 <body>
 
 <div id="connection-status">🟢 ОНЛАЙН</div>
 
-<!-- КОМПАС -->
-<div id="compass">
-    <div id="compass-inner" onclick="requestCompassPermission()">
-        <span id="compass-arrow">🧭</span>
+<!-- КОМПАС (КРАСИВЫЙ) -->
+<div id="compass" style="position:fixed; top:100px; right:35px; z-index:8000;">
+    <div id="compass-inner" onclick="requestCompassPermission()" style="background:rgba(0,0,0,0.9); border:2px solid #0f0; border-radius:50%; width:44px; height:44px; display:flex; align-items:center; justify-content:center; pointer-events:auto; cursor:pointer; box-shadow:0 0 15px rgba(0,255,0,0.3);">
+        <div style="position:absolute; inset:-3px; border:1px solid #0f0; border-radius:50%; opacity:0.4;"></div>
+        <div style="position:absolute; top:2px; left:50%; transform:translateX(-50%); color:#0f0; font-size:8px; font-weight:bold;">N</div>
+        <div style="position:absolute; bottom:2px; left:50%; transform:translateX(-50%); color:#555; font-size:7px;">S</div>
+        <div style="position:absolute; right:2px; top:50%; transform:translateY(-50%); color:#555; font-size:7px;">E</div>
+        <div style="position:absolute; left:2px; top:50%; transform:translateY(-50%); color:#555; font-size:7px;">W</div>
+        <span id="compass-arrow" style="font-size:20px; transition:transform 0.5s ease; z-index:1;">⬆️</span>
     </div>
-    <div style="color:#0f0; font-size:7px; text-align:center; margin-top:2px;">N</div>
 </div>
 
 <div id="auth-screen">
@@ -112,7 +111,7 @@
         
         <button onclick="doLogin()" class="auth-btn">⚡ ВОЙТИ ⚡</button>
         <div style="color:#050;font-size:8px;margin-top:12px;letter-spacing:1px;">
-            v6.8 • <span onclick="tryBecomeAdmin()" style="color:#0a0;cursor:pointer;text-decoration:underline;">АДМИН</span> • 🧭
+            v6.9 • <span onclick="tryBecomeAdmin()" style="color:#0a0;cursor:pointer;text-decoration:underline;">АДМИН</span> • 🧭
         </div>
         <div id="autoLoginMsg" style="color:#0f0;font-size:11px;margin-top:8px;display:none;"></div>
     </div>
@@ -171,38 +170,15 @@ function tryBecomeAdmin(){ const pass=prompt('🔐 Админ-пароль:'); i
 function changeAccessCode(){ if(!isAdmin){ alert('Нажмите "АДМИН" и введите пароль!'); return; } const newCode=prompt('Новый код доступа:'); if(newCode&&newCode.trim()){ socket.emit('change_access_code',{newCode:newCode.trim(),adminPass:ADMIN_PASSWORD}); } }
 socket.on('code_changed',(data)=>{ if(data.success){ currentAccessCode=data.newCode; document.getElementById('accessCode').value=''; alert('✅ Код изменен: '+data.newCode); } else{ alert('❌ '+data.error); } });
 
-// ===== КОМПАС (ИСПРАВЛЕННЫЙ) =====
+// ===== КОМПАС =====
 function updateCompass(){ const arrow=document.getElementById('compass-arrow'); if(arrow) arrow.style.transform=`rotate(${compassHeading}deg)`; }
-
-function handleOrientation(e){
-    if(e.webkitCompassHeading!==undefined){ compassHeading=e.webkitCompassHeading||0; }
-    else if(e.alpha!==null){ compassHeading=360-(e.alpha||0); }
-    updateCompass();
-}
-
-// Запрос разрешения для iOS 13+
+function handleOrientation(e){ if(e.webkitCompassHeading!==undefined){ compassHeading=e.webkitCompassHeading||0; } else if(e.alpha!==null){ compassHeading=360-(e.alpha||0); } updateCompass(); }
 if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function'){
-    document.addEventListener('click',function requestPermission(){
-        DeviceOrientationEvent.requestPermission().then(response=>{
-            if(response==='granted'){ window.addEventListener('deviceorientation',handleOrientation,true); }
-        }).catch(console.error);
-        document.removeEventListener('click',requestPermission);
-    },{once:true});
-}else{
-    window.addEventListener('deviceorientation',handleOrientation,true);
-}
-
-function requestCompassPermission(){
-    if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function'){
-        DeviceOrientationEvent.requestPermission().then(response=>{
-            if(response==='granted'){ window.addEventListener('deviceorientation',handleOrientation,true); alert('✅ Компас активирован!'); }
-        });
-    }else{ alert('Компас уже активен или не поддерживается'); }
-}
+    document.addEventListener('click',function requestPermission(){ DeviceOrientationEvent.requestPermission().then(r=>{ if(r==='granted') window.addEventListener('deviceorientation',handleOrientation,true); }); document.removeEventListener('click',requestPermission); },{once:true});
+}else{ window.addEventListener('deviceorientation',handleOrientation,true); }
+function requestCompassPermission(){ if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function'){ DeviceOrientationEvent.requestPermission().then(r=>{ if(r==='granted'){ window.addEventListener('deviceorientation',handleOrientation,true); alert('✅ Компас активирован!'); } }); }else{ alert('Компас уже активен'); } }
+setTimeout(()=>{ if(compassHeading===0) document.getElementById('compass-arrow').textContent='⬆️'; },3000);
 window.requestCompassPermission=requestCompassPermission;
-
-// Если компас не отвечает — показываем заглушку
-setTimeout(()=>{ if(compassHeading===0){ document.getElementById('compass-arrow').textContent='⬆️'; } },3000);
 
 function tryAutoLogin(){
     const s=loadSession();
@@ -290,7 +266,8 @@ function resetZoom(){ if(map) map.setZoom(18); document.getElementById('distance
 function handleMapClick(e){ const{lat,lng}=e.latlng; if(activeTool==='enemy'||activeTool==='target'){ socket.emit('new_obj',{id:`${activeTool}_${Date.now()}_${Math.random().toString(36).substr(2,9)}`,type:activeTool,lat,lng,creator:currentUser.name}); } else if(activeTool==='arrow'||activeTool==='ruler'){ rulerPoints.push({lat,lng}); if(rulerPoints.length===2){ socket.emit('new_obj',{id:`${activeTool}_${Date.now()}_${Math.random().toString(36).substr(2,9)}`,type:activeTool,start:rulerPoints[0],end:rulerPoints[1],creator:currentUser.name}); rulerPoints=[]; }else{ L.popup().setLatLng([lat,lng]).setContent('<b>👆 Вторая точка</b>').openOn(map); } } }
 function deleteMyObjects(){ const ids=Array.from(myObjects); ids.forEach(id=>socket.emit('delete_obj',id)); myObjects.clear(); }
 
-function getGridSizeForZoom(zoom){ if(zoom<18) return 0; return 20; }
+// ===== СЕТКА: ТОЛЬКО ZOOM 18-20 =====
+function getGridSizeForZoom(zoom){ if(zoom<18||zoom>20) return 0; return 20; }
 
 function drawGrid(){
     if(!map)return; const overlay=document.getElementById('grid-overlay'); overlay.innerHTML=''; const zoom=map.getZoom(); const GRID_SIZE=getGridSizeForZoom(zoom);
@@ -327,7 +304,7 @@ window.changeMap=changeMap; window.toggleChat=toggleChat; window.sendChatMessage
 window.deleteMyObjects=deleteMyObjects; window.reconnectApp=reconnectApp; window.exitApp=exitApp;
 window.changeAccessCode=changeAccessCode; window.tryBecomeAdmin=tryBecomeAdmin; window.requestCompassPermission=requestCompassPermission;
 
-console.log('🦂 ScorpGEO v6.8 — Компас fix');
+console.log('🦂 ScorpGEO v6.9 — Сетка 18-20 | Компас N/S/E/W');
 </script>
 </body>
 </html>
