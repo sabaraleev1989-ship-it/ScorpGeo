@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="ScorpGEO">
     <meta name="theme-color" content="#000000">
-    <title>ScorpGEO v7.0</title>
+    <title>ScorpGEO v8.0</title>
     
     <link rel="manifest" href="/manifest.json">
     <link rel="apple-touch-icon" href="/icons/icon-512.png">
@@ -48,8 +48,8 @@
         #map { position:absolute; top:0; left:0; right:0; bottom:0; z-index:1; background:#1a1e1a; }
         
         .side-panel { position:fixed; left:0; top:44px; bottom:0; width:72px; background:rgba(0,0,0,0.96); border-right:2px solid #0f0; z-index:5000; display:none; flex-direction:column; overflow-y:auto; }
-        .tool-btn { width:100%; min-height:48px; display:flex; flex-direction:column; align-items:center; justify-content:center; border-bottom:1px solid #0a0; color:#0f0; cursor:pointer; font-size:8px; font-weight:bold; padding:3px 2px; }
-        .tool-btn b { font-size:18px; margin-bottom:1px; }
+        .tool-btn { width:100%; min-height:46px; display:flex; flex-direction:column; align-items:center; justify-content:center; border-bottom:1px solid #0a0; color:#0f0; cursor:pointer; font-size:7px; font-weight:bold; padding:3px 2px; }
+        .tool-btn b { font-size:17px; margin-bottom:1px; }
         .tool-btn.active { background:#020; color:#fff; border-left:3px solid #0f0; }
         
         #grid-overlay { position:fixed; top:44px; left:0; right:0; bottom:0; pointer-events:none; z-index:900; }
@@ -73,21 +73,30 @@
         
         .creator-tooltip { background:rgba(0,0,0,0.9)!important; border:1px solid #0f0!important; color:#0f0!important; font-family:'Courier New',monospace!important; font-size:11px!important; padding:4px 8px!important; border-radius:5px!important; }
         #connection-status { position:fixed; top:48px; right:8px; background:rgba(0,0,0,0.85); color:#0f0; padding:3px 7px; border-radius:10px; font-size:8px; z-index:7000; display:none; font-family:monospace; border:1px solid #0f0; }
+        
+        /* КОМПАС */
+        #compass { position:fixed; top:100px; right:35px; z-index:8000; display:none; }
+        #compass-inner { background:rgba(0,0,0,0.9); border:2px solid #0f0; border-radius:50%; width:46px; height:46px; display:flex; align-items:center; justify-content:center; cursor:pointer; box-shadow:0 0 15px rgba(0,255,0,0.3); }
+        
+        /* МЕНЮ ФИГУР */
+        #shape-menu { position:fixed; bottom:200px; left:82px; background:rgba(0,0,0,0.95); border:1px solid #0f0; border-radius:8px; padding:6px; z-index:7000; display:none; flex-direction:column; gap:3px; }
+        #shape-menu div { color:#0f0; padding:7px 10px; cursor:pointer; font-size:11px; white-space:nowrap; }
+        #shape-menu div:active { background:#020; }
     </style>
 </head>
 <body>
 
 <div id="connection-status">🟢 ОНЛАЙН</div>
 
-<!-- КОМПАС (ТОНКАЯ СТРЕЛКА) -->
-<div id="compass" style="position:fixed; top:100px; right:35px; z-index:8000;">
-    <div id="compass-inner" onclick="requestCompassPermission()" style="background:rgba(0,0,0,0.9); border:2px solid #0f0; border-radius:50%; width:44px; height:44px; display:flex; align-items:center; justify-content:center; pointer-events:auto; cursor:pointer; box-shadow:0 0 15px rgba(0,255,0,0.3);">
+<!-- КОМПАС (скрыт по умолчанию) -->
+<div id="compass">
+    <div id="compass-inner" onclick="requestCompassPermission()">
         <div style="position:absolute; inset:-3px; border:1px solid #0f0; border-radius:50%; opacity:0.4;"></div>
-        <div style="position:absolute; top:2px; left:50%; transform:translateX(-50%); color:#0f0; font-size:8px; font-weight:bold;">N</div>
-        <div style="position:absolute; bottom:2px; left:50%; transform:translateX(-50%); color:#555; font-size:7px;">S</div>
-        <div style="position:absolute; right:2px; top:50%; transform:translateY(-50%); color:#555; font-size:7px;">E</div>
-        <div style="position:absolute; left:2px; top:50%; transform:translateY(-50%); color:#555; font-size:7px;">W</div>
-        <span id="compass-arrow" style="font-size:14px; font-weight:bold; transition:transform 0.5s ease; z-index:1; color:#0f0;">▲</span>
+        <div style="position:absolute; top:2px; left:50%; transform:translateX(-50%); color:#0f0; font-size:9px; font-weight:bold;">С</div>
+        <div style="position:absolute; bottom:2px; left:50%; transform:translateX(-50%); color:#aaa; font-size:7px;">Ю</div>
+        <div style="position:absolute; right:2px; top:50%; transform:translateY(-50%); color:#aaa; font-size:7px;">В</div>
+        <div style="position:absolute; left:2px; top:50%; transform:translateY(-50%); color:#aaa; font-size:7px;">З</div>
+        <span id="compass-arrow" style="font-size:16px; font-weight:bold; transition:transform 0.5s ease; z-index:1; color:#0f0;">▲</span>
     </div>
 </div>
 
@@ -103,16 +112,12 @@
         <input type="text" id="teamName" class="auth-input" placeholder="КОМАНДА" maxlength="10" autocomplete="off">
         <input type="text" id="playerName" class="auth-input" placeholder="ПОЗЫВНОЙ" maxlength="10" autocomplete="off">
         <input type="password" id="password" class="auth-input" placeholder="ПАРОЛЬ" maxlength="20" autocomplete="off">
-        
         <div class="code-wrapper">
             <input type="text" id="accessCode" class="auth-input" placeholder="УНИКАЛЬНЫЙ КОД" maxlength="10" autocomplete="off">
             <span class="gear-btn" id="settingsGear" onclick="changeAccessCode()">⚙️</span>
         </div>
-        
         <button onclick="doLogin()" class="auth-btn">⚡ ВОЙТИ ⚡</button>
-        <div style="color:#050;font-size:8px;margin-top:12px;letter-spacing:1px;">
-            v7.0 • <span onclick="tryBecomeAdmin()" style="color:#0a0;cursor:pointer;text-decoration:underline;">АДМИН</span> • 🧭
-        </div>
+        <div style="color:#050;font-size:8px;margin-top:12px;">v8.0 • <span onclick="tryBecomeAdmin()" style="color:#0a0;cursor:pointer;text-decoration:underline;">АДМИН</span> • 🧭🔷</div>
         <div id="autoLoginMsg" style="color:#0f0;font-size:11px;margin-top:8px;display:none;"></div>
     </div>
 </div>
@@ -124,14 +129,23 @@
     <div onclick="setTool('target')" id="btn-target" class="tool-btn"><b>🎯</b><span>Цель</span></div>
     <div onclick="setTool('arrow')" id="btn-arrow" class="tool-btn"><b>➡️</b><span>Удар</span></div>
     <div onclick="setTool('ruler')" id="btn-ruler" class="tool-btn"><b>📏</b><span>Мерка</span></div>
+    <div onclick="toggleShapeMenu()" id="btn-shape" class="tool-btn" style="color:#f0f;"><b>🔷</b><span>Фигура</span></div>
     <div onclick="setTool('eraser')" id="btn-eraser" class="tool-btn"><b>🧹</b><span>Стерка</span></div>
     <div onclick="deleteMyObjects()" class="tool-btn" style="color:#fa0;"><b>🗑️</b><span>Мои</span></div>
     <div onclick="toggleChat()" class="tool-btn"><b>💬</b><span>Чат</span></div>
     <div onclick="changeMap('sat')" class="tool-btn"><b>🛰️</b><span>Спут</span></div>
     <div onclick="changeMap('map')" class="tool-btn"><b>🗺️</b><span>Схема</span></div>
     <div onclick="resetZoom()" class="tool-btn" style="color:#ff0;"><b>🔍</b><span>Зум</span></div>
+    <div onclick="toggleCompass()" id="btn-compass" class="tool-btn" style="color:#0ff;"><b>🧭</b><span>Компас</span></div>
     <div onclick="reconnectApp()" class="tool-btn" style="color:#0af;"><b>🔄</b><span>Обнов</span></div>
     <div onclick="exitApp()" class="tool-btn" style="color:#f44;"><b>🚪</b><span>Выход</span></div>
+</div>
+
+<!-- МЕНЮ ФИГУР -->
+<div id="shape-menu">
+    <div onclick="selectShape('circle')">⭕ Круг</div>
+    <div onclick="selectShape('square')">⬛ Квадрат</div>
+    <div onclick="selectShape('triangle')">🔺 Треугольник</div>
 </div>
 
 <div id="map"></div>
@@ -155,7 +169,7 @@ const socket=io({ transports:['websocket','polling'], reconnection:true, reconne
 
 let map, activeTool='move', currentUser={name:'',team:'',color:'#0f0'};
 let playersMarkers={}, tacticalObjects={}, myObjects=new Set(), rulerPoints=[], gridLayer=null, tileLayer=null, playerColors={}, watchId=null, keepAliveInterval=null, distanceTimer=null, rulerTimers={};
-let isAdmin=false, currentAccessCode='', compassHeading=0;
+let isAdmin=false, currentAccessCode='', compassHeading=0, compassVisible=false, shapeMode=null, shapePoints=[];
 
 const METERS_PER_DEGREE=111320;
 const RUSSIAN_LETTERS=['А','Б','В','Г','Д','Е','Ё','Ж','З','И','Й','К','Л','М','Н','О','П','Р','С','Т','У','Ф','Х','Ц','Ч','Ш','Щ','Ъ','Ы','Ь','Э','Ю','Я'];
@@ -171,14 +185,19 @@ function changeAccessCode(){ if(!isAdmin){ alert('Нажмите "АДМИН" и
 socket.on('code_changed',(data)=>{ if(data.success){ currentAccessCode=data.newCode; document.getElementById('accessCode').value=''; alert('✅ Код изменен: '+data.newCode); } else{ alert('❌ '+data.error); } });
 
 // ===== КОМПАС =====
-function updateCompass(){ const arrow=document.getElementById('compass-arrow'); if(arrow) arrow.style.transform=`rotate(${compassHeading}deg)`; }
+function toggleCompass(){ compassVisible=!compassVisible; document.getElementById('compass').style.display=compassVisible?'block':'none'; const btn=document.getElementById('btn-compass'); if(compassVisible) btn.classList.add('active'); else btn.classList.remove('active'); }
+function updateCompass(){ if(!compassVisible) return; const arrow=document.getElementById('compass-arrow'); if(arrow) arrow.style.transform=`rotate(${compassHeading}deg)`; }
 function handleOrientation(e){ if(e.webkitCompassHeading!==undefined){ compassHeading=e.webkitCompassHeading||0; } else if(e.alpha!==null){ compassHeading=360-(e.alpha||0); } updateCompass(); }
 if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function'){
-    document.addEventListener('click',function requestPermission(){ DeviceOrientationEvent.requestPermission().then(r=>{ if(r==='granted') window.addEventListener('deviceorientation',handleOrientation,true); }); document.removeEventListener('click',requestPermission); },{once:true});
+    document.addEventListener('click',function rp(){ DeviceOrientationEvent.requestPermission().then(r=>{ if(r==='granted') window.addEventListener('deviceorientation',handleOrientation,true); }); document.removeEventListener('click',rp); },{once:true});
 }else{ window.addEventListener('deviceorientation',handleOrientation,true); }
 function requestCompassPermission(){ if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function'){ DeviceOrientationEvent.requestPermission().then(r=>{ if(r==='granted'){ window.addEventListener('deviceorientation',handleOrientation,true); alert('✅ Компас активирован!'); } }); }else{ alert('Компас уже активен'); } }
-setTimeout(()=>{ if(compassHeading===0) document.getElementById('compass-arrow').textContent='▲'; },3000);
-window.requestCompassPermission=requestCompassPermission;
+window.requestCompassPermission=requestCompassPermission; window.toggleCompass=toggleCompass;
+
+// ===== ФИГУРЫ =====
+function toggleShapeMenu(){ const menu=document.getElementById('shape-menu'); menu.style.display=menu.style.display==='flex'?'none':'flex'; }
+function selectShape(type){ shapeMode=type; shapePoints=[]; document.getElementById('shape-menu').style.display='none'; setTool('shape'); document.getElementById('btn-shape').classList.add('active'); if(map) map.closePopup(); }
+window.toggleShapeMenu=toggleShapeMenu; window.selectShape=selectShape;
 
 function tryAutoLogin(){
     const s=loadSession();
@@ -221,7 +240,7 @@ socket.on('player_joined',(d)=>{ if(d.name!==currentUser.name){ playerColors[d.n
 socket.on('player_left',(d)=>{ if(playersMarkers[d.name]){ map.removeLayer(playersMarkers[d.name]); delete playersMarkers[d.name]; delete playerColors[d.name]; addChatMessage('СИСТЕМА','← '+d.name+' отключился','#f44'); } });
 socket.on('player_move',(d)=>{ if(d.name!==currentUser.name) updatePlayerMarker(d.name,d.lat,d.lng,d.color); });
 
-// ===== ОБЪЕКТЫ =====
+// ===== ОБЪЕКТЫ (ВКЛЮЧАЯ ФИГУРЫ) =====
 socket.on('draw',(obj)=>{
     if(tacticalObjects[obj.id]){ tacticalObjects[obj.id].layers.forEach(l=>{ if(map&&map.hasLayer(l)) map.removeLayer(l); }); delete tacticalObjects[obj.id]; if(rulerTimers[obj.id]){ clearTimeout(rulerTimers[obj.id]); delete rulerTimers[obj.id]; } }
     let layers=[]; const cn=obj.creator||'???';
@@ -244,6 +263,23 @@ socket.on('draw',(obj)=>{
         ln.on('click',(e)=>{ if(activeTool==='eraser'){socket.emit('delete_obj',obj.id);return;} L.popup({closeButton:false,className:'creator-tooltip',autoClose:true}).setLatLng(e.latlng).setContent(`👤 <b>${cn}</b>`).openOn(map); });
         layers.push(ln,lb);
         if(obj.creator===currentUser.name){ rulerTimers[obj.id]=setTimeout(()=>{ socket.emit('delete_obj',obj.id); },3000); }
+    }else if(obj.type==='shape'){
+        // ФИГУРЫ
+        const sc=obj.shapeType;
+        if(sc==='circle'){
+            const r=map.distance([obj.start.lat,obj.start.lng],[obj.end.lat,obj.end.lng]);
+            const c=L.circle([obj.start.lat,obj.start.lng],{radius:r,color:'#ff2222',weight:2,dashArray:'8,6',fillOpacity:0,interactive:true}).addTo(map);
+            c.on('click',()=>{ if(activeTool==='eraser') socket.emit('delete_obj',obj.id); });
+            layers.push(c);
+        }else if(sc==='square'){
+            const r=L.rectangle([[obj.start.lat,obj.start.lng],[obj.end.lat,obj.end.lng]],{color:'#ff2222',weight:2,dashArray:'8,6',fillOpacity:0,interactive:true}).addTo(map);
+            r.on('click',()=>{ if(activeTool==='eraser') socket.emit('delete_obj',obj.id); });
+            layers.push(r);
+        }else if(sc==='triangle'){
+            const t=L.polygon([[obj.start.lat,obj.start.lng],[obj.end.lat,obj.end.lng],[obj.start.lat-(obj.end.lng-obj.start.lng),obj.start.lng+(obj.end.lat-obj.start.lat)]],{color:'#ff2222',weight:2,dashArray:'8,6',fillOpacity:0,interactive:true}).addTo(map);
+            t.on('click',()=>{ if(activeTool==='eraser') socket.emit('delete_obj',obj.id); });
+            layers.push(t);
+        }
     }
     tacticalObjects[obj.id]={type:obj.type,layers,creator:cn};
     if(obj.creator===currentUser.name) myObjects.add(obj.id);
@@ -251,7 +287,7 @@ socket.on('draw',(obj)=>{
 socket.on('remove_obj',(id)=>{ if(tacticalObjects[id]){ tacticalObjects[id].layers.forEach(l=>{ if(map&&map.hasLayer(l)) map.removeLayer(l); }); delete tacticalObjects[id]; myObjects.delete(id); if(rulerTimers[id]){ clearTimeout(rulerTimers[id]); delete rulerTimers[id]; } } });
 socket.on('receive_msg',(data)=>{ let n,t,c; if(typeof data==='string'){ const m=data.match(/^([^:]+):\s*(.+)$/); n=m?m[1]:'СИСТЕМА'; t=m?m[2]:data; c=playerColors[n]||'#ccc'; } else{ n=data.name||'Аноним'; t=data.text||''; c=data.color||playerColors[n]||'#ccc'; } addChatMessage(n,t,c); });
 
-// ==================== КАРТА (БЕЗ КНОПОК ЗУМА) ====================
+// ==================== КАРТА ====================
 function initMap(){ if(map)return; map=L.map('map',{zoomControl:false,attributionControl:false,maxZoom:22,minZoom:10,tap:true}).setView([55.7558,37.6176],18); tileLayer=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:22,maxNativeZoom:19}).addTo(map); map.on('click',handleMapClick); map.on('moveend',drawGrid); map.on('zoomend',drawGrid); drawGrid(); setTimeout(()=>{map.invalidateSize();drawGrid();},500); }
 function startGeolocation(){ if(!navigator.geolocation)return; if(watchId)navigator.geolocation.clearWatch(watchId); watchId=navigator.geolocation.watchPosition(pos=>{updateMyPosition(pos.coords.latitude,pos.coords.longitude);socket.emit('gps_sync',{lat:pos.coords.latitude,lng:pos.coords.longitude});},err=>console.warn('GPS:',err.message),{enableHighAccuracy:true,maximumAge:3000,timeout:10000}); }
 function updateMyPosition(lat,lng){ if(!map)return; if(playersMarkers[currentUser.name]) playersMarkers[currentUser.name].setLatLng([lat,lng]); else playersMarkers[currentUser.name]=L.marker([lat,lng],{icon:createPlayerIcon(currentUser.name,currentUser.color),zIndexOffset:1000}).addTo(map); }
@@ -263,11 +299,26 @@ function updatePlayerMarker(name,lat,lng,color){ if(!map||!name||name===currentU
 function centerOnMe(){ if(playersMarkers[currentUser.name]) map.setView(playersMarkers[currentUser.name].getLatLng(),18); else alert('Позиция не определена'); }
 function resetZoom(){ if(map) map.setZoom(18); document.getElementById('distance-bar').style.display='none'; if(distanceTimer){clearTimeout(distanceTimer);distanceTimer=null;} }
 
-function handleMapClick(e){ const{lat,lng}=e.latlng; if(activeTool==='enemy'||activeTool==='target'){ socket.emit('new_obj',{id:`${activeTool}_${Date.now()}_${Math.random().toString(36).substr(2,9)}`,type:activeTool,lat,lng,creator:currentUser.name}); } else if(activeTool==='arrow'||activeTool==='ruler'){ rulerPoints.push({lat,lng}); if(rulerPoints.length===2){ socket.emit('new_obj',{id:`${activeTool}_${Date.now()}_${Math.random().toString(36).substr(2,9)}`,type:activeTool,start:rulerPoints[0],end:rulerPoints[1],creator:currentUser.name}); rulerPoints=[]; }else{ L.popup().setLatLng([lat,lng]).setContent('<b>👆 Вторая точка</b>').openOn(map); } } }
+// ===== КЛИКИ (с фигурами) =====
+function handleMapClick(e){
+    const{lat,lng}=e.latlng;
+    if(activeTool==='shape'&&shapeMode){
+        shapePoints.push({lat,lng});
+        if(shapePoints.length===2){
+            socket.emit('new_obj',{id:`shape_${Date.now()}_${Math.random().toString(36).substr(2,9)}`,type:'shape',shapeType:shapeMode,start:shapePoints[0],end:shapePoints[1],creator:currentUser.name});
+            shapePoints=[]; shapeMode=null; setTool('move'); document.getElementById('btn-shape').classList.remove('active');
+        }else{ L.popup().setLatLng([lat,lng]).setContent('<b>👆 Вторая точка для размера</b>').openOn(map); }
+        return;
+    }
+    if(activeTool==='enemy'||activeTool==='target'){ socket.emit('new_obj',{id:`${activeTool}_${Date.now()}_${Math.random().toString(36).substr(2,9)}`,type:activeTool,lat,lng,creator:currentUser.name}); }
+    else if(activeTool==='arrow'||activeTool==='ruler'){ rulerPoints.push({lat,lng}); if(rulerPoints.length===2){ socket.emit('new_obj',{id:`${activeTool}_${Date.now()}_${Math.random().toString(36).substr(2,9)}`,type:activeTool,start:rulerPoints[0],end:rulerPoints[1],creator:currentUser.name}); rulerPoints=[]; }else{ L.popup().setLatLng([lat,lng]).setContent('<b>👆 Вторая точка</b>').openOn(map); } }
+}
 function deleteMyObjects(){ const ids=Array.from(myObjects); ids.forEach(id=>socket.emit('delete_obj',id)); myObjects.clear(); }
 
-// ===== СЕТКА ВСЕГДА (ZOOM ≥ 17) =====
-function getGridSizeForZoom(zoom){ if(zoom<17) return 0; return 20; }
+// ===== СЕТКА ТОЛЬКО НА ZOOM 18 =====
+let gridEnabled=false;
+function resetZoom(){ if(map) map.setZoom(18); gridEnabled=true; drawGrid(); document.getElementById('distance-bar').style.display='none'; if(distanceTimer){clearTimeout(distanceTimer);distanceTimer=null;} }
+function getGridSizeForZoom(zoom){ if(!gridEnabled||zoom!==18) return 0; return 20; }
 
 function drawGrid(){
     if(!map)return; const overlay=document.getElementById('grid-overlay'); overlay.innerHTML=''; const zoom=map.getZoom(); const GRID_SIZE=getGridSizeForZoom(zoom);
@@ -288,11 +339,14 @@ function drawGrid(){
     for(let lat=sLa;lat<=eLa;lat+=GRID_STEP){ const p=map.latLngToContainerPoint([lat+GRID_STEP/2,eLn]); if(p.y>30&&p.y<window.innerHeight-30){ const d=document.createElement('div'); d.className='grid-number-right'; d.textContent=Math.abs(rowIndex)%100; d.style.right='8px'; d.style.top=p.y+'px'; d.style.fontSize=fs; d.style.padding=pp; overlay.appendChild(d); } rowIndex++; }
 }
 
+// При любом зуме кроме 18 — убираем сетку
+map?.on('zoomend',()=>{ if(map.getZoom()!==18) gridEnabled=false; drawGrid(); });
+
 function sendChatMessage(){ const i=document.getElementById('chat-input'); const t=i.value.trim(); if(!t)return; socket.emit('chat_msg',{name:currentUser.name,text:t,color:currentUser.color}); i.value=''; i.focus(); }
 function addChatMessage(n,t,c){ const ct=document.getElementById('chat-messages'); const d=document.createElement('div'); d.className='msg-line'; d.innerHTML=`<span class="msg-name" style="color:${c}">${esc(n)}:</span><span class="msg-text">${esc(t)}</span>`; ct.appendChild(d); ct.scrollTop=ct.scrollHeight; }
 function esc(t){ const d=document.createElement('div'); d.textContent=t; return d.innerHTML; }
 function toggleChat(){ const c=document.getElementById('chat-win'); c.style.display=c.style.display==='flex'?'none':'flex'; if(c.style.display==='flex')document.getElementById('chat-input').focus(); }
-function setTool(t){ activeTool=t; rulerPoints=[]; document.getElementById('distance-bar').style.display='none'; if(distanceTimer){clearTimeout(distanceTimer);distanceTimer=null;} document.querySelectorAll('.tool-btn').forEach(b=>b.classList.remove('active')); const btn=document.getElementById(`btn-${t}`); if(btn)btn.classList.add('active'); if(map)map.closePopup(); }
+function setTool(t){ activeTool=t; shapeMode=null; shapePoints=[]; rulerPoints=[]; document.getElementById('shape-menu').style.display='none'; document.getElementById('distance-bar').style.display='none'; if(distanceTimer){clearTimeout(distanceTimer);distanceTimer=null;} document.querySelectorAll('.tool-btn').forEach(b=>b.classList.remove('active')); const btn=document.getElementById(`btn-${t}`); if(btn)btn.classList.add('active'); if(map)map.closePopup(); }
 function changeMap(type){ if(tileLayer)map.removeLayer(tileLayer); tileLayer=L.tileLayer(type==='sat'?'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}':'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:type==='sat'?20:22,maxNativeZoom:type==='sat'?20:19}).addTo(map); drawGrid(); }
 function reconnectApp(){ const el=document.getElementById('connection-status'); el.textContent='🔄 Переподключение...'; el.style.color='#ff0'; el.style.display='block'; if(socket.disconnected) socket.connect(); setTimeout(()=>{ if(socket.connected&&currentUser.name){ socket.emit('rejoin_room',{room:currentUser.team,name:currentUser.name,color:currentUser.color,deviceId:DEVICE_ID}); el.textContent='🟢 Готово'; el.style.color='#0f0'; } else{ el.textContent='🔴 Ошибка'; el.style.color='#f00'; } setTimeout(()=>el.style.display='none',2000); },1500); }
 function exitApp(){ if(confirm('Выйти?')){ socket.emit('explicit_exit',{name:currentUser.name,room:currentUser.team}); clearSession(); if(watchId)navigator.geolocation.clearWatch(watchId); if(keepAliveInterval)clearInterval(keepAliveInterval); setTimeout(()=>{socket.disconnect();location.reload();},300); } }
@@ -302,9 +356,9 @@ const autoLoggedIn=tryAutoLogin(); if(!autoLoggedIn) document.getElementById('au
 window.doLogin=doLogin; window.setTool=setTool; window.centerOnMe=centerOnMe; window.resetZoom=resetZoom;
 window.changeMap=changeMap; window.toggleChat=toggleChat; window.sendChatMessage=sendChatMessage;
 window.deleteMyObjects=deleteMyObjects; window.reconnectApp=reconnectApp; window.exitApp=exitApp;
-window.changeAccessCode=changeAccessCode; window.tryBecomeAdmin=tryBecomeAdmin; window.requestCompassPermission=requestCompassPermission;
+window.changeAccessCode=changeAccessCode; window.tryBecomeAdmin=tryBecomeAdmin;
 
-console.log('🦂 ScorpGEO v7.0 — Зум убран | Сетка всегда | Компас ▲');
+console.log('🦂 ScorpGEO v8.0 — Компас вкл/выкл | Сетка по Зум | Фигуры 🔷');
 </script>
 </body>
 </html>
