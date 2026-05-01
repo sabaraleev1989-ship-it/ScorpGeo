@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="ScorpGEO">
     <meta name="theme-color" content="#000000">
-    <title>ScorpGEO v6.5</title>
+    <title>ScorpGEO v6.6</title>
     
     <link rel="manifest" href="/manifest.json">
     <link rel="apple-touch-icon" href="/icons/icon-512.png">
@@ -73,11 +73,23 @@
         
         .creator-tooltip { background:rgba(0,0,0,0.9)!important; border:1px solid #0f0!important; color:#0f0!important; font-family:'Courier New',monospace!important; font-size:11px!important; padding:4px 8px!important; border-radius:5px!important; }
         #connection-status { position:fixed; top:48px; right:8px; background:rgba(0,0,0,0.85); color:#0f0; padding:3px 7px; border-radius:10px; font-size:8px; z-index:7000; display:none; font-family:monospace; border:1px solid #0f0; }
+        
+        /* КОМПАС */
+        #compass { position:fixed; top:50px; right:8px; z-index:8000; pointer-events:none; }
+        #compass-inner { background:rgba(0,0,0,0.85); border:1px solid #0f0; border-radius:50%; width:42px; height:42px; display:flex; align-items:center; justify-content:center; }
+        #compass-arrow { font-size:22px; transition:transform 0.3s ease; }
     </style>
 </head>
 <body>
 
 <div id="connection-status">🟢 ОНЛАЙН</div>
+
+<!-- КОМПАС -->
+<div id="compass">
+    <div id="compass-inner">
+        <span id="compass-arrow">🧭</span>
+    </div>
+</div>
 
 <div id="auth-screen">
     <div class="radar-container">
@@ -99,9 +111,7 @@
         
         <button onclick="doLogin()" class="auth-btn">⚡ ВОЙТИ ⚡</button>
         <div style="color:#050;font-size:8px;margin-top:12px;letter-spacing:1px;">
-            v6.5 • 
-            <span onclick="tryBecomeAdmin()" style="color:#0a0;cursor:pointer;text-decoration:underline;">АДМИН</span>
-            • 🔍 ЗУМ • ЛИНЕЙКА 3С
+            v6.6 • <span onclick="tryBecomeAdmin()" style="color:#0a0;cursor:pointer;text-decoration:underline;">АДМИН</span> • 🧭 КОМПАС
         </div>
         <div id="autoLoginMsg" style="color:#0f0;font-size:11px;margin-top:8px;display:none;"></div>
     </div>
@@ -145,7 +155,7 @@ const socket=io({ transports:['websocket','polling'], reconnection:true, reconne
 
 let map, activeTool='move', currentUser={name:'',team:'',color:'#0f0'};
 let playersMarkers={}, tacticalObjects={}, myObjects=new Set(), rulerPoints=[], gridLayer=null, tileLayer=null, playerColors={}, watchId=null, keepAliveInterval=null, distanceTimer=null, rulerTimers={};
-let isAdmin=false, currentAccessCode='';
+let isAdmin=false, currentAccessCode='', compassHeading=0;
 
 const METERS_PER_DEGREE=111320;
 const RUSSIAN_LETTERS=['А','Б','В','Г','Д','Е','Ё','Ж','З','И','Й','К','Л','М','Н','О','П','Р','С','Т','У','Ф','Х','Ц','Ч','Ш','Щ','Ъ','Ы','Ь','Э','Ю','Я'];
@@ -159,6 +169,13 @@ function clearSession(){ localStorage.removeItem(STORAGE_KEY); }
 function tryBecomeAdmin(){ const pass=prompt('🔐 Админ-пароль:'); if(pass===ADMIN_PASSWORD){ isAdmin=true; document.getElementById('settingsGear').style.display='inline'; alert('✅ Доступ разрешен!'); } else{ alert('❌ Неверный пароль!'); } }
 function changeAccessCode(){ if(!isAdmin){ alert('Нажмите "АДМИН" и введите пароль!'); return; } const newCode=prompt('Новый код доступа:'); if(newCode&&newCode.trim()){ socket.emit('change_access_code',{newCode:newCode.trim(),adminPass:ADMIN_PASSWORD}); } }
 socket.on('code_changed',(data)=>{ if(data.success){ currentAccessCode=data.newCode; document.getElementById('accessCode').value=''; alert('✅ Код изменен: '+data.newCode); } else{ alert('❌ '+data.error); } });
+
+// ===== КОМПАС =====
+function updateCompass(){ const arrow=document.getElementById('compass-arrow'); if(arrow) arrow.style.transform=`rotate(${compassHeading}deg)`; }
+if(window.DeviceOrientationEvent){
+    window.addEventListener('deviceorientationabsolute',(e)=>{ if(e.webkitCompassHeading!==undefined){ compassHeading=e.webkitCompassHeading; }else if(e.alpha!==null){ compassHeading=360-e.alpha; } updateCompass(); });
+    window.addEventListener('deviceorientation',(e)=>{ if(e.webkitCompassHeading!==undefined){ compassHeading=e.webkitCompassHeading; }else if(e.alpha!==null&&compassHeading===0){ compassHeading=360-e.alpha; } updateCompass(); });
+}
 
 function tryAutoLogin(){
     const s=loadSession();
@@ -216,7 +233,6 @@ socket.on('draw',(obj)=>{
         const sh=(e)=>{ if(activeTool==='eraser'){socket.emit('delete_obj',obj.id);return;} L.popup({closeButton:false,className:'creator-tooltip',autoClose:true}).setLatLng(e.latlng).setContent(`👤 <b>${cn}</b>`).openOn(map); };
         ln.on('click',sh); hd.on('click',sh); layers.push(ln,hd);
     }else if(obj.type==='ruler'){
-        // КРАСНО-ЧЕРНЫЙ ПУНКТИР
         const ln=L.polyline([obj.start,obj.end],{color:'#ff2222',weight:3,dashArray:'10, 8',opacity:0.9,interactive:true}).addTo(map);
         const d=map.distance([obj.start.lat,obj.start.lng],[obj.end.lat,obj.end.lng]);
         const tx=d<1000?`${Math.round(d)} м`:`${(d/1000).toFixed(1)} км`;
@@ -224,7 +240,6 @@ socket.on('draw',(obj)=>{
         const lb=L.marker([md.lat,md.lng],{icon:L.divIcon({html:`<div style="background:#000;color:#ff0;padding:3px 6px;border:1px solid #ff0;border-radius:10px;font-size:10px;font-weight:bold;">📏 ${tx}</div>`,iconSize:[70,22],iconAnchor:[35,11],className:''}),interactive:false}).addTo(map);
         ln.on('click',(e)=>{ if(activeTool==='eraser'){socket.emit('delete_obj',obj.id);return;} L.popup({closeButton:false,className:'creator-tooltip',autoClose:true}).setLatLng(e.latlng).setContent(`👤 <b>${cn}</b>`).openOn(map); });
         layers.push(ln,lb);
-        // АВТОУДАЛЕНИЕ ЧЕРЕЗ 3 СЕКУНДЫ
         if(obj.creator===currentUser.name){ rulerTimers[obj.id]=setTimeout(()=>{ socket.emit('delete_obj',obj.id); },3000); }
     }
     tacticalObjects[obj.id]={type:obj.type,layers,creator:cn};
@@ -243,27 +258,69 @@ function updatePlayerMarker(name,lat,lng,color){ if(!map||!name||name===currentU
     marker.on('click',(e)=>{ if(!playersMarkers[currentUser.name])return; L.DomEvent.stopPropagation(e); const d=map.distance(playersMarkers[currentUser.name].getLatLng(),marker.getLatLng()); const txt=d<1000?`${Math.round(d)} м`:`${(d/1000).toFixed(1)} км`; const bar=document.getElementById('distance-bar'); bar.innerHTML=`📏 <b style="color:${playerColors[name]||'#fff'}">${name}</b> — ${txt}`; bar.style.display='block'; bar.style.animation='none'; bar.offsetHeight; bar.style.animation='slideUp 0.3s ease-out'; if(distanceTimer)clearTimeout(distanceTimer); distanceTimer=setTimeout(()=>{ bar.style.display='none'; },5000); }); } }
 
 function centerOnMe(){ if(playersMarkers[currentUser.name]) map.setView(playersMarkers[currentUser.name].getLatLng(),18); else alert('Позиция не определена'); }
-// ===== КНОПКА ЗУМ =====
 function resetZoom(){ if(map) map.setZoom(18); document.getElementById('distance-bar').style.display='none'; if(distanceTimer){clearTimeout(distanceTimer);distanceTimer=null;} }
 
 function handleMapClick(e){ const{lat,lng}=e.latlng; if(activeTool==='enemy'||activeTool==='target'){ socket.emit('new_obj',{id:`${activeTool}_${Date.now()}_${Math.random().toString(36).substr(2,9)}`,type:activeTool,lat,lng,creator:currentUser.name}); } else if(activeTool==='arrow'||activeTool==='ruler'){ rulerPoints.push({lat,lng}); if(rulerPoints.length===2){ socket.emit('new_obj',{id:`${activeTool}_${Date.now()}_${Math.random().toString(36).substr(2,9)}`,type:activeTool,start:rulerPoints[0],end:rulerPoints[1],creator:currentUser.name}); rulerPoints=[]; }else{ L.popup().setLatLng([lat,lng]).setContent('<b>👆 Вторая точка</b>').openOn(map); } } }
 function deleteMyObjects(){ const ids=Array.from(myObjects); ids.forEach(id=>socket.emit('delete_obj',id)); myObjects.clear(); }
 
-// ===== ФИКСИРОВАННАЯ СЕТКА 20М =====
+// ===== ФИКСИРОВАННАЯ СЕТКА 20М (ПО КООРДИНАТАМ) =====
 function getGridSizeForZoom(zoom){ if(zoom<15) return 0; return 20; }
+
 function drawGrid(){
-    if(!map)return; const overlay=document.getElementById('grid-overlay'); overlay.innerHTML=''; const zoom=map.getZoom(); const GRID_SIZE=getGridSizeForZoom(zoom);
+    if(!map)return;
+    const overlay=document.getElementById('grid-overlay'); overlay.innerHTML='';
+    const zoom=map.getZoom();
+    const GRID_SIZE=getGridSizeForZoom(zoom);
     if(GRID_SIZE===0){ if(gridLayer){map.removeLayer(gridLayer);gridLayer=null;} return; }
-    const GRID_STEP=(GRID_SIZE/METERS_PER_DEGREE); const bounds=map.getBounds();
-    const sLa=Math.floor(bounds.getSouth()/GRID_STEP)*GRID_STEP; const eLa=Math.ceil(bounds.getNorth()/GRID_STEP)*GRID_STEP;
-    const sLn=Math.floor(bounds.getWest()/GRID_STEP)*GRID_STEP; const eLn=Math.ceil(bounds.getEast()/GRID_STEP)*GRID_STEP;
-    if(gridLayer) map.removeLayer(gridLayer); gridLayer=L.layerGroup().addTo(map);
-    for(let lng=sLn;lng<=eLn;lng+=GRID_STEP) L.polyline([[sLa,lng],[eLa,lng]],{color:'#555',weight:1,opacity:0.4}).addTo(gridLayer);
-    for(let lat=sLa;lat<=eLa;lat+=GRID_STEP) L.polyline([[lat,sLn],[lat,eLn]],{color:'#555',weight:1,opacity:0.4}).addTo(gridLayer);
-    const fs='11px',pp='3px 7px'; let ci=0;
-    for(let lng=sLn;lng<=eLn;lng+=GRID_STEP){ const p=map.latLngToContainerPoint([bounds.getNorth(),lng+GRID_STEP/2]); if(p.x>25&&p.x<window.innerWidth-25){ const d=document.createElement('div'); d.className='grid-letter-top'; d.textContent=RUSSIAN_LETTERS[ci%RUSSIAN_LETTERS.length]; d.style.left=p.x+'px'; d.style.top=Math.max(22,p.y-15)+'px'; d.style.fontSize=fs; d.style.padding=pp; overlay.appendChild(d); } ci++; }
-    let ri=0;
-    for(let lat=sLa;lat<=eLa;lat+=GRID_STEP){ const p=map.latLngToContainerPoint([lat+GRID_STEP/2,eLn]); if(p.y>25&&p.y<window.innerHeight-25){ const d=document.createElement('div'); d.className='grid-number-right'; d.textContent=ri%100; d.style.right='8px'; d.style.top=p.y+'px'; d.style.fontSize=fs; d.style.padding=pp; overlay.appendChild(d); } ri++; }
+    
+    const GRID_STEP=(GRID_SIZE/METERS_PER_DEGREE);
+    const bounds=map.getBounds();
+    const center=map.getCenter();
+    
+    // Фиксируем по координатам центра
+    const baseLat=Math.floor(center.lat/GRID_STEP)*GRID_STEP;
+    const baseLng=Math.floor(center.lng/GRID_STEP)*GRID_STEP;
+    
+    const sLa=baseLat-Math.ceil((center.lat-bounds.getSouth())/GRID_STEP)*GRID_STEP-GRID_STEP;
+    const eLa=baseLat+Math.ceil((bounds.getNorth()-center.lat)/GRID_STEP)*GRID_STEP+GRID_STEP;
+    const sLn=baseLng-Math.ceil((center.lng-bounds.getWest())/GRID_STEP)*GRID_STEP-GRID_STEP;
+    const eLn=baseLng+Math.ceil((bounds.getEast()-center.lng)/GRID_STEP)*GRID_STEP+GRID_STEP;
+    
+    if(gridLayer) map.removeLayer(gridLayer);
+    gridLayer=L.layerGroup().addTo(map);
+    
+    for(let lng=sLn;lng<=eLn;lng+=GRID_STEP)
+        L.polyline([[sLa,lng],[eLa,lng]],{color:'#555',weight:1,opacity:0.35}).addTo(gridLayer);
+    for(let lat=sLa;lat<=eLa;lat+=GRID_STEP)
+        L.polyline([[lat,sLn],[lat,eLn]],{color:'#555',weight:1,opacity:0.35}).addTo(gridLayer);
+    
+    const fs='11px',pp='3px 7px';
+    
+    // Буквы — фиксированный индекс по координатам
+    let colIndex=Math.round(baseLng/GRID_STEP);
+    for(let lng=sLn;lng<=eLn;lng+=GRID_STEP){
+        const p=map.latLngToContainerPoint([bounds.getNorth(),lng+GRID_STEP/2]);
+        if(p.x>30&&p.x<window.innerWidth-30){
+            const d=document.createElement('div'); d.className='grid-letter-top';
+            d.textContent=RUSSIAN_LETTERS[Math.abs(colIndex)%RUSSIAN_LETTERS.length];
+            d.style.left=p.x+'px'; d.style.top=Math.max(22,p.y-15)+'px';
+            d.style.fontSize=fs; d.style.padding=pp; overlay.appendChild(d);
+        }
+        colIndex++;
+    }
+    
+    // Цифры — фиксированный индекс по координатам
+    let rowIndex=Math.round(baseLat/GRID_STEP);
+    for(let lat=sLa;lat<=eLa;lat+=GRID_STEP){
+        const p=map.latLngToContainerPoint([lat+GRID_STEP/2,eLn]);
+        if(p.y>30&&p.y<window.innerHeight-30){
+            const d=document.createElement('div'); d.className='grid-number-right';
+            d.textContent=Math.abs(rowIndex)%100;
+            d.style.right='8px'; d.style.top=p.y+'px';
+            d.style.fontSize=fs; d.style.padding=pp; overlay.appendChild(d);
+        }
+        rowIndex++;
+    }
 }
 
 function sendChatMessage(){ const i=document.getElementById('chat-input'); const t=i.value.trim(); if(!t)return; socket.emit('chat_msg',{name:currentUser.name,text:t,color:currentUser.color}); i.value=''; i.focus(); }
@@ -282,7 +339,7 @@ window.changeMap=changeMap; window.toggleChat=toggleChat; window.sendChatMessage
 window.deleteMyObjects=deleteMyObjects; window.reconnectApp=reconnectApp; window.exitApp=exitApp;
 window.changeAccessCode=changeAccessCode; window.tryBecomeAdmin=tryBecomeAdmin;
 
-console.log('🦂 ScorpGEO v6.5 — 🔍 Зум 18 | Линейка 3с | Сетка 20м');
+console.log('🦂 ScorpGEO v6.6 — 🧭 Компас | Сетка фикс | Линейка 3с');
 </script>
 </body>
 </html>
