@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="ScorpGEO">
     <meta name="theme-color" content="#000000">
-    <title>ScorpGEO v8.2</title>
+    <title>ScorpGEO v8.3</title>
     
     <link rel="manifest" href="/manifest.json">
     <link rel="apple-touch-icon" href="/icons/icon-512.png">
@@ -110,7 +110,7 @@
             <span class="gear-btn" id="settingsGear" onclick="changeAccessCode()">⚙️</span>
         </div>
         <button onclick="doLogin()" class="auth-btn">⚡ ВОЙТИ ⚡</button>
-        <div style="color:#050;font-size:8px;margin-top:12px;">v8.2 • <span onclick="tryBecomeAdmin()" style="color:#0a0;cursor:pointer;text-decoration:underline;">АДМИН</span> • ✏️🧭</div>
+        <div style="color:#050;font-size:8px;margin-top:12px;">v8.3 • <span onclick="tryBecomeAdmin()" style="color:#0a0;cursor:pointer;text-decoration:underline;">АДМИН</span> • ✏️🧭🔄</div>
         <div id="autoLoginMsg" style="color:#0f0;font-size:11px;margin-top:8px;display:none;"></div>
     </div>
 </div>
@@ -181,26 +181,26 @@ if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.re
 function requestCompassPermission(){ if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function'){ DeviceOrientationEvent.requestPermission().then(r=>{ if(r==='granted'){ window.addEventListener('deviceorientation',handleOrientation,true); alert('✅ Компас активирован!'); } }); }else{ alert('Компас уже активен'); } }
 window.requestCompassPermission=requestCompassPermission; window.toggleCompass=toggleCompass;
 
-// ===== КАРАНДАШ =====
+// ===== КАРАНДАШ (ИСПРАВЛЕННЫЙ) =====
 function startPencil(e){
     if(activeTool!=='pencil') return;
     isDrawing=true;
+    map.dragging.disable(); // Отключаем перетаскивание карты
     pencilPoints=[[e.latlng.lat,e.latlng.lng]];
     if(pencilLine) map.removeLayer(pencilLine);
-    pencilLine=L.polyline(pencilPoints,{color:'#ff4444',weight:3,opacity:0.9}).addTo(map);
-    map.dragging.disable();
+    pencilLine=L.polyline(pencilPoints,{color:'#ff4444',weight:4,opacity:0.9}).addTo(map);
 }
 
 function movePencil(e){
     if(!isDrawing||activeTool!=='pencil') return;
     pencilPoints.push([e.latlng.lat,e.latlng.lng]);
-    pencilLine.setLatLngs(pencilPoints);
+    if(pencilLine) pencilLine.setLatLngs(pencilPoints);
 }
 
 function endPencil(){
     if(!isDrawing) return;
     isDrawing=false;
-    map.dragging.enable();
+    map.dragging.enable(); // Включаем обратно
     if(pencilPoints.length>1){
         const id='pencil_'+Date.now()+'_'+Math.random().toString(36).substr(2,9);
         socket.emit('new_obj',{id:id,type:'pencil',points:pencilPoints,creator:currentUser.name});
@@ -251,7 +251,7 @@ socket.on('player_joined',(d)=>{ if(d.name!==currentUser.name){ playerColors[d.n
 socket.on('player_left',(d)=>{ if(playersMarkers[d.name]){ map.removeLayer(playersMarkers[d.name]); delete playersMarkers[d.name]; delete playerColors[d.name]; addChatMessage('СИСТЕМА','← '+d.name+' отключился','#f44'); } });
 socket.on('player_move',(d)=>{ if(d.name!==currentUser.name) updatePlayerMarker(d.name,d.lat,d.lng,d.color); });
 
-// ===== ОБЪЕКТЫ (включая карандаш) =====
+// ===== ОБЪЕКТЫ =====
 socket.on('draw',(obj)=>{
     if(tacticalObjects[obj.id]){ tacticalObjects[obj.id].layers.forEach(l=>{ if(map&&map.hasLayer(l)) map.removeLayer(l); }); delete tacticalObjects[obj.id]; if(rulerTimers[obj.id]){ clearTimeout(rulerTimers[obj.id]); delete rulerTimers[obj.id]; } }
     let layers=[]; const cn=obj.creator||'???';
@@ -275,8 +275,7 @@ socket.on('draw',(obj)=>{
         layers.push(ln,lb);
         if(obj.creator===currentUser.name){ rulerTimers[obj.id]=setTimeout(()=>{ socket.emit('delete_obj',obj.id); },3000); }
     }else if(obj.type==='pencil'){
-        // КАРАНДАШ — произвольная линия
-        const pl=L.polyline(obj.points,{color:'#ff4444',weight:3,opacity:0.85,interactive:true}).addTo(map);
+        const pl=L.polyline(obj.points,{color:'#ff4444',weight:4,opacity:0.85,interactive:true}).addTo(map);
         pl.on('click',()=>{ if(activeTool==='eraser') socket.emit('delete_obj',obj.id); });
         layers.push(pl);
     }
@@ -286,13 +285,22 @@ socket.on('draw',(obj)=>{
 socket.on('remove_obj',(id)=>{ if(tacticalObjects[id]){ tacticalObjects[id].layers.forEach(l=>{ if(map&&map.hasLayer(l)) map.removeLayer(l); }); delete tacticalObjects[id]; myObjects.delete(id); if(rulerTimers[id]){ clearTimeout(rulerTimers[id]); delete rulerTimers[id]; } } });
 socket.on('receive_msg',(data)=>{ let n,t,c; if(typeof data==='string'){ const m=data.match(/^([^:]+):\s*(.+)$/); n=m?m[1]:'СИСТЕМА'; t=m?m[2]:data; c=playerColors[n]||'#ccc'; } else{ n=data.name||'Аноним'; t=data.text||''; c=data.color||playerColors[n]||'#ccc'; } addChatMessage(n,t,c); });
 
-// ==================== КАРТА ====================
+// ==================== КАРТА (С ПОВОРОТОМ) ====================
 function initMap(){
     if(map)return;
-    map=L.map('map',{zoomControl:false,attributionControl:false,maxZoom:22,minZoom:10,tap:true}).setView([55.7558,37.6176],18);
+    map=L.map('map',{
+        zoomControl:false,
+        attributionControl:false,
+        maxZoom:22,
+        minZoom:10,
+        tap:true,
+        rotate:true,        // ВКЛЮЧАЕМ ПОВОРОТ
+        touchRotate:true,   // ПОВОРОТ ДВУМЯ ПАЛЬЦАМИ
+        rotateControl:false // Без кнопки поворота
+    }).setView([55.7558,37.6176],18);
+    
     tileLayer=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:22,maxNativeZoom:19}).addTo(map);
     
-    // Обработчики для карандаша
     map.on('mousedown',startPencil);
     map.on('mousemove',movePencil);
     map.on('mouseup',endPencil);
@@ -315,19 +323,19 @@ function updatePlayerMarker(name,lat,lng,color){ if(!map||!name||name===currentU
     marker.on('click',(e)=>{ if(!playersMarkers[currentUser.name])return; L.DomEvent.stopPropagation(e); const d=map.distance(playersMarkers[currentUser.name].getLatLng(),marker.getLatLng()); const txt=d<1000?`${Math.round(d)} м`:`${(d/1000).toFixed(1)} км`; const bar=document.getElementById('distance-bar'); bar.innerHTML=`📏 <b style="color:${playerColors[name]||'#fff'}">${name}</b> — ${txt}`; bar.style.display='block'; bar.style.animation='none'; bar.offsetHeight; bar.style.animation='slideUp 0.3s ease-out'; if(distanceTimer)clearTimeout(distanceTimer); distanceTimer=setTimeout(()=>{ bar.style.display='none'; },5000); }); } }
 
 function centerOnMe(){ if(playersMarkers[currentUser.name]) map.setView(playersMarkers[currentUser.name].getLatLng(),18); else alert('Позиция не определена'); }
-function resetZoom(){ if(map) map.setZoom(18); document.getElementById('distance-bar').style.display='none'; if(distanceTimer){clearTimeout(distanceTimer);distanceTimer=null;} }
+function resetZoom(){ if(map){ map.setZoom(18); map.setBearing(0); } document.getElementById('distance-bar').style.display='none'; if(distanceTimer){clearTimeout(distanceTimer);distanceTimer=null;} }
 
 function handleMapClick(e){
-    if(activeTool==='pencil') return; // Карандаш обрабатывается отдельно
+    if(activeTool==='pencil') return;
     const{lat,lng}=e.latlng;
     if(activeTool==='enemy'||activeTool==='target'){ socket.emit('new_obj',{id:`${activeTool}_${Date.now()}_${Math.random().toString(36).substr(2,9)}`,type:activeTool,lat,lng,creator:currentUser.name}); }
     else if(activeTool==='arrow'||activeTool==='ruler'){ rulerPoints.push({lat,lng}); if(rulerPoints.length===2){ socket.emit('new_obj',{id:`${activeTool}_${Date.now()}_${Math.random().toString(36).substr(2,9)}`,type:activeTool,start:rulerPoints[0],end:rulerPoints[1],creator:currentUser.name}); rulerPoints=[]; }else{ L.popup().setLatLng([lat,lng]).setContent('<b>👆 Вторая точка</b>').openOn(map); } }
 }
 function deleteMyObjects(){ const ids=Array.from(myObjects); ids.forEach(id=>socket.emit('delete_obj',id)); myObjects.clear(); }
 
-// ===== СЕТКА ТОЛЬКО НА ZOOM 18 =====
-let gridEnabled=false;
-function getGridSizeForZoom(zoom){ if(!gridEnabled||zoom!==18) return 0; return 20; }
+// ===== СЕТКА ВОЗВРАЩЕНА (ZOOM 18-20) =====
+let gridEnabled=true;
+function getGridSizeForZoom(zoom){ if(!gridEnabled||zoom<18||zoom>20) return 0; return 20; }
 
 function drawGrid(){
     if(!map)return; const overlay=document.getElementById('grid-overlay'); overlay.innerHTML=''; const zoom=map.getZoom(); const GRID_SIZE=getGridSizeForZoom(zoom);
@@ -348,8 +356,6 @@ function drawGrid(){
     for(let lat=sLa;lat<=eLa;lat+=GRID_STEP){ const p=map.latLngToContainerPoint([lat+GRID_STEP/2,eLn]); if(p.y>30&&p.y<window.innerHeight-30){ const d=document.createElement('div'); d.className='grid-number-right'; d.textContent=Math.abs(rowIndex)%100; d.style.right='8px'; d.style.top=p.y+'px'; d.style.fontSize=fs; d.style.padding=pp; overlay.appendChild(d); } rowIndex++; }
 }
 
-map?.on('zoomend',()=>{ if(map.getZoom()!==18) gridEnabled=false; drawGrid(); });
-
 function sendChatMessage(){ const i=document.getElementById('chat-input'); const t=i.value.trim(); if(!t)return; socket.emit('chat_msg',{name:currentUser.name,text:t,color:currentUser.color}); i.value=''; i.focus(); }
 function addChatMessage(n,t,c){ const ct=document.getElementById('chat-messages'); const d=document.createElement('div'); d.className='msg-line'; d.innerHTML=`<span class="msg-name" style="color:${c}">${esc(n)}:</span><span class="msg-text">${esc(t)}</span>`; ct.appendChild(d); ct.scrollTop=ct.scrollHeight; }
 function esc(t){ const d=document.createElement('div'); d.textContent=t; return d.innerHTML; }
@@ -366,7 +372,7 @@ window.changeMap=changeMap; window.toggleChat=toggleChat; window.sendChatMessage
 window.deleteMyObjects=deleteMyObjects; window.reconnectApp=reconnectApp; window.exitApp=exitApp;
 window.changeAccessCode=changeAccessCode; window.tryBecomeAdmin=tryBecomeAdmin;
 
-console.log('🦂 ScorpGEO v8.2 — ✏️ Карандаш | 🧭 Компас');
+console.log('🦂 ScorpGEO v8.3 — ✏️ Карандаш | 🧭 Компас | 🔄 Поворот');
 </script>
 </body>
 </html>
