@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#000000">
-    <title>SCORPION TACTICAL v5.4</title>
+    <title>SCORPION TACTICAL v5.5</title>
     
     <link rel="manifest" href="/manifest.json">
     <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='192' height='192' viewBox='0 0 192 192'%3E%3Ccircle cx='96' cy='96' r='90' fill='none' stroke='%2300ff00' stroke-width='4'/%3E%3Ctext x='96' y='105' text-anchor='middle' fill='%2300ff00' font-size='14' font-family='monospace' font-weight='bold'%3ESCORPION%3C/text%3E%3C/svg%3E">
@@ -128,7 +128,7 @@
         <input type="text" id="playerName" class="auth-input" placeholder="ПОЗЫВНОЙ" maxlength="10" autocomplete="off">
         <input type="password" id="password" class="auth-input" placeholder="ПАРОЛЬ" maxlength="20" autocomplete="off">
         <button onclick="doLogin()" class="auth-btn">⚡ ВОЙТИ ⚡</button>
-        <div class="auth-info">ТАП ПО БОЙЦУ → РАССТОЯНИЕ</div>
+        <div class="auth-info">ТАП ПО БОЙЦУ → РАССТОЯНИЕ | ВЫХОД → СРАЗУ</div>
         <div id="autoLoginMsg" class="auto-login-msg" style="display:none;"></div>
     </div>
 </div>
@@ -165,7 +165,7 @@ const socket = io({ transports:['websocket','polling'], reconnection:true, recon
 
 let map, activeTool='move', currentUser={name:'',team:'',color:'#0f0'};
 let playersMarkers={}, tacticalObjects={}, myObjects=new Set(), rulerPoints=[], gridLayer=null, tileLayer=null, playerColors={}, watchId=null, keepAliveInterval=null, distanceTimer=null;
-let currentMapType='map'; // 'map' или 'sat'
+let currentMapType='map';
 
 const METERS_PER_DEGREE=111320;
 const RUSSIAN_LETTERS=['А','Б','В','Г','Д','Е','Ё','Ж','З','И','Й','К','Л','М','Н','О','П','Р','С','Т','У','Ф','Х','Ц','Ч','Ш','Щ','Ъ','Ы','Ь','Э','Ю','Я'];
@@ -265,23 +265,14 @@ socket.on('receive_msg',(data)=>{
     addChatMessage(n,t,c);
 });
 
-// ==================== КАРТА (СХЕМА ВСЕГДА, СПУТНИК ТОЛЬКО ВРУЧНУЮ) ====================
+// ==================== КАРТА ====================
 function initMap(){
     if(map)return;
     map=L.map('map',{zoomControl:true,attributionControl:false,maxZoom:22,minZoom:10,tap:true}).setView([55.7558,37.6176],18);
-    
-    // Всегда схема
-    tileLayer=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
-        maxZoom:22,
-        maxNativeZoom:19
-    }).addTo(map);
+    tileLayer=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:22,maxNativeZoom:19}).addTo(map);
     currentMapType='map';
-    
-    map.on('click',handleMapClick);
-    map.on('moveend',drawGrid);
-    map.on('zoomend',drawGrid);
-    drawGrid();
-    setTimeout(()=>{map.invalidateSize();drawGrid();},500);
+    map.on('click',handleMapClick); map.on('moveend',drawGrid); map.on('zoomend',drawGrid);
+    drawGrid(); setTimeout(()=>{map.invalidateSize();drawGrid();},500);
 }
 
 function startGeolocation(){
@@ -299,16 +290,13 @@ function createPlayerIcon(name,color){
     return L.divIcon({html:`<div class="player-marker"><div class="player-name-tag" style="color:${color}">${name}</div><div class="player-dot" style="background:${color}"></div></div>`,iconSize:[70,36],iconAnchor:[35,28],className:''});
 }
 
-// ===== ТАП ПО БОЙЦУ → РАССТОЯНИЕ =====
 function updatePlayerMarker(name,lat,lng,color){
     if(!map||!name||name===currentUser.name)return;
-    if(playersMarkers[name]){
-        playersMarkers[name].setLatLng([lat,lng]);
-    }else{
+    if(playersMarkers[name]){ playersMarkers[name].setLatLng([lat,lng]); }
+    else{
         const icon=createPlayerIcon(name,color||'#fff');
         const marker=L.marker([lat,lng],{icon,zIndexOffset:900}).addTo(map);
         playersMarkers[name]=marker;
-        
         marker.on('click',(e)=>{
             if(!playersMarkers[currentUser.name])return;
             L.DomEvent.stopPropagation(e);
@@ -318,8 +306,7 @@ function updatePlayerMarker(name,lat,lng,color){
             const txt=d<1000?`${Math.round(d)} м`:`${(d/1000).toFixed(1)} км`;
             const bar=document.getElementById('distance-bar');
             bar.innerHTML=`📏 <b style="color:${playerColors[name]||'#fff'}">${name}</b> — ${txt}`;
-            bar.style.display='block';
-            bar.style.animation='none'; bar.offsetHeight;
+            bar.style.display='block'; bar.style.animation='none'; bar.offsetHeight;
             bar.style.animation='slideUp 0.3s ease-out';
             if(distanceTimer)clearTimeout(distanceTimer);
             distanceTimer=setTimeout(()=>{ bar.style.display='none'; },5000);
@@ -345,6 +332,7 @@ function handleMapClick(e){
         }else{ L.popup().setLatLng([lat,lng]).setContent('<b>👆 Вторая точка</b>').openOn(map); }
     }
 }
+
 function deleteMyObjects(){ const ids=Array.from(myObjects); ids.forEach(id=>socket.emit('delete_obj',id)); myObjects.clear(); }
 
 // ==================== СЕТКА ====================
@@ -364,31 +352,20 @@ function drawGrid(){
     const zoom=map.getZoom();
     const GRID_SIZE=getGridSizeForZoom(zoom);
     if(GRID_SIZE===0){ if(gridLayer){map.removeLayer(gridLayer);gridLayer=null;} return; }
-    
     const GRID_STEP=(GRID_SIZE/METERS_PER_DEGREE);
     const bounds=map.getBounds();
     const sLa=Math.floor(bounds.getSouth()/GRID_STEP)*GRID_STEP;
     const eLa=Math.ceil(bounds.getNorth()/GRID_STEP)*GRID_STEP;
     const sLn=Math.floor(bounds.getWest()/GRID_STEP)*GRID_STEP;
     const eLn=Math.ceil(bounds.getEast()/GRID_STEP)*GRID_STEP;
-    
     if(gridLayer) map.removeLayer(gridLayer);
     gridLayer=L.layerGroup().addTo(map);
-    
     const lw=GRID_SIZE>=200?1.5:GRID_SIZE>=100?1.2:1;
     const lo=GRID_SIZE>=200?0.35:0.4;
-    
-    for(let lng=sLn;lng<=eLn;lng+=GRID_STEP)
-        L.polyline([[sLa,lng],[eLa,lng]],{color:'#555',weight:lw,opacity:lo}).addTo(gridLayer);
-    for(let lat=sLa;lat<=eLa;lat+=GRID_STEP)
-        L.polyline([[lat,sLn],[lat,eLn]],{color:'#555',weight:lw,opacity:lo}).addTo(gridLayer);
-    
+    for(let lng=sLn;lng<=eLn;lng+=GRID_STEP) L.polyline([[sLa,lng],[eLa,lng]],{color:'#555',weight:lw,opacity:lo}).addTo(gridLayer);
+    for(let lat=sLa;lat<=eLa;lat+=GRID_STEP) L.polyline([[lat,sLn],[lat,eLn]],{color:'#555',weight:lw,opacity:lo}).addTo(gridLayer);
     let fs,pp;
-    if(GRID_SIZE>=400){ fs='16px'; pp='5px 12px'; }
-    else if(GRID_SIZE>=200){ fs='14px'; pp='4px 10px'; }
-    else if(GRID_SIZE>=100){ fs='12px'; pp='3px 8px'; }
-    else{ fs='10px'; pp='2px 6px'; }
-    
+    if(GRID_SIZE>=400){ fs='16px'; pp='5px 12px'; } else if(GRID_SIZE>=200){ fs='14px'; pp='4px 10px'; } else if(GRID_SIZE>=100){ fs='12px'; pp='3px 8px'; } else{ fs='10px'; pp='2px 6px'; }
     let ci=0;
     for(let lng=sLn;lng<=eLn;lng+=GRID_STEP){
         const p=map.latLngToContainerPoint([bounds.getNorth(),lng+GRID_STEP/2]);
@@ -428,35 +405,31 @@ function setTool(t){
     if(map)map.closePopup();
 }
 
-// ===== СМЕНА КАРТЫ: ТОЛЬКО ВРУЧНУЮ =====
 function changeMap(type){
     if(tileLayer) map.removeLayer(tileLayer);
-    
     if(type==='sat'){
-        tileLayer=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{
-            maxZoom:20,
-            attribution: ''
-        }).addTo(map);
+        tileLayer=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:20}).addTo(map);
         currentMapType='sat';
     }else{
-        tileLayer=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
-            maxZoom:22,
-            maxNativeZoom:19
-        }).addTo(map);
+        tileLayer=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:22,maxNativeZoom:19}).addTo(map);
         currentMapType='map';
     }
     drawGrid();
 }
 
+// ===== ЯВНЫЙ ВЫХОД (МГНОВЕННО) =====
 function exitApp(){
-    if(confirm('Выйти? Сессия удалится.')){
+    if(confirm('Выйти из комнаты? Сессия будет удалена.')){
+        // Отправляем сигнал явного выхода на сервер
+        socket.emit('explicit_exit',{name:currentUser.name,room:currentUser.team});
+        // Очищаем локальную сессию
         clearSession();
+        // Останавливаем всё
         if(watchId)navigator.geolocation.clearWatch(watchId);
         if(keepAliveInterval)clearInterval(keepAliveInterval);
         if(distanceTimer)clearTimeout(distanceTimer);
-        socket.disconnect();
-        currentUser={name:'',team:'',color:'#0f0'};
-        location.reload();
+        // Отключаемся и перезагружаем
+        setTimeout(()=>{socket.disconnect();currentUser={name:'',team:'',color:'#0f0'};location.reload();},300);
     }
 }
 
@@ -469,7 +442,7 @@ window.doLogin=doLogin; window.setTool=setTool; window.centerOnMe=centerOnMe;
 window.changeMap=changeMap; window.toggleChat=toggleChat; window.sendChatMessage=sendChatMessage;
 window.deleteMyObjects=deleteMyObjects; window.exitApp=exitApp;
 
-console.log('⚡ v5.4 — Схема всегда | Спутник вручную | Тап = расстояние');
+console.log('⚡ v5.5 — Выход сразу | Блокировка 5 мин | Тап = расстояние');
 </script>
 
 <script>
