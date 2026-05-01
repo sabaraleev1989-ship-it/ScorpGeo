@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="ScorpGEO">
     <meta name="theme-color" content="#000000">
-    <title>ScorpGEO v10.9</title>
+    <title>ScorpGEO v10.10</title>
     
     <link rel="manifest" href="/manifest.json">
     <link rel="apple-touch-icon" href="/icons/icon-512.png">
@@ -220,8 +220,8 @@
             <input type="text" id="accessCode" class="auth-input" placeholder="УНИКАЛЬНЫЙ КОД" maxlength="10" autocomplete="off">
             <span class="gear-btn" id="settingsGear" onclick="changeAccessCode()">⚙️</span>
         </div>
-        <button type="button" onclick="doLogin()" class="auth-btn">⚡ ВОЙТИ ⚡</button>
-        <div class="auth-info">v10.9 • <span onclick="tryBecomeAdmin()">АДМИН</span></div>
+        <button id="loginBtn" class="auth-btn">⚡ ВОЙТИ ⚡</button>
+        <div class="auth-info">v10.10 • <span onclick="tryBecomeAdmin()">АДМИН</span></div>
         <div id="autoLoginMsg" style="color:#fff; font-size:12px; margin-top:10px; display:none;"></div>
     </div>
 </div>
@@ -257,7 +257,7 @@
     <div id="chat-messages"></div>
     <div style="display:flex; align-items:center; gap:4px; padding:0; background:transparent; border-top:1px solid rgba(255,255,255,0.1);">
         <input id="chat-input" placeholder="Сообщение...">
-        <button type="button" id="send-btn" onclick="sendChatMessage()">📡</button>
+        <button id="sendChatBtn" class="auth-btn" style="width:auto; padding:8px 16px; margin:8px 8px 8px 0; border-radius:20px;">📡</button>
     </div>
 </div>
 
@@ -419,6 +419,75 @@ function changeMap(type){ if(tileLayer)map.removeLayer(tileLayer); tileLayer=L.t
 function reconnectApp(){ const el=document.getElementById('connection-status'); el.textContent='🔄 Переподключение...'; el.style.color='#ff0'; el.style.display='block'; if(socket.disconnected) socket.connect(); setTimeout(()=>{ if(socket.connected&&currentUser.name){ socket.emit('rejoin_room',{room:currentUser.team,name:currentUser.name,color:currentUser.color,deviceId:DEVICE_ID}); el.textContent='🟢 Готово'; el.style.color='#0f0'; } else{ el.textContent='🔴 Ошибка'; el.style.color='#f00'; } setTimeout(()=>el.style.display='none',2000); },1500); }
 function exitApp(){ if(confirm('Выйти?')){ socket.emit('explicit_exit',{name:currentUser.name,room:currentUser.team}); clearSession(); if(watchId)navigator.geolocation.clearWatch(watchId); if(keepAliveInterval)clearInterval(keepAliveInterval); setTimeout(()=>{socket.disconnect();location.reload();},300); } }
 
+// ===== ПРИВЯЗКА КНОПОК =====
+document.getElementById('loginBtn').addEventListener('click', doLogin);
+document.getElementById('sendChatBtn').addEventListener('click', sendChatMessage);
+
+function doLogin(){
+    const team=document.getElementById('teamName').value.trim().toUpperCase();
+    const name=document.getElementById('playerName').value.trim().toUpperCase();
+    const pass=document.getElementById('password').value;
+    const code=document.getElementById('accessCode').value.trim();
+    if(!team||!name||!pass||!code){ alert('Заполните все поля!'); return; }
+    currentUser.name=name; currentUser.team=team; localStorage.setItem('scorpgeo_code',code);
+    socket.emit('join_room',{room:team,name,team,pass,accessCode:code,deviceId:DEVICE_ID});
+}
+
+function tryAutoLogin(){
+    const s=loadSession();
+    if(s&&s.team&&s.name){ currentUser.name=s.name; currentUser.team=s.team; currentUser.color=s.color;
+        document.getElementById('autoLoginMsg').textContent='↻ Автовход: '+s.name; document.getElementById('autoLoginMsg').style.display='block';
+        setTimeout(()=>document.getElementById('autoLoginMsg').style.display='none',2500);
+        socket.emit('join_room',{room:s.team,name:s.name,team:s.team,pass:'1234',accessCode:localStorage.getItem('scorpgeo_code')||'',deviceId:DEVICE_ID});
+        return true;
+    }
+    return false;
+}
+
+socket.on('login_success',(data)=>{ currentUser.color=data.color; playerColors[currentUser.name]=data.color; saveSession(); if(data.accessCode) currentAccessCode=data.accessCode;
+    document.getElementById('auth-screen').style.display='none'; document.getElementById('ui-panel').style.display='flex'; document.getElementById('chat-win').style.display='flex';
+    initMap(); initPencilCanvas(); startGeolocation(); startKeepAlive(); addChatMessage('СИСТЕМА',`${currentUser.name} на связи. Меток: ${data.objectsCount||0}`,'#fff'); });
+socket.on('login_failed',(err)=>{ clearSession(); alert('Ошибка: '+(err?.reason||'Неверные данные')); });
+
+socket.on('existing_players',(p)=>p.forEach(x=>{ if(x.name!==currentUser.name){ playerColors[x.name]=x.color; updatePlayerMarker(x.name,x.lat,x.lng,x.color); } }));
+socket.on('player_joined',(d)=>{ if(d.name!==currentUser.name){ playerColors[d.name]=d.color; updatePlayerMarker(d.name,d.lat,d.lng,d.color); addChatMessage('СИСТЕМА','→ '+d.name+' на связи','#fff'); } });
+socket.on('player_left',(d)=>{ if(playersMarkers[d.name]){ map.removeLayer(playersMarkers[d.name]); delete playersMarkers[d.name]; delete playerColors[d.name]; addChatMessage('СИСТЕМА','← '+d.name+' отключился','#faa'); } });
+socket.on('player_move',(d)=>{ if(d.name!==currentUser.name) updatePlayerMarker(d.name,d.lat,d.lng,d.color); });
+
+// ===== ОБЪЕКТЫ =====
+socket.on('draw',(obj)=>{
+    if(tacticalObjects[obj.id]){ tacticalObjects[obj.id].layers.forEach(l=>{ if(map&&map.hasLayer(l)) map.removeLayer(l); }); delete tacticalObjects[obj.id]; if(rulerTimers[obj.id]){ clearTimeout(rulerTimers[obj.id]); delete rulerTimers[obj.id]; } }
+    let layers=[]; const cn=obj.creator||'???';
+    if(obj.type==='enemy'||obj.type==='target'){
+        const mk=L.marker([obj.lat,obj.lng],{icon:L.divIcon({html:`<div style="font-size:34px;filter:drop-shadow(2px 2px 2px black);cursor:pointer;">${obj.type==='enemy'?'💀':'🎯'}</div>`,iconSize:[34,34],iconAnchor:[17,17],className:''}),zIndexOffset:500}).addTo(map);
+        mk.on('click',(e)=>{ if(activeTool==='eraser'){socket.emit('delete_obj',obj.id);return;} if(activeTool==='move'){ L.popup({closeButton:false,className:'creator-tooltip',autoClose:true}).setLatLng([obj.lat,obj.lng]).setContent(`👤 <b>${cn}</b>`).openOn(map); } });
+        layers.push(mk);
+    }else if(obj.type==='arrow'){
+        const ln=L.polyline([obj.start,obj.end],{color:'#d52b1e',weight:4,opacity:0.9,interactive:true}).addTo(map);
+        const ag=Math.atan2(obj.end.lat-obj.start.lat,obj.end.lng-obj.start.lng);
+        const hd=L.polygon([obj.end,{lat:obj.end.lat+Math.sin(ag+2.5)*8e-5,lng:obj.end.lng+Math.cos(ag+2.5)*8e-5},{lat:obj.end.lat+Math.sin(ag-2.5)*8e-5,lng:obj.end.lng+Math.cos(ag-2.5)*8e-5}],{color:'#d52b1e',fillColor:'#d52b1e',fillOpacity:0.9,interactive:true}).addTo(map);
+        const sh=(e)=>{ if(activeTool==='eraser'){socket.emit('delete_obj',obj.id);return;} if(activeTool==='move'){ L.popup({closeButton:false,className:'creator-tooltip',autoClose:true}).setLatLng(e.latlng).setContent(`👤 <b>${cn}</b>`).openOn(map); } };
+        ln.on('click',sh); hd.on('click',sh); layers.push(ln,hd);
+    }else if(obj.type==='ruler'){
+        const ln=L.polyline([obj.start,obj.end],{color:'#d52b1e',weight:3,dashArray:'10, 8',opacity:0.9,interactive:true}).addTo(map);
+        const d=map.distance([obj.start.lat,obj.start.lng],[obj.end.lat,obj.end.lng]);
+        const tx=d<1000?`${Math.round(d)} м`:`${(d/1000).toFixed(1)} км`;
+        const md={lat:(obj.start.lat+obj.end.lat)/2,lng:(obj.start.lng+obj.end.lng)/2};
+        const lb=L.marker([md.lat,md.lng],{icon:L.divIcon({html:`<div style="background:#000;color:#fff;padding:4px 8px;border:1px solid #d52b1e;border-radius:10px;font-size:12px;font-weight:bold;">📏 ${tx}</div>`,iconSize:[80,24],iconAnchor:[40,12],className:''}),interactive:false}).addTo(map);
+        ln.on('click',(e)=>{ if(activeTool==='eraser'){socket.emit('delete_obj',obj.id);return;} if(activeTool==='move'){ L.popup({closeButton:false,className:'creator-tooltip',autoClose:true}).setLatLng(e.latlng).setContent(`👤 <b>${cn}</b>`).openOn(map); } });
+        layers.push(ln,lb);
+        if(obj.creator===currentUser.name){ rulerTimers[obj.id]=setTimeout(()=>{ socket.emit('delete_obj',obj.id); },3000); }
+    }else if(obj.type==='pencil'){
+        const pl=L.polyline(obj.points,{color:'#d52b1e',weight:5,opacity:0.9,interactive:true}).addTo(map);
+        pl.on('click',(e)=>{ if(activeTool==='eraser'){socket.emit('delete_obj',obj.id);return;} if(activeTool==='move'){ L.popup({closeButton:false,className:'creator-tooltip',autoClose:true}).setLatLng(e.latlng).setContent(`👤 <b>${cn}</b>`).openOn(map); } });
+        layers.push(pl);
+    }
+    tacticalObjects[obj.id]={type:obj.type,layers,creator:cn};
+    if(obj.creator===currentUser.name) myObjects.add(obj.id);
+});
+socket.on('remove_obj',(id)=>{ if(tacticalObjects[id]){ tacticalObjects[id].layers.forEach(l=>{ if(map&&map.hasLayer(l)) map.removeLayer(l); }); delete tacticalObjects[id]; myObjects.delete(id); if(rulerTimers[id]){ clearTimeout(rulerTimers[id]); delete rulerTimers[id]; } } });
+socket.on('receive_msg',(data)=>{ let n,t,c; if(typeof data==='string'){ const m=data.match(/^([^:]+):\s*(.+)$/); n=m?m[1]:'СИСТЕМА'; t=m?m[2]:data; c=playerColors[n]||'#ccc'; } else{ n=data.name||'Аноним'; t=data.text||''; c=data.color||playerColors[n]||'#ccc'; } addChatMessage(n,t,c); });
+
 const autoLoggedIn=tryAutoLogin(); if(!autoLoggedIn) document.getElementById('auth-screen').style.display='flex';
 
 window.doLogin=doLogin; window.setTool=setTool; window.centerOnMe=centerOnMe; window.zoomTo=zoomTo;
@@ -426,7 +495,7 @@ window.changeMap=changeMap; window.toggleChat=toggleChat; window.sendChatMessage
 window.deleteMyObjects=deleteMyObjects; window.reconnectApp=reconnectApp; window.exitApp=exitApp;
 window.changeAccessCode=changeAccessCode; window.tryBecomeAdmin=tryBecomeAdmin;
 
-console.log('🇷🇺 ScorpGEO v10.9 — Кнопка fix');
+console.log('🇷🇺 ScorpGEO v10.10 — Кнопка fix');
 </script>
 </body>
 </html>
