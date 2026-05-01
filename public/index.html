@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="ScorpGEO">
     <meta name="theme-color" content="#000000">
-    <title>ScorpGEO v10.4</title>
+    <title>ScorpGEO v10.5</title>
     
     <link rel="manifest" href="/manifest.json">
     <link rel="apple-touch-icon" href="/icons/icon-512.png">
@@ -51,23 +51,22 @@
             100% { transform: translateY(-10vh) scale(1); opacity: 0; }
         }
 
-        /* ЭКРАН ВХОДА */
+        /* ЭКРАН ВХОДА — ЦЕНТРИРОВАНИЕ */
         #auth-screen {
             position:fixed; inset:0; z-index:10000;
             background: radial-gradient(circle at 30% 30%, rgba(0,57,166,0.15) 0%, transparent 50%),
                         radial-gradient(circle at 70% 70%, rgba(213,43,30,0.1) 0%, transparent 50%),
                         linear-gradient(135deg, #0a0a1a 0%, #0d0d24 100%);
-            display:flex; flex-direction:column; align-items:center; justify-content:flex-start; overflow:hidden;
-            padding-top: 40px;
+            display:flex; flex-direction:column; align-items:center; justify-content:center; overflow:hidden;
         }
 
         /* КРУГЛЫЙ РАДАР СВЕРХУ */
         .radar-container {
             position: relative;
-            width: 150px;
-            height: 150px;
+            width: 140px;
+            height: 140px;
             flex-shrink: 0;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             z-index: 2;
         }
         .radar-circle {
@@ -113,7 +112,7 @@
             50% { opacity: 0.3; transform: scale(1.8); }
         }
 
-        /* Позиции точек для скорпиона (относительно центра 150x150) */
+        /* Позиции точек для скорпиона (относительно центра 140x140) */
         .sdot1 { top: 35%; left: 50%; }  /* голова */
         .sdot2 { top: 30%; left: 45%; }  /* клешня левая */
         .sdot3 { top: 30%; left: 55%; }  /* клешня правая */
@@ -130,16 +129,16 @@
             background: rgba(10, 10, 20, 0.8);
             border: 1px solid rgba(255,255,255,0.15);
             box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 60px rgba(0,57,166,0.15);
-            padding: 30px 24px;
+            padding: 28px 22px;
             width: 90%;
-            max-width: 380px;
+            max-width: 370px;
             text-align: center;
             z-index: 10001;
             border-radius: 16px;
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
             animation: cardIn 0.6s ease-out;
-            margin-top: 10px;
+            margin-top: 0;
         }
         @keyframes cardIn {
             from { opacity: 0; transform: translateY(30px); }
@@ -151,7 +150,7 @@
             margin-bottom: 6px; text-shadow: 0 0 20px rgba(255,255,255,0.5); letter-spacing: 4px;
         }
         .auth-subtitle {
-            font-size: 9px; color: var(--rus-blue); margin-bottom: 22px;
+            font-size: 9px; color: var(--rus-blue); margin-bottom: 20px;
             letter-spacing: 6px; text-transform: uppercase; opacity: 0.8;
         }
 
@@ -275,7 +274,7 @@
             <span class="gear-btn" id="settingsGear" onclick="changeAccessCode()">⚙️</span>
         </div>
         <button onclick="doLogin()" class="auth-btn">⚡ ВОЙТИ ⚡</button>
-        <div class="auth-info">v10.4 • <span onclick="tryBecomeAdmin()">АДМИН</span></div>
+        <div class="auth-info">v10.5 • <span onclick="tryBecomeAdmin()">АДМИН</span></div>
         <div id="autoLoginMsg" style="color:#fff; font-size:12px; margin-top:10px; display:none;"></div>
     </div>
 </div>
@@ -528,7 +527,7 @@ window.changeMap=changeMap; window.toggleChat=toggleChat; window.sendChatMessage
 window.deleteMyObjects=deleteMyObjects; window.reconnectApp=reconnectApp; window.exitApp=exitApp;
 window.changeAccessCode=changeAccessCode; window.tryBecomeAdmin=tryBecomeAdmin;
 
-console.log('🇷🇺 ScorpGEO v10.4 — Радар + Скорпион');
+console.log('🇷🇺 ScorpGEO v10.5 — PWA центрирование');
 </script>
 </body>
 </html>
