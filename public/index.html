@@ -264,7 +264,10 @@ function handleMapClick(e){ const{lat,lng}=e.latlng; if(activeTool==='enemy'||ac
 function deleteMyObjects(){ const ids=Array.from(myObjects); ids.forEach(id=>socket.emit('delete_obj',id)); myObjects.clear(); }
 
 // ===== ФИКСИРОВАННАЯ СЕТКА 20М (ПО КООРДИНАТАМ) =====
-function getGridSizeForZoom(zoom){ if(zoom<15) return 0; return 20; }
+function getGridSizeForZoom(zoom){
+    if(zoom < 15) return 0;  // Сетка исчезает при zoom < 15
+    return 20;                // 20 метров
+}
 
 function drawGrid(){
     if(!map)return;
