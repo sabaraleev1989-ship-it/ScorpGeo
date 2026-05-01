@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#000000">
-    <title>SCORPION TACTICAL v5.3</title>
+    <title>SCORPION TACTICAL v5.4</title>
     
     <link rel="manifest" href="/manifest.json">
     <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='192' height='192' viewBox='0 0 192 192'%3E%3Ccircle cx='96' cy='96' r='90' fill='none' stroke='%2300ff00' stroke-width='4'/%3E%3Ctext x='96' y='105' text-anchor='middle' fill='%2300ff00' font-size='14' font-family='monospace' font-weight='bold'%3ESCORPION%3C/text%3E%3C/svg%3E">
@@ -144,7 +144,7 @@
     <div onclick="deleteMyObjects()" class="tool-btn" style="color:#fa0;"><b>🗑️</b><span>Мои</span></div>
     <div onclick="toggleChat()" class="tool-btn"><b>💬</b><span>Чат</span></div>
     <div onclick="changeMap('sat')" class="tool-btn"><b>🛰️</b><span>Спут</span></div>
-    <div onclick="changeMap('map')" class="tool-btn"><b>🗺️</b><span>Карта</span></div>
+    <div onclick="changeMap('map')" class="tool-btn"><b>🗺️</b><span>Схема</span></div>
     <div onclick="exitApp()" class="tool-btn" style="color:#f44;"><b>🚪</b><span>Выход</span></div>
 </div>
 
@@ -165,6 +165,7 @@ const socket = io({ transports:['websocket','polling'], reconnection:true, recon
 
 let map, activeTool='move', currentUser={name:'',team:'',color:'#0f0'};
 let playersMarkers={}, tacticalObjects={}, myObjects=new Set(), rulerPoints=[], gridLayer=null, tileLayer=null, playerColors={}, watchId=null, keepAliveInterval=null, distanceTimer=null;
+let currentMapType='map'; // 'map' или 'sat'
 
 const METERS_PER_DEGREE=111320;
 const RUSSIAN_LETTERS=['А','Б','В','Г','Д','Е','Ё','Ж','З','И','Й','К','Л','М','Н','О','П','Р','С','Т','У','Ф','Х','Ц','Ч','Ш','Щ','Ъ','Ы','Ь','Э','Ю','Я'];
@@ -195,7 +196,7 @@ document.addEventListener('visibilitychange',()=>{
     }else{ if(socket.connected&&currentUser.name) socket.emit('keep_alive',{name:currentUser.name,room:currentUser.team}); }
 });
 window.addEventListener('beforeunload',()=>{ if(currentUser.name) saveSession(); });
-function startKeepAlive(){ if(keepAliveInterval)clearInterval(keepAliveInterval); keepAliveInterval=setInterval(()=>{ if(socket.connected&&currentUser.name) socket.emit('keep_alive',{name:currentUser.name,room:currentUser.team}); },20000); }
+function startKeepAlive(){ if(keepAliveInterval)clearInterval(keepAliveInterval); keepAliveInterval=setInterval(()=>{ if(socket.connected&&currentUser.name) socket.emit('keep_alive',{name:currentUser.name,room:currentUser.team}); },60000); }
 
 socket.on('connect',()=>{ const el=document.getElementById('connection-status'); el.textContent='🟢 ОНЛАЙН'; el.style.color='#0f0'; el.style.display='block'; setTimeout(()=>el.style.display='none',3000); });
 socket.on('disconnect',()=>{ const el=document.getElementById('connection-status'); el.textContent='🔴 ОФЛАЙН'; el.style.color='#f00'; el.style.display='block'; });
@@ -241,8 +242,7 @@ socket.on('draw',(obj)=>{
         const ag=Math.atan2(obj.end.lat-obj.start.lat,obj.end.lng-obj.start.lng);
         const hd=L.polygon([obj.end,{lat:obj.end.lat+Math.sin(ag+2.5)*8e-5,lng:obj.end.lng+Math.cos(ag+2.5)*8e-5},{lat:obj.end.lat+Math.sin(ag-2.5)*8e-5,lng:obj.end.lng+Math.cos(ag-2.5)*8e-5}],{color:'#f44',fillColor:'#f44',fillOpacity:0.8,interactive:true}).addTo(map);
         const sh=(e)=>{ if(activeTool==='eraser'){socket.emit('delete_obj',obj.id);return;} L.popup({closeButton:false,className:'creator-tooltip',autoClose:true}).setLatLng(e.latlng).setContent(`👤 <b>${cn}</b>`).openOn(map); };
-        ln.on('click',sh); hd.on('click',sh);
-        layers.push(ln,hd);
+        ln.on('click',sh); hd.on('click',sh); layers.push(ln,hd);
     }else if(obj.type==='ruler'){
         const ln=L.polyline([obj.start,obj.end],{color:'#ff0',weight:3,dashArray:'10,10',interactive:true}).addTo(map);
         const d=map.distance([obj.start.lat,obj.start.lng],[obj.end.lat,obj.end.lng]);
@@ -265,32 +265,41 @@ socket.on('receive_msg',(data)=>{
     addChatMessage(n,t,c);
 });
 
-// ==================== КАРТА (С ВЫСОКИМ ZOOM) ====================
+// ==================== КАРТА (СХЕМА ВСЕГДА, СПУТНИК ТОЛЬКО ВРУЧНУЮ) ====================
 function initMap(){
     if(map)return;
-    // Используем тайлы с zoom до 22 чтобы не было серого
     map=L.map('map',{zoomControl:true,attributionControl:false,maxZoom:22,minZoom:10,tap:true}).setView([55.7558,37.6176],18);
-    tileLayer=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,maxNativeZoom:19}).addTo(map);
-    // При превышении — показываем спутник
-    map.on('zoomend',()=>{ if(map.getZoom()>19&&tileLayer&&tileLayer._url.includes('openstreetmap')){ changeMap('sat'); } });
-    map.on('click',handleMapClick); map.on('moveend',drawGrid); map.on('zoomend',drawGrid);
-    drawGrid(); setTimeout(()=>{map.invalidateSize();drawGrid();},500);
+    
+    // Всегда схема
+    tileLayer=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+        maxZoom:22,
+        maxNativeZoom:19
+    }).addTo(map);
+    currentMapType='map';
+    
+    map.on('click',handleMapClick);
+    map.on('moveend',drawGrid);
+    map.on('zoomend',drawGrid);
+    drawGrid();
+    setTimeout(()=>{map.invalidateSize();drawGrid();},500);
 }
 
 function startGeolocation(){
     if(!navigator.geolocation)return; if(watchId)navigator.geolocation.clearWatch(watchId);
     watchId=navigator.geolocation.watchPosition(pos=>{updateMyPosition(pos.coords.latitude,pos.coords.longitude);socket.emit('gps_sync',{lat:pos.coords.latitude,lng:pos.coords.longitude});},err=>console.warn('GPS:',err.message),{enableHighAccuracy:true,maximumAge:3000,timeout:10000});
 }
+
 function updateMyPosition(lat,lng){
     if(!map)return;
     if(playersMarkers[currentUser.name]) playersMarkers[currentUser.name].setLatLng([lat,lng]);
     else playersMarkers[currentUser.name]=L.marker([lat,lng],{icon:createPlayerIcon(currentUser.name,currentUser.color),zIndexOffset:1000}).addTo(map);
 }
+
 function createPlayerIcon(name,color){
     return L.divIcon({html:`<div class="player-marker"><div class="player-name-tag" style="color:${color}">${name}</div><div class="player-dot" style="background:${color}"></div></div>`,iconSize:[70,36],iconAnchor:[35,28],className:''});
 }
 
-// ===== НОВЫЙ СПОСОБ: ТАП ПО БОЙЦУ → РАССТОЯНИЕ =====
+// ===== ТАП ПО БОЙЦУ → РАССТОЯНИЕ =====
 function updatePlayerMarker(name,lat,lng,color){
     if(!map||!name||name===currentUser.name)return;
     if(playersMarkers[name]){
@@ -300,22 +309,18 @@ function updatePlayerMarker(name,lat,lng,color){
         const marker=L.marker([lat,lng],{icon,zIndexOffset:900}).addTo(map);
         playersMarkers[name]=marker;
         
-        // КЛИК ПО МАРКЕРУ — ПОКАЗЫВАЕМ РАССТОЯНИЕ
         marker.on('click',(e)=>{
             if(!playersMarkers[currentUser.name])return;
             L.DomEvent.stopPropagation(e);
-            
             const myPos=playersMarkers[currentUser.name].getLatLng();
             const targetPos=marker.getLatLng();
             const d=map.distance(myPos,targetPos);
             const txt=d<1000?`${Math.round(d)} м`:`${(d/1000).toFixed(1)} км`;
-            
             const bar=document.getElementById('distance-bar');
             bar.innerHTML=`📏 <b style="color:${playerColors[name]||'#fff'}">${name}</b> — ${txt}`;
             bar.style.display='block';
             bar.style.animation='none'; bar.offsetHeight;
             bar.style.animation='slideUp 0.3s ease-out';
-            
             if(distanceTimer)clearTimeout(distanceTimer);
             distanceTimer=setTimeout(()=>{ bar.style.display='none'; },5000);
         });
@@ -342,7 +347,7 @@ function handleMapClick(e){
 }
 function deleteMyObjects(){ const ids=Array.from(myObjects); ids.forEach(id=>socket.emit('delete_obj',id)); myObjects.clear(); }
 
-// ==================== СЕТКА (ТОНЬШЕ ПРИ ОТДАЛЕНИИ) ====================
+// ==================== СЕТКА ====================
 function getGridSizeForZoom(zoom){
     if(zoom>=19) return 20;
     if(zoom>=18) return 30;
@@ -370,7 +375,6 @@ function drawGrid(){
     if(gridLayer) map.removeLayer(gridLayer);
     gridLayer=L.layerGroup().addTo(map);
     
-    // Тоньше при больших квадратах
     const lw=GRID_SIZE>=200?1.5:GRID_SIZE>=100?1.2:1;
     const lo=GRID_SIZE>=200?0.35:0.4;
     
@@ -423,15 +427,27 @@ function setTool(t){
     const btn=document.getElementById(`btn-${t}`); if(btn)btn.classList.add('active');
     if(map)map.closePopup();
 }
+
+// ===== СМЕНА КАРТЫ: ТОЛЬКО ВРУЧНУЮ =====
 function changeMap(type){
-    if(tileLayer)map.removeLayer(tileLayer);
+    if(tileLayer) map.removeLayer(tileLayer);
+    
     if(type==='sat'){
-        tileLayer=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:20}).addTo(map);
+        tileLayer=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{
+            maxZoom:20,
+            attribution: ''
+        }).addTo(map);
+        currentMapType='sat';
     }else{
-        tileLayer=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,maxNativeZoom:19}).addTo(map);
+        tileLayer=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+            maxZoom:22,
+            maxNativeZoom:19
+        }).addTo(map);
+        currentMapType='map';
     }
     drawGrid();
 }
+
 function exitApp(){
     if(confirm('Выйти? Сессия удалится.')){
         clearSession();
@@ -443,6 +459,7 @@ function exitApp(){
         location.reload();
     }
 }
+
 window.addEventListener('resize',()=>{ if(map)setTimeout(()=>{map.invalidateSize();drawGrid();},200); });
 
 const autoLoggedIn=tryAutoLogin();
@@ -452,7 +469,7 @@ window.doLogin=doLogin; window.setTool=setTool; window.centerOnMe=centerOnMe;
 window.changeMap=changeMap; window.toggleChat=toggleChat; window.sendChatMessage=sendChatMessage;
 window.deleteMyObjects=deleteMyObjects; window.exitApp=exitApp;
 
-console.log('⚡ v5.3 — Тап по бойцу = расстояние | Сетка тонкая | Карта до zoom 19');
+console.log('⚡ v5.4 — Схема всегда | Спутник вручную | Тап = расстояние');
 </script>
 
 <script>
