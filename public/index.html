@@ -7,10 +7,10 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="ScorpGEO">
     <meta name="theme-color" content="#000000">
-    <title>ScorpGEO v5.8</title>
+    <title>ScorpGEO v5.9</title>
     
     <link rel="manifest" href="/manifest.json">
-    <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='192' height='192' viewBox='0 0 192 192'%3E%3Ccircle cx='96' cy='96' r='90' fill='none' stroke='%2300ff00' stroke-width='4'/%3E%3Ccircle cx='96' cy='96' r='60' fill='none' stroke='%2300ff00' stroke-width='2'/%3E%3Ctext x='96' y='105' text-anchor='middle' fill='%2300ff00' font-size='14' font-family='monospace' font-weight='bold'%3EScorpGEO%3C/text%3E%3C/svg%3E">
+    <link rel="apple-touch-icon" href="/icons/icon-512.png">
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -29,7 +29,7 @@
         @keyframes scan { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
         .radar-grid { position:absolute; inset:0; border-radius:50%; background:radial-gradient(circle at center,transparent 24%,rgba(0,255,0,0.15) 25%,transparent 26%),radial-gradient(circle at center,transparent 49%,rgba(0,255,0,0.15) 50%,transparent 51%),radial-gradient(circle at center,transparent 74%,rgba(0,255,0,0.15) 75%,transparent 76%),linear-gradient(transparent 49%,rgba(0,255,0,0.2) 50%,transparent 51%),linear-gradient(90deg,transparent 49%,rgba(0,255,0,0.2) 50%,transparent 51%); }
         .radar-dot { position:absolute; width:6px; height:6px; background:#f00; border-radius:50%; box-shadow:0 0 10px #f00,0 0 20px #f00; animation:blink 1.5s infinite; z-index:10; }
-        .dot1{top:30%;left:25%;animation-delay:0s} .dot2{top:60%;left:70%;animation-delay:0.5s} .dot3{top:25%;left:65%;animation-delay:1s} .dot4{top:70%;left:20%;animation-delay:0.8s} .dot5{top:45%;left:50%;animation-delay:0.3s} .dot6{top:80%;left:55%;animation-delay:1.2s} .dot7{top:15%;left:45%;animation-delay:0.7s} .dot8{top:55%;left:35%;animation-delay:1.5s}
+        .dot1{top:30%;left:25%} .dot2{top:60%;left:70%} .dot3{top:25%;left:65%} .dot4{top:70%;left:20%} .dot5{top:45%;left:50%} .dot6{top:80%;left:55%} .dot7{top:15%;left:45%} .dot8{top:55%;left:35%}
         @keyframes blink { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.3;transform:scale(1.5)} }
         
         .auth-card { background:rgba(0,0,0,0.85); border:1px solid #0f0; box-shadow:0 0 30px rgba(0,255,0,0.2); padding:30px 25px; width:90%; max-width:360px; text-align:center; z-index:10001; }
@@ -40,15 +40,24 @@
         .auth-input::placeholder { color:#050; letter-spacing:2px; }
         .auth-btn { width:100%; background:#000; color:#0f0; border:2px solid #0f0; padding:14px; font-weight:bold; font-size:16px; cursor:pointer; font-family:'Courier New',monospace; letter-spacing:3px; margin-top:10px; }
         
-        #map { position:absolute; inset:0; z-index:1; background:#1a1e1a; }
+        #map { position:absolute; top:0; left:0; right:0; bottom:0; z-index:1; background:#1a1e1a; }
         
-        .side-panel { position:fixed; left:0; top:0; bottom:0; width:78px; background:rgba(0,0,0,0.96); border-right:2px solid #0f0; z-index:5000; display:none; flex-direction:column; overflow-y:auto; padding-top:calc(env(safe-area-inset-top,0px)+5px); }
-        .tool-btn { width:100%; min-height:52px; display:flex; flex-direction:column; align-items:center; justify-content:center; border-bottom:1px solid #0a0; color:#0f0; cursor:pointer; font-size:8px; font-weight:bold; padding:3px 2px; }
-        .tool-btn b { font-size:18px; margin-bottom:2px; }
+        /* ПАНЕЛЬ — ОТСТУП 44px ДЛЯ PWA */
+        .side-panel { 
+            position:fixed; left:0; top:44px; bottom:0; width:78px; 
+            background:rgba(0,0,0,0.96); border-right:2px solid #0f0; 
+            z-index:5000; display:none; flex-direction:column; overflow-y:auto;
+        }
+        .tool-btn { width:100%; min-height:52px; display:flex; flex-direction:column; align-items:center; justify-content:center; border-bottom:1px solid #0a0; color:#0f0; cursor:pointer; font-size:9px; font-weight:bold; padding:4px 2px; }
+        .tool-btn b { font-size:20px; margin-bottom:2px; }
         .tool-btn.active { background:#020; color:#fff; border-left:3px solid #0f0; }
         .tool-btn:active { transform:scale(0.95); background:#030; }
         
-        #grid-overlay { position:fixed; inset:0; pointer-events:none; z-index:900; padding-top:env(safe-area-inset-top,0px); }
+        /* СЕТКА — ОТСТУП 44px */
+        #grid-overlay { 
+            position:fixed; top:44px; left:0; right:0; bottom:0;
+            pointer-events:none; z-index:900;
+        }
         .grid-letter-top { position:absolute; font-weight:900; font-family:'Courier New',monospace; background:rgba(0,0,0,0.9); color:#ccc; border:1px solid #666; border-radius:3px; transform:translate(-50%,-50%); z-index:950; font-size:12px; padding:4px 8px; }
         .grid-number-right { position:absolute; font-weight:900; font-family:'Courier New',monospace; background:rgba(0,0,0,0.9); color:#ccc; border:1px solid #666; border-radius:3px; transform:translate(0,-50%); z-index:950; font-size:12px; padding:4px 8px; }
         
@@ -68,7 +77,7 @@
         @keyframes slideUp { from{opacity:0;transform:translate(-50%,20px)} to{opacity:1;transform:translate(-50%,0)} }
         
         .creator-tooltip { background:rgba(0,0,0,0.9)!important; border:1px solid #0f0!important; color:#0f0!important; font-family:'Courier New',monospace!important; font-size:12px!important; padding:5px 10px!important; border-radius:6px!important; }
-        #connection-status { position:fixed; top:8px; right:8px; background:rgba(0,0,0,0.85); color:#0f0; padding:4px 8px; border-radius:12px; font-size:9px; z-index:7000; display:none; font-family:monospace; border:1px solid #0f0; }
+        #connection-status { position:fixed; top:50px; right:8px; background:rgba(0,0,0,0.85); color:#0f0; padding:4px 8px; border-radius:12px; font-size:9px; z-index:7000; display:none; font-family:monospace; border:1px solid #0f0; }
     </style>
 </head>
 <body>
@@ -88,8 +97,8 @@
         <input type="text" id="playerName" class="auth-input" placeholder="ПОЗЫВНОЙ" maxlength="10" autocomplete="off">
         <input type="password" id="password" class="auth-input" placeholder="ПАРОЛЬ" maxlength="20" autocomplete="off">
         <button onclick="doLogin()" class="auth-btn">⚡ ВОЙТИ ⚡</button>
-        <div class="auth-info" style="color:#050;font-size:9px;margin-top:15px;">🔄 КНОПКА ОБНОВ — ПЕРЕПОДКЛЮЧЕНИЕ</div>
-        <div id="autoLoginMsg" class="auto-login-msg" style="color:#0f0;font-size:12px;margin-top:10px;display:none;"></div>
+        <div class="auth-info" style="color:#050;font-size:9px;margin-top:15px;">PWA FIX • ОТСТУПЫ • КНОПКИ ДОСТУПНЫ</div>
+        <div id="autoLoginMsg" style="color:#0f0;font-size:12px;margin-top:10px;display:none;"></div>
     </div>
 </div>
 
@@ -139,7 +148,7 @@ function tryAutoLogin(){
     const s=loadSession();
     if(s&&s.team&&s.name){
         currentUser.name=s.name; currentUser.team=s.team; currentUser.color=s.color;
-        document.getElementById('autoLoginMsg').textContent=`↻ Автовход: ${s.name}`;
+        document.getElementById('autoLoginMsg').textContent='↻ Автовход: '+s.name;
         document.getElementById('autoLoginMsg').style.display='block';
         setTimeout(()=>document.getElementById('autoLoginMsg').style.display='none',2500);
         socket.emit('join_room',{room:s.team,name:s.name,team:s.team,pass:'1234'});
@@ -332,32 +341,23 @@ function setTool(t){
 
 function changeMap(type){ if(tileLayer)map.removeLayer(tileLayer); tileLayer=L.tileLayer(type==='sat'?'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}':'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:type==='sat'?20:22,maxNativeZoom:type==='sat'?20:19}).addTo(map); drawGrid(); }
 
-// ===== КНОПКА ОБНОВИТЬ =====
 function reconnectApp(){
     const statusEl=document.getElementById('connection-status');
     if(socket.disconnected){
-        statusEl.textContent='🔄 Переподключение...';
-        statusEl.style.color='#ff0'; statusEl.style.display='block';
+        statusEl.textContent='🔄 Переподключение...'; statusEl.style.color='#ff0'; statusEl.style.display='block';
         socket.connect();
         setTimeout(()=>{
             if(socket.connected&&currentUser.name){
                 socket.emit('rejoin_room',{room:currentUser.team,name:currentUser.name,color:currentUser.color});
-                statusEl.textContent='🟢 Связь восстановлена';
-                statusEl.style.color='#0f0';
+                statusEl.textContent='🟢 Связь восстановлена'; statusEl.style.color='#0f0';
                 addChatMessage('СИСТЕМА','🔄 Связь восстановлена','#0af');
-            }else{
-                statusEl.textContent='🔴 Нет связи';
-                statusEl.style.color='#f00';
-            }
+            }else{ statusEl.textContent='🔴 Нет связи'; statusEl.style.color='#f00'; }
             setTimeout(()=>statusEl.style.display='none',3000);
         },1500);
     }else{
-        statusEl.textContent='🟢 Связь активна';
-        statusEl.style.color='#0f0'; statusEl.style.display='block';
+        statusEl.textContent='🟢 Связь активна'; statusEl.style.color='#0f0'; statusEl.style.display='block';
         setTimeout(()=>statusEl.style.display='none',2000);
-        if(currentUser.name){
-            socket.emit('rejoin_room',{room:currentUser.team,name:currentUser.name,color:currentUser.color});
-        }
+        if(currentUser.name) socket.emit('rejoin_room',{room:currentUser.team,name:currentUser.name,color:currentUser.color});
     }
 }
 
