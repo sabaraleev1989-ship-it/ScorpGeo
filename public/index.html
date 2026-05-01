@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="ScorpGEO">
     <meta name="theme-color" content="#000000">
-    <title>ScorpGEO v6.7</title>
+    <title>ScorpGEO v6.8</title>
     
     <link rel="manifest" href="/manifest.json">
     <link rel="apple-touch-icon" href="/icons/icon-512.png">
@@ -75,9 +75,9 @@
         #connection-status { position:fixed; top:48px; right:8px; background:rgba(0,0,0,0.85); color:#0f0; padding:3px 7px; border-radius:10px; font-size:8px; z-index:7000; display:none; font-family:monospace; border:1px solid #0f0; }
         
         /* КОМПАС */
-        #compass { position:fixed; top:100px; right:35px; z-index:8000; pointer-events:none; }
-        #compass-inner { background:rgba(0,0,0,0.85); border:1px solid #0f0; border-radius:50%; width:36px; height:36px; display:flex; align-items:center; justify-content:center; }
-        #compass-arrow { font-size:18px; transition:transform 0.3s ease; color:#0f0; }
+        #compass { position:fixed; top:100px; right:35px; z-index:8000; }
+        #compass-inner { background:rgba(0,0,0,0.85); border:1px solid #0f0; border-radius:50%; width:36px; height:36px; display:flex; align-items:center; justify-content:center; pointer-events:auto; cursor:pointer; }
+        #compass-arrow { font-size:18px; transition:transform 0.5s ease; }
     </style>
 </head>
 <body>
@@ -86,8 +86,8 @@
 
 <!-- КОМПАС -->
 <div id="compass">
-    <div id="compass-inner">
-        <span id="compass-arrow">⬆️</span>
+    <div id="compass-inner" onclick="requestCompassPermission()">
+        <span id="compass-arrow">🧭</span>
     </div>
     <div style="color:#0f0; font-size:7px; text-align:center; margin-top:2px;">N</div>
 </div>
@@ -112,7 +112,7 @@
         
         <button onclick="doLogin()" class="auth-btn">⚡ ВОЙТИ ⚡</button>
         <div style="color:#050;font-size:8px;margin-top:12px;letter-spacing:1px;">
-            v6.7 • <span onclick="tryBecomeAdmin()" style="color:#0a0;cursor:pointer;text-decoration:underline;">АДМИН</span> • 🧭
+            v6.8 • <span onclick="tryBecomeAdmin()" style="color:#0a0;cursor:pointer;text-decoration:underline;">АДМИН</span> • 🧭
         </div>
         <div id="autoLoginMsg" style="color:#0f0;font-size:11px;margin-top:8px;display:none;"></div>
     </div>
@@ -171,15 +171,38 @@ function tryBecomeAdmin(){ const pass=prompt('🔐 Админ-пароль:'); i
 function changeAccessCode(){ if(!isAdmin){ alert('Нажмите "АДМИН" и введите пароль!'); return; } const newCode=prompt('Новый код доступа:'); if(newCode&&newCode.trim()){ socket.emit('change_access_code',{newCode:newCode.trim(),adminPass:ADMIN_PASSWORD}); } }
 socket.on('code_changed',(data)=>{ if(data.success){ currentAccessCode=data.newCode; document.getElementById('accessCode').value=''; alert('✅ Код изменен: '+data.newCode); } else{ alert('❌ '+data.error); } });
 
-// ===== КОМПАС =====
+// ===== КОМПАС (ИСПРАВЛЕННЫЙ) =====
 function updateCompass(){ const arrow=document.getElementById('compass-arrow'); if(arrow) arrow.style.transform=`rotate(${compassHeading}deg)`; }
-if(window.DeviceOrientationEvent){
-    window.addEventListener('deviceorientation',function(e){
-        if(e.webkitCompassHeading!==undefined){ compassHeading=e.webkitCompassHeading||0; }
-        else if(e.alpha!==null){ compassHeading=e.alpha||0; }
-        updateCompass();
-    },true);
+
+function handleOrientation(e){
+    if(e.webkitCompassHeading!==undefined){ compassHeading=e.webkitCompassHeading||0; }
+    else if(e.alpha!==null){ compassHeading=360-(e.alpha||0); }
+    updateCompass();
 }
+
+// Запрос разрешения для iOS 13+
+if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function'){
+    document.addEventListener('click',function requestPermission(){
+        DeviceOrientationEvent.requestPermission().then(response=>{
+            if(response==='granted'){ window.addEventListener('deviceorientation',handleOrientation,true); }
+        }).catch(console.error);
+        document.removeEventListener('click',requestPermission);
+    },{once:true});
+}else{
+    window.addEventListener('deviceorientation',handleOrientation,true);
+}
+
+function requestCompassPermission(){
+    if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function'){
+        DeviceOrientationEvent.requestPermission().then(response=>{
+            if(response==='granted'){ window.addEventListener('deviceorientation',handleOrientation,true); alert('✅ Компас активирован!'); }
+        });
+    }else{ alert('Компас уже активен или не поддерживается'); }
+}
+window.requestCompassPermission=requestCompassPermission;
+
+// Если компас не отвечает — показываем заглушку
+setTimeout(()=>{ if(compassHeading===0){ document.getElementById('compass-arrow').textContent='⬆️'; } },3000);
 
 function tryAutoLogin(){
     const s=loadSession();
@@ -267,61 +290,25 @@ function resetZoom(){ if(map) map.setZoom(18); document.getElementById('distance
 function handleMapClick(e){ const{lat,lng}=e.latlng; if(activeTool==='enemy'||activeTool==='target'){ socket.emit('new_obj',{id:`${activeTool}_${Date.now()}_${Math.random().toString(36).substr(2,9)}`,type:activeTool,lat,lng,creator:currentUser.name}); } else if(activeTool==='arrow'||activeTool==='ruler'){ rulerPoints.push({lat,lng}); if(rulerPoints.length===2){ socket.emit('new_obj',{id:`${activeTool}_${Date.now()}_${Math.random().toString(36).substr(2,9)}`,type:activeTool,start:rulerPoints[0],end:rulerPoints[1],creator:currentUser.name}); rulerPoints=[]; }else{ L.popup().setLatLng([lat,lng]).setContent('<b>👆 Вторая точка</b>').openOn(map); } } }
 function deleteMyObjects(){ const ids=Array.from(myObjects); ids.forEach(id=>socket.emit('delete_obj',id)); myObjects.clear(); }
 
-// ===== СЕТКА: ИСЧЕЗАЕТ ПРИ ZOOM < 18 =====
 function getGridSizeForZoom(zoom){ if(zoom<18) return 0; return 20; }
 
 function drawGrid(){
-    if(!map)return;
-    const overlay=document.getElementById('grid-overlay'); overlay.innerHTML='';
-    const zoom=map.getZoom();
-    const GRID_SIZE=getGridSizeForZoom(zoom);
+    if(!map)return; const overlay=document.getElementById('grid-overlay'); overlay.innerHTML=''; const zoom=map.getZoom(); const GRID_SIZE=getGridSizeForZoom(zoom);
     if(GRID_SIZE===0){ if(gridLayer){map.removeLayer(gridLayer);gridLayer=null;} return; }
-    
-    const GRID_STEP=(GRID_SIZE/METERS_PER_DEGREE);
-    const bounds=map.getBounds();
-    const center=map.getCenter();
-    
-    const baseLat=Math.floor(center.lat/GRID_STEP)*GRID_STEP;
-    const baseLng=Math.floor(center.lng/GRID_STEP)*GRID_STEP;
-    
+    const GRID_STEP=(GRID_SIZE/METERS_PER_DEGREE); const bounds=map.getBounds(); const center=map.getCenter();
+    const baseLat=Math.floor(center.lat/GRID_STEP)*GRID_STEP; const baseLng=Math.floor(center.lng/GRID_STEP)*GRID_STEP;
     const sLa=baseLat-Math.ceil((center.lat-bounds.getSouth())/GRID_STEP)*GRID_STEP-GRID_STEP;
     const eLa=baseLat+Math.ceil((bounds.getNorth()-center.lat)/GRID_STEP)*GRID_STEP+GRID_STEP;
     const sLn=baseLng-Math.ceil((center.lng-bounds.getWest())/GRID_STEP)*GRID_STEP-GRID_STEP;
     const eLn=baseLng+Math.ceil((bounds.getEast()-center.lng)/GRID_STEP)*GRID_STEP+GRID_STEP;
-    
-    if(gridLayer) map.removeLayer(gridLayer);
-    gridLayer=L.layerGroup().addTo(map);
-    
-    for(let lng=sLn;lng<=eLn;lng+=GRID_STEP)
-        L.polyline([[sLa,lng],[eLa,lng]],{color:'#555',weight:1,opacity:0.35}).addTo(gridLayer);
-    for(let lat=sLa;lat<=eLa;lat+=GRID_STEP)
-        L.polyline([[lat,sLn],[lat,eLn]],{color:'#555',weight:1,opacity:0.35}).addTo(gridLayer);
-    
+    if(gridLayer) map.removeLayer(gridLayer); gridLayer=L.layerGroup().addTo(map);
+    for(let lng=sLn;lng<=eLn;lng+=GRID_STEP) L.polyline([[sLa,lng],[eLa,lng]],{color:'#555',weight:1,opacity:0.35}).addTo(gridLayer);
+    for(let lat=sLa;lat<=eLa;lat+=GRID_STEP) L.polyline([[lat,sLn],[lat,eLn]],{color:'#555',weight:1,opacity:0.35}).addTo(gridLayer);
     const fs='11px',pp='3px 7px';
-    
     let colIndex=Math.round(baseLng/GRID_STEP);
-    for(let lng=sLn;lng<=eLn;lng+=GRID_STEP){
-        const p=map.latLngToContainerPoint([bounds.getNorth(),lng+GRID_STEP/2]);
-        if(p.x>30&&p.x<window.innerWidth-30){
-            const d=document.createElement('div'); d.className='grid-letter-top';
-            d.textContent=RUSSIAN_LETTERS[Math.abs(colIndex)%RUSSIAN_LETTERS.length];
-            d.style.left=p.x+'px'; d.style.top=Math.max(22,p.y-15)+'px';
-            d.style.fontSize=fs; d.style.padding=pp; overlay.appendChild(d);
-        }
-        colIndex++;
-    }
-    
+    for(let lng=sLn;lng<=eLn;lng+=GRID_STEP){ const p=map.latLngToContainerPoint([bounds.getNorth(),lng+GRID_STEP/2]); if(p.x>30&&p.x<window.innerWidth-30){ const d=document.createElement('div'); d.className='grid-letter-top'; d.textContent=RUSSIAN_LETTERS[Math.abs(colIndex)%RUSSIAN_LETTERS.length]; d.style.left=p.x+'px'; d.style.top=Math.max(22,p.y-15)+'px'; d.style.fontSize=fs; d.style.padding=pp; overlay.appendChild(d); } colIndex++; }
     let rowIndex=Math.round(baseLat/GRID_STEP);
-    for(let lat=sLa;lat<=eLa;lat+=GRID_STEP){
-        const p=map.latLngToContainerPoint([lat+GRID_STEP/2,eLn]);
-        if(p.y>30&&p.y<window.innerHeight-30){
-            const d=document.createElement('div'); d.className='grid-number-right';
-            d.textContent=Math.abs(rowIndex)%100;
-            d.style.right='8px'; d.style.top=p.y+'px';
-            d.style.fontSize=fs; d.style.padding=pp; overlay.appendChild(d);
-        }
-        rowIndex++;
-    }
+    for(let lat=sLa;lat<=eLa;lat+=GRID_STEP){ const p=map.latLngToContainerPoint([lat+GRID_STEP/2,eLn]); if(p.y>30&&p.y<window.innerHeight-30){ const d=document.createElement('div'); d.className='grid-number-right'; d.textContent=Math.abs(rowIndex)%100; d.style.right='8px'; d.style.top=p.y+'px'; d.style.fontSize=fs; d.style.padding=pp; overlay.appendChild(d); } rowIndex++; }
 }
 
 function sendChatMessage(){ const i=document.getElementById('chat-input'); const t=i.value.trim(); if(!t)return; socket.emit('chat_msg',{name:currentUser.name,text:t,color:currentUser.color}); i.value=''; i.focus(); }
@@ -338,9 +325,9 @@ const autoLoggedIn=tryAutoLogin(); if(!autoLoggedIn) document.getElementById('au
 window.doLogin=doLogin; window.setTool=setTool; window.centerOnMe=centerOnMe; window.resetZoom=resetZoom;
 window.changeMap=changeMap; window.toggleChat=toggleChat; window.sendChatMessage=sendChatMessage;
 window.deleteMyObjects=deleteMyObjects; window.reconnectApp=reconnectApp; window.exitApp=exitApp;
-window.changeAccessCode=changeAccessCode; window.tryBecomeAdmin=tryBecomeAdmin;
+window.changeAccessCode=changeAccessCode; window.tryBecomeAdmin=tryBecomeAdmin; window.requestCompassPermission=requestCompassPermission;
 
-console.log('🦂 ScorpGEO v6.7 — ФИНАЛ');
+console.log('🦂 ScorpGEO v6.8 — Компас fix');
 </script>
 </body>
 </html>
