@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="ScorpGEO">
     <meta name="theme-color" content="#000000">
-    <title>ScorpGEO v9.1</title>
+    <title>ScorpGEO v9.2</title>
     
     <link rel="manifest" href="/manifest.json">
     <link rel="apple-touch-icon" href="/icons/icon-512.png">
@@ -74,6 +74,8 @@
         
         .creator-tooltip { background:rgba(0,0,0,0.9)!important; border:1px solid #0f0!important; color:#0f0!important; font-family:'Courier New',monospace!important; font-size:11px!important; padding:4px 8px!important; border-radius:5px!important; }
         #connection-status { position:fixed; top:48px; right:8px; background:rgba(0,0,0,0.85); color:#0f0; padding:3px 7px; border-radius:10px; font-size:8px; z-index:7000; display:none; font-family:monospace; border:1px solid #0f0; }
+        
+        .snap-tooltip { background:rgba(0,0,0,0.9)!important; border:1px solid #ff0!important; color:#ff0!important; font-family:'Courier New',monospace!important; font-size:10px!important; padding:3px 6px!important; border-radius:5px!important; }
     </style>
 </head>
 <body>
@@ -111,7 +113,7 @@
             <span class="gear-btn" id="settingsGear" onclick="changeAccessCode()">⚙️</span>
         </div>
         <button onclick="doLogin()" class="auth-btn">⚡ ВОЙТИ ⚡</button>
-        <div style="color:#050;font-size:8px;margin-top:12px;">v9.1 • <span onclick="tryBecomeAdmin()" style="color:#0a0;cursor:pointer;text-decoration:underline;">АДМИН</span></div>
+        <div style="color:#050;font-size:8px;margin-top:12px;">v9.2 • <span onclick="tryBecomeAdmin()" style="color:#0a0;cursor:pointer;text-decoration:underline;">АДМИН</span> • 📏🎯</div>
         <div id="autoLoginMsg" style="color:#0f0;font-size:11px;margin-top:8px;display:none;"></div>
     </div>
 </div>
@@ -167,6 +169,7 @@ const METERS_PER_DEGREE=111320;
 const RUSSIAN_LETTERS=['А','Б','В','Г','Д','Е','Ё','Ж','З','И','Й','К','Л','М','Н','О','П','Р','С','Т','У','Ф','Х','Ц','Ч','Ш','Щ','Ъ','Ы','Ь','Э','Ю','Я'];
 const STORAGE_KEY='scorpgeo_session';
 const ADMIN_PASSWORD='Mpfp13zi';
+const SNAP_RADIUS=30; // 30 метров для привязки линейки
 
 function saveSession(){ const s={team:currentUser.team,name:currentUser.name,color:currentUser.color,deviceId:DEVICE_ID,timestamp:Date.now()}; localStorage.setItem(STORAGE_KEY,JSON.stringify(s)); }
 function loadSession(){ try{ const d=localStorage.getItem(STORAGE_KEY); if(d){ const s=JSON.parse(d); if(Date.now()-s.timestamp<86400000&&s.deviceId===DEVICE_ID) return s; } }catch(e){} return null; }
@@ -177,20 +180,8 @@ function changeAccessCode(){ if(!isAdmin){ alert('Нажмите "АДМИН" и
 socket.on('code_changed',(data)=>{ if(data.success){ currentAccessCode=data.newCode; document.getElementById('accessCode').value=''; alert('✅ Код изменен: '+data.newCode); } else{ alert('❌ '+data.error); } });
 
 // ===== ОТМЕНА / ПОВТОР =====
-function undoAction(){
-    if(undoStack.length===0){ alert('Нечего отменять'); return; }
-    const action=undoStack.pop();
-    redoStack.push(action);
-    socket.emit('delete_obj',action.id);
-    addChatMessage('СИСТЕМА','↩️ Отменено: '+action.type,'#f88');
-}
-function redoAction(){
-    if(redoStack.length===0){ alert('Нечего повторять'); return; }
-    const action=redoStack.pop();
-    undoStack.push(action);
-    socket.emit('new_obj',action);
-    addChatMessage('СИСТЕМА','↪️ Повторено: '+action.type,'#8f8');
-}
+function undoAction(){ if(undoStack.length===0){ alert('Нечего отменять'); return; } const action=undoStack.pop(); redoStack.push(action); socket.emit('delete_obj',action.id); addChatMessage('СИСТЕМА','↩️ Отменено: '+action.type,'#f88'); }
+function redoAction(){ if(redoStack.length===0){ alert('Нечего повторять'); return; } const action=redoStack.pop(); undoStack.push(action); socket.emit('new_obj',action); addChatMessage('СИСТЕМА','↪️ Повторено: '+action.type,'#8f8'); }
 function addToHistory(obj){ undoStack.push(obj); redoStack=[]; if(undoStack.length>50) undoStack.shift(); }
 window.undoAction=undoAction; window.redoAction=redoAction;
 
@@ -203,20 +194,34 @@ function requestCompassPermission(){if(typeof DeviceOrientationEvent!=='undefine
 window.requestCompassPermission=requestCompassPermission; window.toggleCompass=toggleCompass;
 
 // ===== КАРАНДАШ =====
-function initPencilCanvas(){
-    pencilCanvas=document.getElementById('drawing-layer');
-    pencilCanvas.width=window.innerWidth;
-    pencilCanvas.height=window.innerHeight;
-    pencilCtx=pencilCanvas.getContext('2d');
-    pencilCanvas.addEventListener('pointerdown',startDrawing);
-    pencilCanvas.addEventListener('pointermove',drawOnCanvas);
-    pencilCanvas.addEventListener('pointerup',endDrawing);
-    pencilCanvas.addEventListener('pointerout',endDrawing);
-}
+function initPencilCanvas(){ pencilCanvas=document.getElementById('drawing-layer'); pencilCanvas.width=window.innerWidth; pencilCanvas.height=window.innerHeight; pencilCtx=pencilCanvas.getContext('2d'); pencilCanvas.addEventListener('pointerdown',startDrawing); pencilCanvas.addEventListener('pointermove',drawOnCanvas); pencilCanvas.addEventListener('pointerup',endDrawing); pencilCanvas.addEventListener('pointerout',endDrawing); }
 function startDrawing(e){ if(activeTool!=='pencil') return; isDrawing=true; pencilPoints=[]; const rect=pencilCanvas.getBoundingClientRect(); const x=e.clientX-rect.left; const y=e.clientY-rect.top; const latlng=map.containerPointToLatLng([x,y]); pencilPoints.push([latlng.lat,latlng.lng]); pencilCtx.beginPath(); pencilCtx.moveTo(x,y); pencilCtx.strokeStyle='#ff4444'; pencilCtx.lineWidth=4; pencilCtx.lineCap='round'; }
 function drawOnCanvas(e){ if(!isDrawing||activeTool!=='pencil') return; const rect=pencilCanvas.getBoundingClientRect(); const x=e.clientX-rect.left; const y=e.clientY-rect.top; const latlng=map.containerPointToLatLng([x,y]); pencilPoints.push([latlng.lat,latlng.lng]); pencilCtx.lineTo(x,y); pencilCtx.stroke(); }
 function endDrawing(){ if(!isDrawing) return; isDrawing=false; pencilCtx.clearRect(0,0,pencilCanvas.width,pencilCanvas.height); if(pencilPoints.length>1){ const id='pencil_'+Date.now()+'_'+Math.random().toString(36).substr(2,9); const obj={id:id,type:'pencil',points:pencilPoints,creator:currentUser.name}; socket.emit('new_obj',obj); addToHistory(obj); } pencilPoints=[]; }
 function updateCanvasSize(){ if(pencilCanvas){ pencilCanvas.width=window.innerWidth; pencilCanvas.height=window.innerHeight; } }
+
+// ===== ПОИСК БЛИЖАЙШЕГО ОБЪЕКТА =====
+function findNearestObject(clickLatLng){
+    let closest=null; let minDist=SNAP_RADIUS;
+    for(const[id,obj] of Object.entries(tacticalObjects)){
+        let objLat,objLng;
+        if(obj.type==='enemy'||obj.type==='target'){
+            const layer=obj.layers[0];
+            if(layer&&layer.getLatLng){ const pos=layer.getLatLng(); objLat=pos.lat; objLng=pos.lng; }
+        }else if(obj.type==='arrow'||obj.type==='ruler'){
+            const latlngs=obj.layers[0]?.getLatLngs?.();
+            if(latlngs&&latlngs.length>=2){ objLat=latlngs[1].lat; objLng=latlngs[1].lng; }
+        }else if(obj.type==='pencil'){
+            const latlngs=obj.layers[0]?.getLatLngs?.();
+            if(latlngs&&latlngs.length>0){ const last=latlngs[latlngs.length-1]; objLat=last.lat; objLng=last.lng; }
+        }
+        if(objLat!==undefined&&objLng!==undefined){
+            const dist=map.distance(clickLatLng,[objLat,objLng]);
+            if(dist<minDist){ minDist=dist; closest={lat:objLat,lng:objLng,type:obj.type}; }
+        }
+    }
+    return closest;
+}
 
 function tryAutoLogin(){
     const s=loadSession();
@@ -266,13 +271,19 @@ socket.on('draw',(obj)=>{
     let layers=[]; const cn=obj.creator||'???';
     if(obj.type==='enemy'||obj.type==='target'){
         const mk=L.marker([obj.lat,obj.lng],{icon:L.divIcon({html:`<div style="font-size:30px;filter:drop-shadow(2px 2px 2px black);cursor:pointer;">${obj.type==='enemy'?'💀':'🎯'}</div>`,iconSize:[30,30],iconAnchor:[15,15],className:''}),zIndexOffset:500}).addTo(map);
-        mk.on('click',()=>{ if(activeTool==='eraser'){socket.emit('delete_obj',obj.id);return;} L.popup({closeButton:false,className:'creator-tooltip',autoClose:true}).setLatLng([obj.lat,obj.lng]).setContent(`👤 <b>${cn}</b>`).openOn(map); });
+        mk.on('click',()=>{
+            if(activeTool==='eraser'){socket.emit('delete_obj',obj.id);return;}
+            L.popup({closeButton:false,className:'creator-tooltip',autoClose:true}).setLatLng([obj.lat,obj.lng]).setContent(`👤 <b>${cn}</b>`).openOn(map);
+        });
         layers.push(mk);
     }else if(obj.type==='arrow'){
         const ln=L.polyline([obj.start,obj.end],{color:'#f44',weight:3,opacity:0.8,interactive:true}).addTo(map);
         const ag=Math.atan2(obj.end.lat-obj.start.lat,obj.end.lng-obj.start.lng);
         const hd=L.polygon([obj.end,{lat:obj.end.lat+Math.sin(ag+2.5)*8e-5,lng:obj.end.lng+Math.cos(ag+2.5)*8e-5},{lat:obj.end.lat+Math.sin(ag-2.5)*8e-5,lng:obj.end.lng+Math.cos(ag-2.5)*8e-5}],{color:'#f44',fillColor:'#f44',fillOpacity:0.8,interactive:true}).addTo(map);
-        const sh=(e)=>{ if(activeTool==='eraser'){socket.emit('delete_obj',obj.id);return;} L.popup({closeButton:false,className:'creator-tooltip',autoClose:true}).setLatLng(e.latlng).setContent(`👤 <b>${cn}</b>`).openOn(map); };
+        const sh=(e)=>{ 
+            if(activeTool==='eraser'){socket.emit('delete_obj',obj.id);return;}
+            L.popup({closeButton:false,className:'creator-tooltip',autoClose:true}).setLatLng(e.latlng).setContent(`👤 <b>${cn}</b>`).openOn(map); 
+        };
         ln.on('click',sh); hd.on('click',sh); layers.push(ln,hd);
     }else if(obj.type==='ruler'){
         const ln=L.polyline([obj.start,obj.end],{color:'#ff2222',weight:3,dashArray:'10, 8',opacity:0.9,interactive:true}).addTo(map);
@@ -280,12 +291,18 @@ socket.on('draw',(obj)=>{
         const tx=d<1000?`${Math.round(d)} м`:`${(d/1000).toFixed(1)} км`;
         const md={lat:(obj.start.lat+obj.end.lat)/2,lng:(obj.start.lng+obj.end.lng)/2};
         const lb=L.marker([md.lat,md.lng],{icon:L.divIcon({html:`<div style="background:#000;color:#ff0;padding:3px 6px;border:1px solid #ff0;border-radius:10px;font-size:10px;font-weight:bold;">📏 ${tx}</div>`,iconSize:[70,22],iconAnchor:[35,11],className:''}),interactive:false}).addTo(map);
-        ln.on('click',(e)=>{ if(activeTool==='eraser'){socket.emit('delete_obj',obj.id);return;} L.popup({closeButton:false,className:'creator-tooltip',autoClose:true}).setLatLng(e.latlng).setContent(`👤 <b>${cn}</b>`).openOn(map); });
+        ln.on('click',(e)=>{ 
+            if(activeTool==='eraser'){socket.emit('delete_obj',obj.id);return;}
+            L.popup({closeButton:false,className:'creator-tooltip',autoClose:true}).setLatLng(e.latlng).setContent(`👤 <b>${cn}</b>`).openOn(map); 
+        });
         layers.push(ln,lb);
         if(obj.creator===currentUser.name){ rulerTimers[obj.id]=setTimeout(()=>{ socket.emit('delete_obj',obj.id); },3000); }
     }else if(obj.type==='pencil'){
         const pl=L.polyline(obj.points,{color:'#ff4444',weight:4,opacity:0.85,interactive:true}).addTo(map);
-        pl.on('click',()=>{ if(activeTool==='eraser') socket.emit('delete_obj',obj.id); });
+        pl.on('click',(e)=>{ 
+            if(activeTool==='eraser'){socket.emit('delete_obj',obj.id);return;}
+            L.popup({closeButton:false,className:'creator-tooltip',autoClose:true}).setLatLng(e.latlng).setContent(`👤 <b>${cn}</b>`).openOn(map); 
+        });
         layers.push(pl);
     }
     tacticalObjects[obj.id]={type:obj.type,layers,creator:cn};
@@ -294,7 +311,7 @@ socket.on('draw',(obj)=>{
 socket.on('remove_obj',(id)=>{ if(tacticalObjects[id]){ tacticalObjects[id].layers.forEach(l=>{ if(map&&map.hasLayer(l)) map.removeLayer(l); }); delete tacticalObjects[id]; myObjects.delete(id); if(rulerTimers[id]){ clearTimeout(rulerTimers[id]); delete rulerTimers[id]; } } });
 socket.on('receive_msg',(data)=>{ let n,t,c; if(typeof data==='string'){ const m=data.match(/^([^:]+):\s*(.+)$/); n=m?m[1]:'СИСТЕМА'; t=m?m[2]:data; c=playerColors[n]||'#ccc'; } else{ n=data.name||'Аноним'; t=data.text||''; c=data.color||playerColors[n]||'#ccc'; } addChatMessage(n,t,c); });
 
-// ==================== КАРТА (БЕЗ ПОВОРОТА) ====================
+// ==================== КАРТА ====================
 function initMap(){
     if(map)return;
     map=L.map('map',{zoomControl:false,attributionControl:false,maxZoom:22,minZoom:10,tap:true}).setView([55.7558,37.6176],18);
@@ -316,9 +333,17 @@ function updatePlayerMarker(name,lat,lng,color){ if(!map||!name||name===currentU
 function centerOnMe(){ if(playersMarkers[currentUser.name]) map.setView(playersMarkers[currentUser.name].getLatLng(),18); else alert('Позиция не определена'); }
 function resetZoom(){ if(map) map.setZoom(18); gridEnabled=true; drawGrid(); document.getElementById('distance-bar').style.display='none'; if(distanceTimer){clearTimeout(distanceTimer);distanceTimer=null;} }
 
+// ===== КЛИКИ С ПРИВЯЗКОЙ К ОБЪЕКТАМ =====
 function handleMapClick(e){
     if(activeTool==='pencil') return;
-    const{lat,lng}=e.latlng;
+    let{lat,lng}=e.latlng;
+    
+    // Привязка линейки/стрелки к объектам
+    if(activeTool==='arrow'||activeTool==='ruler'){
+        const nearest=findNearestObject(e.latlng);
+        if(nearest){ lat=nearest.lat; lng=nearest.lng; }
+    }
+    
     if(activeTool==='enemy'||activeTool==='target'){
         const id=`${activeTool}_${Date.now()}_${Math.random().toString(36).substr(2,9)}`;
         const obj={id:id,type:activeTool,lat,lng,creator:currentUser.name};
@@ -332,12 +357,16 @@ function handleMapClick(e){
             socket.emit('new_obj',obj);
             addToHistory(obj);
             rulerPoints=[];
-        }else{ L.popup().setLatLng([lat,lng]).setContent('<b>👆 Вторая точка</b>').openOn(map); }
+        }else{ 
+            const msg=rulerPoints.length===1&&findNearestObject(e.latlng)?'✅ Привязано':'👆 Вторая точка';
+            L.popup().setLatLng([lat,lng]).setContent(`<b>${msg}</b>`).openOn(map); 
+        }
     }
 }
+
 function deleteMyObjects(){ const ids=Array.from(myObjects); ids.forEach(id=>socket.emit('delete_obj',id)); myObjects.clear(); }
 
-// ===== СЕТКА: ZOOM 18-20 (КАК БЫЛО) =====
+// ===== СЕТКА =====
 let gridEnabled=true;
 function getGridSizeForZoom(zoom){ if(!gridEnabled||zoom<18||zoom>20) return 0; return 20; }
 
@@ -359,26 +388,13 @@ function drawGrid(){
     let rowIndex=Math.round(baseLat/GRID_STEP);
     for(let lat=sLa;lat<=eLa;lat+=GRID_STEP){ const p=map.latLngToContainerPoint([lat+GRID_STEP/2,eLn]); if(p.y>30&&p.y<window.innerHeight-30){ const d=document.createElement('div'); d.className='grid-number-right'; d.textContent=Math.abs(rowIndex)%100; d.style.right='8px'; d.style.top=p.y+'px'; d.style.fontSize=fs; d.style.padding=pp; overlay.appendChild(d); } rowIndex++; }
 }
-
-// При зуме вне 18-20 — выключаем сетку
 map?.on('zoomend',()=>{ if(map.getZoom()<18||map.getZoom()>20) gridEnabled=false; else gridEnabled=true; drawGrid(); });
 
 function sendChatMessage(){ const i=document.getElementById('chat-input'); const t=i.value.trim(); if(!t)return; socket.emit('chat_msg',{name:currentUser.name,text:t,color:currentUser.color}); i.value=''; i.focus(); }
 function addChatMessage(n,t,c){ const ct=document.getElementById('chat-messages'); const d=document.createElement('div'); d.className='msg-line'; d.innerHTML=`<span class="msg-name" style="color:${c}">${esc(n)}:</span><span class="msg-text">${esc(t)}</span>`; ct.appendChild(d); ct.scrollTop=ct.scrollHeight; }
 function esc(t){ const d=document.createElement('div'); d.textContent=t; return d.innerHTML; }
 function toggleChat(){ const c=document.getElementById('chat-win'); c.style.display=c.style.display==='flex'?'none':'flex'; if(c.style.display==='flex')document.getElementById('chat-input').focus(); }
-function setTool(t){
-    activeTool=t; rulerPoints=[]; pencilPoints=[]; isDrawing=false;
-    if(pencilCtx) pencilCtx.clearRect(0,0,pencilCanvas.width,pencilCanvas.height);
-    const dl=document.getElementById('drawing-layer');
-    if(t==='pencil'){ dl.style.display='block'; map.dragging.disable(); }
-    else{ dl.style.display='none'; map.dragging.enable(); }
-    document.getElementById('distance-bar').style.display='none';
-    if(distanceTimer){clearTimeout(distanceTimer);distanceTimer=null;}
-    document.querySelectorAll('.tool-btn').forEach(b=>b.classList.remove('active'));
-    const btn=document.getElementById(`btn-${t}`); if(btn)btn.classList.add('active');
-    if(map&&t!=='pencil') map.closePopup();
-}
+function setTool(t){ activeTool=t; rulerPoints=[]; pencilPoints=[]; isDrawing=false; if(pencilCtx) pencilCtx.clearRect(0,0,pencilCanvas.width,pencilCanvas.height); const dl=document.getElementById('drawing-layer'); if(t==='pencil'){ dl.style.display='block'; map.dragging.disable(); } else{ dl.style.display='none'; map.dragging.enable(); } document.getElementById('distance-bar').style.display='none'; if(distanceTimer){clearTimeout(distanceTimer);distanceTimer=null;} document.querySelectorAll('.tool-btn').forEach(b=>b.classList.remove('active')); const btn=document.getElementById(`btn-${t}`); if(btn)btn.classList.add('active'); if(map&&t!=='pencil') map.closePopup(); }
 function changeMap(type){ if(tileLayer)map.removeLayer(tileLayer); tileLayer=L.tileLayer(type==='sat'?'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}':'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:type==='sat'?20:22,maxNativeZoom:type==='sat'?20:19}).addTo(map); drawGrid(); }
 function reconnectApp(){ const el=document.getElementById('connection-status'); el.textContent='🔄 Переподключение...'; el.style.color='#ff0'; el.style.display='block'; if(socket.disconnected) socket.connect(); setTimeout(()=>{ if(socket.connected&&currentUser.name){ socket.emit('rejoin_room',{room:currentUser.team,name:currentUser.name,color:currentUser.color,deviceId:DEVICE_ID}); el.textContent='🟢 Готово'; el.style.color='#0f0'; } else{ el.textContent='🔴 Ошибка'; el.style.color='#f00'; } setTimeout(()=>el.style.display='none',2000); },1500); }
 function exitApp(){ if(confirm('Выйти?')){ socket.emit('explicit_exit',{name:currentUser.name,room:currentUser.team}); clearSession(); if(watchId)navigator.geolocation.clearWatch(watchId); if(keepAliveInterval)clearInterval(keepAliveInterval); setTimeout(()=>{socket.disconnect();location.reload();},300); } }
@@ -390,7 +406,7 @@ window.changeMap=changeMap; window.toggleChat=toggleChat; window.sendChatMessage
 window.deleteMyObjects=deleteMyObjects; window.reconnectApp=reconnectApp; window.exitApp=exitApp;
 window.changeAccessCode=changeAccessCode; window.tryBecomeAdmin=tryBecomeAdmin;
 
-console.log('🦂 ScorpGEO v9.1 — Сетка 18-20 | ↩️↪️ | ✏️');
+console.log('🦂 ScorpGEO v9.2 — 📏 Линейка к объектам | 👤 Рука-автор');
 </script>
 </body>
 </html>
