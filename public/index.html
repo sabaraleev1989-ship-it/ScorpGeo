@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="ScorpGEO">
     <meta name="theme-color" content="#000000">
-    <title>ScorpGEO v8.4</title>
+    <title>ScorpGEO v9.0</title>
     
     <link rel="manifest" href="/manifest.json">
     <link rel="apple-touch-icon" href="/icons/icon-512.png">
@@ -46,13 +46,11 @@
         .gear-btn { position:absolute; right:10px; top:50%; transform:translateY(-50%); font-size:22px; cursor:pointer; color:#0f0; display:none; z-index:10; }
         
         #map { position:absolute; top:0; left:0; right:0; bottom:0; z-index:1; background:#1a1e1a; }
-        
-        /* СЛОЙ ДЛЯ РИСОВАНИЯ */
         #drawing-layer { position:absolute; top:0; left:0; right:0; bottom:0; z-index:100; display:none; cursor:crosshair; touch-action:none; }
         
         .side-panel { position:fixed; left:0; top:44px; bottom:0; width:72px; background:rgba(0,0,0,0.96); border-right:2px solid #0f0; z-index:5000; display:none; flex-direction:column; overflow-y:auto; }
-        .tool-btn { width:100%; min-height:46px; display:flex; flex-direction:column; align-items:center; justify-content:center; border-bottom:1px solid #0a0; color:#0f0; cursor:pointer; font-size:7px; font-weight:bold; padding:3px 2px; }
-        .tool-btn b { font-size:17px; margin-bottom:1px; }
+        .tool-btn { width:100%; min-height:44px; display:flex; flex-direction:column; align-items:center; justify-content:center; border-bottom:1px solid #0a0; color:#0f0; cursor:pointer; font-size:7px; font-weight:bold; padding:2px; }
+        .tool-btn b { font-size:16px; margin-bottom:1px; }
         .tool-btn.active { background:#020; color:#fff; border-left:3px solid #0f0; }
         
         #grid-overlay { position:fixed; top:44px; left:0; right:0; bottom:0; pointer-events:none; z-index:900; }
@@ -113,7 +111,7 @@
             <span class="gear-btn" id="settingsGear" onclick="changeAccessCode()">⚙️</span>
         </div>
         <button onclick="doLogin()" class="auth-btn">⚡ ВОЙТИ ⚡</button>
-        <div style="color:#050;font-size:8px;margin-top:12px;">v8.4 • <span onclick="tryBecomeAdmin()" style="color:#0a0;cursor:pointer;text-decoration:underline;">АДМИН</span> • ✏️🧭</div>
+        <div style="color:#050;font-size:8px;margin-top:12px;">v9.0 • <span onclick="tryBecomeAdmin()" style="color:#0a0;cursor:pointer;text-decoration:underline;">АДМИН</span></div>
         <div id="autoLoginMsg" style="color:#0f0;font-size:11px;margin-top:8px;display:none;"></div>
     </div>
 </div>
@@ -127,6 +125,8 @@
     <div onclick="setTool('ruler')" id="btn-ruler" class="tool-btn"><b>📏</b><span>Мерка</span></div>
     <div onclick="setTool('pencil')" id="btn-pencil" class="tool-btn" style="color:#ff0;"><b>✏️</b><span>Карандаш</span></div>
     <div onclick="setTool('eraser')" id="btn-eraser" class="tool-btn"><b>🧹</b><span>Стерка</span></div>
+    <div onclick="undoAction()" class="tool-btn" style="color:#f88;"><b>↩️</b><span>Отмена</span></div>
+    <div onclick="redoAction()" class="tool-btn" style="color:#8f8;"><b>↪️</b><span>Повтор</span></div>
     <div onclick="deleteMyObjects()" class="tool-btn" style="color:#fa0;"><b>🗑️</b><span>Мои</span></div>
     <div onclick="toggleChat()" class="tool-btn"><b>💬</b><span>Чат</span></div>
     <div onclick="changeMap('sat')" class="tool-btn"><b>🛰️</b><span>Спут</span></div>
@@ -138,7 +138,6 @@
 </div>
 
 <div id="map"></div>
-<!-- СЛОЙ ДЛЯ РИСОВАНИЯ -->
 <canvas id="drawing-layer"></canvas>
 <div id="grid-overlay"></div>
 <div id="distance-bar"></div>
@@ -161,7 +160,8 @@ const socket=io({ transports:['websocket','polling'], reconnection:true, reconne
 let map, activeTool='move', currentUser={name:'',team:'',color:'#0f0'};
 let playersMarkers={}, tacticalObjects={}, myObjects=new Set(), rulerPoints=[], gridLayer=null, tileLayer=null, playerColors={}, watchId=null, keepAliveInterval=null, distanceTimer=null, rulerTimers={};
 let isAdmin=false, currentAccessCode='', compassHeading=0, compassVisible=false;
-let pencilCanvas, pencilCtx, isDrawing=false, pencilPoints=[], currentPencilId=null;
+let pencilCanvas, pencilCtx, isDrawing=false, pencilPoints=[];
+let undoStack=[], redoStack=[];
 
 const METERS_PER_DEGREE=111320;
 const RUSSIAN_LETTERS=['А','Б','В','Г','Д','Е','Ё','Ж','З','И','Й','К','Л','М','Н','О','П','Р','С','Т','У','Ф','Х','Ц','Ч','Ш','Щ','Ъ','Ы','Ь','Э','Ю','Я'];
@@ -176,6 +176,28 @@ function tryBecomeAdmin(){ const pass=prompt('🔐 Админ-пароль:'); i
 function changeAccessCode(){ if(!isAdmin){ alert('Нажмите "АДМИН" и введите пароль!'); return; } const newCode=prompt('Новый код доступа:'); if(newCode&&newCode.trim()){ socket.emit('change_access_code',{newCode:newCode.trim(),adminPass:ADMIN_PASSWORD}); } }
 socket.on('code_changed',(data)=>{ if(data.success){ currentAccessCode=data.newCode; document.getElementById('accessCode').value=''; alert('✅ Код изменен: '+data.newCode); } else{ alert('❌ '+data.error); } });
 
+// ===== ОТМЕНА / ПОВТОР =====
+function undoAction(){
+    if(undoStack.length===0){ alert('Нечего отменять'); return; }
+    const action=undoStack.pop();
+    redoStack.push(action);
+    socket.emit('delete_obj',action.id);
+    addChatMessage('СИСТЕМА','↩️ Отменено: '+action.type,'#f88');
+}
+function redoAction(){
+    if(redoStack.length===0){ alert('Нечего повторять'); return; }
+    const action=redoStack.pop();
+    undoStack.push(action);
+    socket.emit('new_obj',action);
+    addChatMessage('СИСТЕМА','↪️ Повторено: '+action.type,'#8f8');
+}
+function addToHistory(obj){
+    undoStack.push(obj);
+    redoStack=[]; // Очищаем повтор при новом действии
+    if(undoStack.length>50) undoStack.shift(); // Ограничение истории
+}
+window.undoAction=undoAction; window.redoAction=redoAction;
+
 // ===== КОМПАС =====
 function toggleCompass(){ compassVisible=!compassVisible; document.getElementById('compass').style.display=compassVisible?'block':'none'; const btn=document.getElementById('btn-compass'); if(compassVisible) btn.classList.add('active'); else btn.classList.remove('active'); }
 function updateCompass(){ if(!compassVisible) return; const svg=document.getElementById('compass-svg'); if(svg) svg.style.transform=`rotate(${compassHeading}deg)`; }
@@ -184,63 +206,21 @@ if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.re
 function requestCompassPermission(){if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function'){DeviceOrientationEvent.requestPermission().then(r=>{if(r==='granted'){window.addEventListener('deviceorientation',handleOrientation,true);alert('✅ Компас активирован!');}});}else{alert('Компас уже активен');}}
 window.requestCompassPermission=requestCompassPermission; window.toggleCompass=toggleCompass;
 
-// ===== КАРАНДАШ НА CANVAS =====
+// ===== КАРАНДАШ =====
 function initPencilCanvas(){
     pencilCanvas=document.getElementById('drawing-layer');
     pencilCanvas.width=window.innerWidth;
     pencilCanvas.height=window.innerHeight;
     pencilCtx=pencilCanvas.getContext('2d');
-    
     pencilCanvas.addEventListener('pointerdown',startDrawing);
     pencilCanvas.addEventListener('pointermove',drawOnCanvas);
     pencilCanvas.addEventListener('pointerup',endDrawing);
     pencilCanvas.addEventListener('pointerout',endDrawing);
 }
-
-function startDrawing(e){
-    if(activeTool!=='pencil') return;
-    isDrawing=true;
-    pencilPoints=[];
-    const rect=pencilCanvas.getBoundingClientRect();
-    const x=e.clientX-rect.left;
-    const y=e.clientY-rect.top;
-    const latlng=map.containerPointToLatLng([x,y]);
-    pencilPoints.push([latlng.lat,latlng.lng]);
-    pencilCtx.beginPath();
-    pencilCtx.moveTo(x,y);
-    pencilCtx.strokeStyle='#ff4444';
-    pencilCtx.lineWidth=4;
-    pencilCtx.lineCap='round';
-}
-
-function drawOnCanvas(e){
-    if(!isDrawing||activeTool!=='pencil') return;
-    const rect=pencilCanvas.getBoundingClientRect();
-    const x=e.clientX-rect.left;
-    const y=e.clientY-rect.top;
-    const latlng=map.containerPointToLatLng([x,y]);
-    pencilPoints.push([latlng.lat,latlng.lng]);
-    pencilCtx.lineTo(x,y);
-    pencilCtx.stroke();
-}
-
-function endDrawing(){
-    if(!isDrawing) return;
-    isDrawing=false;
-    pencilCtx.clearRect(0,0,pencilCanvas.width,pencilCanvas.height);
-    if(pencilPoints.length>1){
-        currentPencilId='pencil_'+Date.now()+'_'+Math.random().toString(36).substr(2,9);
-        socket.emit('new_obj',{id:currentPencilId,type:'pencil',points:pencilPoints,creator:currentUser.name});
-    }
-    pencilPoints=[];
-}
-
-function updateCanvasSize(){
-    if(pencilCanvas){
-        pencilCanvas.width=window.innerWidth;
-        pencilCanvas.height=window.innerHeight;
-    }
-}
+function startDrawing(e){ if(activeTool!=='pencil') return; isDrawing=true; pencilPoints=[]; const rect=pencilCanvas.getBoundingClientRect(); const x=e.clientX-rect.left; const y=e.clientY-rect.top; const latlng=map.containerPointToLatLng([x,y]); pencilPoints.push([latlng.lat,latlng.lng]); pencilCtx.beginPath(); pencilCtx.moveTo(x,y); pencilCtx.strokeStyle='#ff4444'; pencilCtx.lineWidth=4; pencilCtx.lineCap='round'; }
+function drawOnCanvas(e){ if(!isDrawing||activeTool!=='pencil') return; const rect=pencilCanvas.getBoundingClientRect(); const x=e.clientX-rect.left; const y=e.clientY-rect.top; const latlng=map.containerPointToLatLng([x,y]); pencilPoints.push([latlng.lat,latlng.lng]); pencilCtx.lineTo(x,y); pencilCtx.stroke(); }
+function endDrawing(){ if(!isDrawing) return; isDrawing=false; pencilCtx.clearRect(0,0,pencilCanvas.width,pencilCanvas.height); if(pencilPoints.length>1){ const id='pencil_'+Date.now()+'_'+Math.random().toString(36).substr(2,9); const obj={id:id,type:'pencil',points:pencilPoints,creator:currentUser.name}; socket.emit('new_obj',obj); addToHistory(obj); } pencilPoints=[]; }
+function updateCanvasSize(){ if(pencilCanvas){ pencilCanvas.width=window.innerWidth; pencilCanvas.height=window.innerHeight; } }
 
 function tryAutoLogin(){
     const s=loadSession();
@@ -321,7 +301,7 @@ socket.on('receive_msg',(data)=>{ let n,t,c; if(typeof data==='string'){ const m
 // ==================== КАРТА ====================
 function initMap(){
     if(map)return;
-    map=L.map('map',{zoomControl:false,attributionControl:false,maxZoom:22,minZoom:10,tap:true,rotate:true,touchRotate:true,rotateControl:false}).setView([55.7558,37.6176],18);
+    map=L.map('map',{zoomControl:false,attributionControl:false,maxZoom:22,minZoom:10,tap:true,rotate:true,touchRotate:true,bearing:0}).setView([55.7558,37.6176],18);
     tileLayer=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:22,maxNativeZoom:19}).addTo(map);
     map.on('click',handleMapClick);
     map.on('moveend',drawGrid);
@@ -338,18 +318,32 @@ function updatePlayerMarker(name,lat,lng,color){ if(!map||!name||name===currentU
     marker.on('click',(e)=>{ if(!playersMarkers[currentUser.name])return; L.DomEvent.stopPropagation(e); const d=map.distance(playersMarkers[currentUser.name].getLatLng(),marker.getLatLng()); const txt=d<1000?`${Math.round(d)} м`:`${(d/1000).toFixed(1)} км`; const bar=document.getElementById('distance-bar'); bar.innerHTML=`📏 <b style="color:${playerColors[name]||'#fff'}">${name}</b> — ${txt}`; bar.style.display='block'; bar.style.animation='none'; bar.offsetHeight; bar.style.animation='slideUp 0.3s ease-out'; if(distanceTimer)clearTimeout(distanceTimer); distanceTimer=setTimeout(()=>{ bar.style.display='none'; },5000); }); } }
 
 function centerOnMe(){ if(playersMarkers[currentUser.name]) map.setView(playersMarkers[currentUser.name].getLatLng(),18); else alert('Позиция не определена'); }
-function resetZoom(){ if(map){ map.setZoom(18); map.setBearing(0); } document.getElementById('distance-bar').style.display='none'; if(distanceTimer){clearTimeout(distanceTimer);distanceTimer=null;} }
+function resetZoom(){ if(map){ map.setZoom(18); map.setBearing(0); } gridEnabled=true; drawGrid(); document.getElementById('distance-bar').style.display='none'; if(distanceTimer){clearTimeout(distanceTimer);distanceTimer=null;} }
 
 function handleMapClick(e){
     if(activeTool==='pencil') return;
     const{lat,lng}=e.latlng;
-    if(activeTool==='enemy'||activeTool==='target'){ socket.emit('new_obj',{id:`${activeTool}_${Date.now()}_${Math.random().toString(36).substr(2,9)}`,type:activeTool,lat,lng,creator:currentUser.name}); }
-    else if(activeTool==='arrow'||activeTool==='ruler'){ rulerPoints.push({lat,lng}); if(rulerPoints.length===2){ socket.emit('new_obj',{id:`${activeTool}_${Date.now()}_${Math.random().toString(36).substr(2,9)}`,type:activeTool,start:rulerPoints[0],end:rulerPoints[1],creator:currentUser.name}); rulerPoints=[]; }else{ L.popup().setLatLng([lat,lng]).setContent('<b>👆 Вторая точка</b>').openOn(map); } }
+    if(activeTool==='enemy'||activeTool==='target'){
+        const id=`${activeTool}_${Date.now()}_${Math.random().toString(36).substr(2,9)}`;
+        const obj={id:id,type:activeTool,lat,lng,creator:currentUser.name};
+        socket.emit('new_obj',obj);
+        addToHistory(obj);
+    } else if(activeTool==='arrow'||activeTool==='ruler'){
+        rulerPoints.push({lat,lng});
+        if(rulerPoints.length===2){
+            const id=`${activeTool}_${Date.now()}_${Math.random().toString(36).substr(2,9)}`;
+            const obj={id:id,type:activeTool,start:rulerPoints[0],end:rulerPoints[1],creator:currentUser.name};
+            socket.emit('new_obj',obj);
+            addToHistory(obj);
+            rulerPoints=[];
+        }else{ L.popup().setLatLng([lat,lng]).setContent('<b>👆 Вторая точка</b>').openOn(map); }
+    }
 }
 function deleteMyObjects(){ const ids=Array.from(myObjects); ids.forEach(id=>socket.emit('delete_obj',id)); myObjects.clear(); }
 
-// ===== СЕТКА =====
-function getGridSizeForZoom(zoom){ if(zoom<18||zoom>20) return 0; return 20; }
+// ===== СЕТКА ТОЛЬКО ПРИ НАЖАТИИ ЗУМ =====
+let gridEnabled=false;
+function getGridSizeForZoom(zoom){ if(!gridEnabled||zoom!==18) return 0; return 20; }
 
 function drawGrid(){
     if(!map)return; const overlay=document.getElementById('grid-overlay'); overlay.innerHTML=''; const zoom=map.getZoom(); const GRID_SIZE=getGridSizeForZoom(zoom);
@@ -370,18 +364,19 @@ function drawGrid(){
     for(let lat=sLa;lat<=eLa;lat+=GRID_STEP){ const p=map.latLngToContainerPoint([lat+GRID_STEP/2,eLn]); if(p.y>30&&p.y<window.innerHeight-30){ const d=document.createElement('div'); d.className='grid-number-right'; d.textContent=Math.abs(rowIndex)%100; d.style.right='8px'; d.style.top=p.y+'px'; d.style.fontSize=fs; d.style.padding=pp; overlay.appendChild(d); } rowIndex++; }
 }
 
+// При любом зуме кроме 18 — выключаем сетку
+map?.on('zoomend',()=>{ if(map.getZoom()!==18) gridEnabled=false; drawGrid(); });
+
 function sendChatMessage(){ const i=document.getElementById('chat-input'); const t=i.value.trim(); if(!t)return; socket.emit('chat_msg',{name:currentUser.name,text:t,color:currentUser.color}); i.value=''; i.focus(); }
 function addChatMessage(n,t,c){ const ct=document.getElementById('chat-messages'); const d=document.createElement('div'); d.className='msg-line'; d.innerHTML=`<span class="msg-name" style="color:${c}">${esc(n)}:</span><span class="msg-text">${esc(t)}</span>`; ct.appendChild(d); ct.scrollTop=ct.scrollHeight; }
 function esc(t){ const d=document.createElement('div'); d.textContent=t; return d.innerHTML; }
 function toggleChat(){ const c=document.getElementById('chat-win'); c.style.display=c.style.display==='flex'?'none':'flex'; if(c.style.display==='flex')document.getElementById('chat-input').focus(); }
 function setTool(t){
-    activeTool=t; rulerPoints=[]; pencilPoints=[];
-    isDrawing=false;
+    activeTool=t; rulerPoints=[]; pencilPoints=[]; isDrawing=false;
     if(pencilCtx) pencilCtx.clearRect(0,0,pencilCanvas.width,pencilCanvas.height);
-    // Показываем/скрываем слой рисования
-    const drawLayer=document.getElementById('drawing-layer');
-    if(t==='pencil'){ drawLayer.style.display='block'; map.dragging.disable(); }
-    else{ drawLayer.style.display='none'; map.dragging.enable(); }
+    const dl=document.getElementById('drawing-layer');
+    if(t==='pencil'){ dl.style.display='block'; map.dragging.disable(); }
+    else{ dl.style.display='none'; map.dragging.enable(); }
     document.getElementById('distance-bar').style.display='none';
     if(distanceTimer){clearTimeout(distanceTimer);distanceTimer=null;}
     document.querySelectorAll('.tool-btn').forEach(b=>b.classList.remove('active'));
@@ -399,7 +394,7 @@ window.changeMap=changeMap; window.toggleChat=toggleChat; window.sendChatMessage
 window.deleteMyObjects=deleteMyObjects; window.reconnectApp=reconnectApp; window.exitApp=exitApp;
 window.changeAccessCode=changeAccessCode; window.tryBecomeAdmin=tryBecomeAdmin;
 
-console.log('🦂 ScorpGEO v8.4 — ✏️ Canvas | 🔄 Поворот');
+console.log('🦂 ScorpGEO v9.0 — ↩️ Отмена | ↪️ Повтор | 📐 Сетка fix');
 </script>
 </body>
 </html>
