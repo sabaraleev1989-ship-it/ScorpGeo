@@ -1,6 +1,6 @@
 {
-    "name": "SCORPION TACTICAL",
-    "short_name": "SCORPION",
+    "name": "ScorpGEO - Тактическая карта",
+    "short_name": "ScorpGEO",
     "description": "Тактическая карта для страйкбола",
     "start_url": "/",
     "display": "standalone",
@@ -9,13 +9,13 @@
     "theme_color": "#00ff00",
     "icons": [
         {
-            "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='192' height='192' viewBox='0 0 192 192'%3E%3Ccircle cx='96' cy='96' r='90' fill='none' stroke='%2300ff00' stroke-width='4'/%3E%3Ccircle cx='96' cy='96' r='60' fill='none' stroke='%2300ff00' stroke-width='2' stroke-dasharray='4 4'/%3E%3Cline x1='96' y1='6' x2='96' y2='186' stroke='%2300ff00' stroke-width='1' opacity='0.5'/%3E%3Cline x1='6' y1='96' x2='186' y2='96' stroke='%2300ff00' stroke-width='1' opacity='0.5'/%3E%3Ccircle cx='60' cy='60' r='4' fill='%23ff0000'/%3E%3Ccircle cx='130' cy='80' r='4' fill='%23ff0000'/%3E%3Ccircle cx='80' cy='130' r='4' fill='%23ff0000'/%3E%3Ctext x='96' y='105' text-anchor='middle' fill='%2300ff00' font-size='12' font-family='monospace' font-weight='bold'%3ESCORPION%3C/text%3E%3C/svg%3E",
+            "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='192' height='192' viewBox='0 0 192 192'%3E%3Ccircle cx='96' cy='96' r='90' fill='none' stroke='%2300ff00' stroke-width='4'/%3E%3Ccircle cx='96' cy='96' r='60' fill='none' stroke='%2300ff00' stroke-width='2' stroke-dasharray='4 4'/%3E%3Cline x1='96' y1='6' x2='96' y2='186' stroke='%2300ff00' stroke-width='1' opacity='0.5'/%3E%3Cline x1='6' y1='96' x2='186' y2='96' stroke='%2300ff00' stroke-width='1' opacity='0.5'/%3E%3Ccircle cx='60' cy='60' r='4' fill='%23ff0000'/%3E%3Ccircle cx='130' cy='80' r='4' fill='%23ff0000'/%3E%3Ccircle cx='80' cy='130' r='4' fill='%23ff0000'/%3E%3Ctext x='96' y='105' text-anchor='middle' fill='%2300ff00' font-size='12' font-family='monospace' font-weight='bold'%3EScorpGEO%3C/text%3E%3C/svg%3E",
             "sizes": "192x192",
             "type": "image/svg+xml",
             "purpose": "any maskable"
         },
         {
-            "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='512' height='512' viewBox='0 0 512 512'%3E%3Ccircle cx='256' cy='256' r='240' fill='none' stroke='%2300ff00' stroke-width='8'/%3E%3Ccircle cx='256' cy='256' r='160' fill='none' stroke='%2300ff00' stroke-width='4' stroke-dasharray='8 8'/%3E%3Cline x1='256' y1='16' x2='256' y2='496' stroke='%2300ff00' stroke-width='2' opacity='0.5'/%3E%3Cline x1='16' y1='256' x2='496' y2='256' stroke='%2300ff00' stroke-width='2' opacity='0.5'/%3E%3Ccircle cx='160' cy='160' r='10' fill='%23ff0000'/%3E%3Ccircle cx='350' cy='210' r='10' fill='%23ff0000'/%3E%3Ccircle cx='210' cy='350' r='10' fill='%23ff0000'/%3E%3Ctext x='256' y='280' text-anchor='middle' fill='%2300ff00' font-size='32' font-family='monospace' font-weight='bold'%3ESCORPION%3C/text%3E%3C/svg%3E",
+            "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='512' height='512' viewBox='0 0 512 512'%3E%3Ccircle cx='256' cy='256' r='240' fill='none' stroke='%2300ff00' stroke-width='8'/%3E%3Ccircle cx='256' cy='256' r='160' fill='none' stroke='%2300ff00' stroke-width='4' stroke-dasharray='8 8'/%3E%3Cline x1='256' y1='16' x2='256' y2='496' stroke='%2300ff00' stroke-width='2' opacity='0.5'/%3E%3Cline x1='16' y1='256' x2='496' y2='256' stroke='%2300ff00' stroke-width='2' opacity='0.5'/%3E%3Ccircle cx='160' cy='160' r='10' fill='%23ff0000'/%3E%3Ccircle cx='350' cy='210' r='10' fill='%23ff0000'/%3E%3Ccircle cx='210' cy='350' r='10' fill='%23ff0000'/%3E%3Ctext x='256' y='280' text-anchor='middle' fill='%2300ff00' font-size='32' font-family='monospace' font-weight='bold'%3EScorpGEO%3C/text%3E%3C/svg%3E",
             "sizes": "512x512",
             "type": "image/svg+xml",
             "purpose": "any maskable"
