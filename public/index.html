@@ -5,11 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="ScorpGEO">
     <meta name="theme-color" content="#000000">
-    <title>SCORPION TACTICAL v5.6</title>
+    <title>ScorpGEO v5.6</title>
     
     <link rel="manifest" href="/manifest.json">
-    <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='192' height='192' viewBox='0 0 192 192'%3E%3Ccircle cx='96' cy='96' r='90' fill='none' stroke='%2300ff00' stroke-width='4'/%3E%3Ctext x='96' y='105' text-anchor='middle' fill='%2300ff00' font-size='14' font-family='monospace' font-weight='bold'%3ESCORPION%3C/text%3E%3C/svg%3E">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='192' height='192' viewBox='0 0 192 192'%3E%3Ccircle cx='96' cy='96' r='90' fill='none' stroke='%2300ff00' stroke-width='4'/%3E%3Ccircle cx='96' cy='96' r='60' fill='none' stroke='%2300ff00' stroke-width='2'/%3E%3Ctext x='96' y='105' text-anchor='middle' fill='%2300ff00' font-size='14' font-family='monospace' font-weight='bold'%3EScorpGEO%3C/text%3E%3C/svg%3E">
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -79,31 +80,18 @@
         .grid-letter-top { position:absolute; font-weight:900; font-family:'Courier New',monospace; background:rgba(0,0,0,0.8); color:#999; border:1px solid #444; border-radius:3px; transform:translate(-50%,-50%); z-index:950; }
         .grid-number-right { position:absolute; font-weight:900; font-family:'Courier New',monospace; background:rgba(0,0,0,0.8); color:#999; border:1px solid #444; border-radius:3px; transform:translate(0,-50%); z-index:950; }
         
-        /* ЧАТ — УВЕЛИЧЕН В 1.5 РАЗА */
         #chat-win {
             position:fixed; bottom:10px; left:88px; right:10px;
-            height:280px;  /* БЫЛО 170px → СТАЛО 280px */
+            height:280px;
             background:rgba(0,0,0,0.95); border:1px solid #0f0;
             z-index:6000; display:none; flex-direction:column; border-radius:5px;
         }
-        #chat-messages {
-            flex:1; overflow-y:auto; padding:10px;
-            font-size:12px;  /* БЫЛО 11px → СТАЛО 12px */
-            font-family:'Courier New',monospace;
-        }
+        #chat-messages { flex:1; overflow-y:auto; padding:10px; font-size:12px; font-family:'Courier New',monospace; }
         .msg-line { margin-bottom:4px; padding:4px 6px; border-bottom:1px solid #0a0; word-break:break-word; }
         .msg-name { font-weight:900; margin-right:5px; }
         .msg-text { color:#ccc; }
-        #chat-input {
-            background:#000; color:#0f0; border:1px solid #0f0; padding:10px;
-            outline:none; font-size:12px; font-family:'Courier New',monospace;
-            margin:5px; border-radius:3px; flex:1;
-        }
-        #send-btn {
-            background:#000; color:#0f0; border:1px solid #0f0;
-            padding:8px 14px; font-size:12px; font-weight:bold;
-            cursor:pointer; font-family:'Courier New',monospace;
-        }
+        #chat-input { background:#000; color:#0f0; border:1px solid #0f0; padding:10px; outline:none; font-size:12px; font-family:'Courier New',monospace; margin:5px; border-radius:3px; flex:1; }
+        #send-btn { background:#000; color:#0f0; border:1px solid #0f0; padding:8px 14px; font-size:12px; font-weight:bold; cursor:pointer; font-family:'Courier New',monospace; }
         
         .player-marker { display:flex; flex-direction:column; align-items:center; cursor:pointer; }
         .player-name-tag { font-weight:900; font-size:11px; text-shadow:1px 1px 2px #000; white-space:nowrap; margin-bottom:2px; background:rgba(0,0,0,0.85); padding:3px 6px; border-radius:10px; pointer-events:auto; }
@@ -124,7 +112,7 @@
         
         @media(max-width:640px) {
             .side-panel{width:68px} .tool-btn{min-height:54px;font-size:9px} .tool-btn b{font-size:20px}
-            #chat-win{left:76px; height:240px;}  /* На мобильных чуть меньше */
+            #chat-win{left:76px; height:240px;}
             .radar-container{width:140px;height:140px} .auth-title{font-size:1.4rem}
             #distance-bar{font-size:16px;padding:10px 16px;bottom:70px}
             #chat-messages{font-size:11px;}
@@ -143,8 +131,8 @@
         <div class="radar-dot dot5"></div><div class="radar-dot dot6"></div><div class="radar-dot dot7"></div><div class="radar-dot dot8"></div>
     </div>
     <div class="auth-card">
-        <div class="auth-title">SCORPION</div>
-        <div class="auth-subtitle">TACTICAL SYSTEM</div>
+        <div class="auth-title">ScorpGEO</div>
+        <div class="auth-subtitle">TACTICAL MAP</div>
         <input type="text" id="teamName" class="auth-input" placeholder="КОМАНДА" maxlength="10" autocomplete="off">
         <input type="text" id="playerName" class="auth-input" placeholder="ПОЗЫВНОЙ" maxlength="10" autocomplete="off">
         <input type="password" id="password" class="auth-input" placeholder="ПАРОЛЬ" maxlength="20" autocomplete="off">
@@ -191,7 +179,8 @@ let currentMapType='map';
 const METERS_PER_DEGREE=111320;
 const RUSSIAN_LETTERS=['А','Б','В','Г','Д','Е','Ё','Ж','З','И','Й','К','Л','М','Н','О','П','Р','С','Т','У','Ф','Х','Ц','Ч','Ш','Щ','Ъ','Ы','Ь','Э','Ю','Я'];
 
-const STORAGE_KEY='scorpion_session';
+// ==================== АВТОВХОД ====================
+const STORAGE_KEY='scorpgeo_session';
 function saveSession(){ const s={team:currentUser.team,name:currentUser.name,color:currentUser.color,timestamp:Date.now()}; localStorage.setItem(STORAGE_KEY,JSON.stringify(s)); }
 function loadSession(){ try{ const d=localStorage.getItem(STORAGE_KEY); if(d){ const s=JSON.parse(d); if(Date.now()-s.timestamp<86400000) return s; } }catch(e){} return null; }
 function clearSession(){ localStorage.removeItem(STORAGE_KEY); }
@@ -209,6 +198,7 @@ function tryAutoLogin(){
     return false;
 }
 
+// ==================== АНТИ-БЛОКИРОВКА ====================
 document.addEventListener('visibilitychange',()=>{
     if(document.visibilityState==='visible'){
         if(socket.disconnected&&currentUser.name){ socket.connect(); setTimeout(()=>{ if(socket.connected) socket.emit('rejoin_room',{room:currentUser.team,name:currentUser.name,color:currentUser.color}); },1000); }
@@ -221,6 +211,7 @@ socket.on('connect',()=>{ const el=document.getElementById('connection-status');
 socket.on('disconnect',()=>{ const el=document.getElementById('connection-status'); el.textContent='🔴 ОФЛАЙН'; el.style.color='#f00'; el.style.display='block'; });
 socket.on('midnight_clear',()=>{ for(const[id,obj]of Object.entries(tacticalObjects)){ obj.layers.forEach(l=>{ if(map&&map.hasLayer(l)) map.removeLayer(l); }); } tacticalObjects={}; myObjects.clear(); addChatMessage('🕛 СИСТЕМА','Все метки очищены (полночь)','#ffaa00'); });
 
+// ==================== АВТОРИЗАЦИЯ ====================
 function doLogin(){
     const team=document.getElementById('teamName').value.trim().toUpperCase();
     const name=document.getElementById('playerName').value.trim().toUpperCase();
@@ -239,12 +230,14 @@ socket.on('login_success',(data)=>{
 });
 socket.on('login_failed',(err)=>{ clearSession(); alert('Ошибка: '+(err?.reason||'Неверные данные')); });
 
+// ==================== ИГРОКИ ====================
 socket.on('existing_players',(p)=>p.forEach(x=>{ if(x.name!==currentUser.name){ playerColors[x.name]=x.color; updatePlayerMarker(x.name,x.lat,x.lng,x.color); } }));
 socket.on('player_joined',(d)=>{ if(d.name!==currentUser.name){ playerColors[d.name]=d.color; updatePlayerMarker(d.name,d.lat,d.lng,d.color); addChatMessage('СИСТЕМА','→ '+d.name+' на связи','#0f0'); } });
 socket.on('player_reconnected',(d)=>{ if(d.name!==currentUser.name) addChatMessage('СИСТЕМА','↻ '+d.name+' восстановился','#0af'); });
 socket.on('player_left',(d)=>{ if(playersMarkers[d.name]){ map.removeLayer(playersMarkers[d.name]); delete playersMarkers[d.name]; delete playerColors[d.name]; addChatMessage('СИСТЕМА','← '+d.name+' отключился','#f44'); } });
 socket.on('player_move',(d)=>{ if(d.name!==currentUser.name) updatePlayerMarker(d.name,d.lat,d.lng,d.color); });
 
+// ==================== ОБЪЕКТЫ ====================
 socket.on('draw',(obj)=>{
     if(tacticalObjects[obj.id]){ tacticalObjects[obj.id].layers.forEach(l=>{ if(map&&map.hasLayer(l)) map.removeLayer(l); }); delete tacticalObjects[obj.id]; }
     let layers=[]; const cn=obj.creator||'???';
@@ -273,6 +266,7 @@ socket.on('draw',(obj)=>{
 });
 socket.on('remove_obj',(id)=>{ if(tacticalObjects[id]){ tacticalObjects[id].layers.forEach(l=>{ if(map&&map.hasLayer(l)) map.removeLayer(l); }); delete tacticalObjects[id]; myObjects.delete(id); } });
 
+// ==================== ЧАТ ====================
 socket.on('receive_msg',(data)=>{
     let n,t,c;
     if(typeof data==='string'){ const m=data.match(/^([^:]+):\s*(.+)$/); n=m?m[1]:'СИСТЕМА'; t=m?m[2]:data; c=playerColors[n]||'#ccc'; }
@@ -280,6 +274,7 @@ socket.on('receive_msg',(data)=>{
     addChatMessage(n,t,c);
 });
 
+// ==================== КАРТА ====================
 function initMap(){
     if(map)return;
     map=L.map('map',{zoomControl:true,attributionControl:false,maxZoom:22,minZoom:10,tap:true}).setView([55.7558,37.6176],18);
@@ -442,7 +437,7 @@ window.doLogin=doLogin; window.setTool=setTool; window.centerOnMe=centerOnMe;
 window.changeMap=changeMap; window.toggleChat=toggleChat; window.sendChatMessage=sendChatMessage;
 window.deleteMyObjects=deleteMyObjects; window.exitApp=exitApp;
 
-console.log('⚡ v5.6 — Чат увеличен | Выход сразу | 15 мин');
+console.log('🦂 ScorpGEO v5.6 — Чат 280px | Выход сразу | 15 мин');
 </script>
 
 <script>
