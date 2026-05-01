@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="ScorpGEO">
     <meta name="theme-color" content="#000000">
-    <title>ScorpGEO v10.5</title>
+    <title>ScorpGEO v10.6</title>
     
     <link rel="manifest" href="/manifest.json">
     <link rel="apple-touch-icon" href="/icons/icon-512.png">
@@ -22,14 +22,15 @@
             --rus-white: #ffffff;
             --rus-blue: #0039a6;
             --rus-red: #d52b1e;
-            --panel-bg: rgba(0,0,0,0.96);
-            --border-color: var(--rus-blue);
-            --text-color: var(--rus-white);
-            --active-bg: var(--rus-red);
-            --active-text: #ffffff;
-            --grid-color: #666;
-            --compass-ring: var(--rus-blue);
-            --compass-arrow: var(--rus-red);
+            --glass-bg: rgba(10, 10, 20, 0.75);
+            --glass-border: rgba(255,255,255,0.15);
+            --glass-shadow: 0 8px 32px rgba(0,0,0,0.4);
+            --neon-blue: 0 0 15px rgba(0,57,166,0.6);
+            --neon-red: 0 0 15px rgba(213,43,30,0.6);
+            --neon-white: 0 0 10px rgba(255,255,255,0.4);
+            --text-color: rgba(255,255,255,0.9);
+            --text-dim: rgba(255,255,255,0.6);
+            --panel-bg: rgba(10, 10, 20, 0.85);
         }
 
         * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; -webkit-user-select:none; user-select:none; }
@@ -82,7 +83,6 @@
             50% { box-shadow: 0 0 60px rgba(213,43,30,0.6), inset 0 0 60px rgba(213,43,30,0.3); }
         }
 
-        /* Сканирующий луч */
         .radar-scan {
             position: absolute; inset: 0;
             border-radius: 50%;
@@ -91,7 +91,6 @@
         }
         @keyframes scanSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
-        /* Сетка радара */
         .radar-grid {
             position: absolute; inset: 0; border-radius: 50%;
             background: radial-gradient(circle at center, transparent 30%, rgba(255,255,255,0.08) 31%, transparent 32%),
@@ -100,7 +99,6 @@
                         linear-gradient(90deg, transparent 49%, rgba(255,255,255,0.15) 50%, transparent 51%);
         }
 
-        /* Точки Скорпиона (красные) */
         .scorpion-dot {
             position: absolute; width: 4px; height: 4px;
             background: var(--rus-red); border-radius: 50%;
@@ -112,23 +110,22 @@
             50% { opacity: 0.3; transform: scale(1.8); }
         }
 
-        /* Позиции точек для скорпиона (относительно центра 140x140) */
-        .sdot1 { top: 35%; left: 50%; }  /* голова */
-        .sdot2 { top: 30%; left: 45%; }  /* клешня левая */
-        .sdot3 { top: 30%; left: 55%; }  /* клешня правая */
-        .sdot4 { top: 45%; left: 50%; }  /* тело */
-        .sdot5 { top: 52%; left: 42%; }  /* ножка 1 */
-        .sdot6 { top: 52%; left: 58%; }  /* ножка 2 */
-        .sdot7 { top: 58%; left: 48%; }  /* тело низ */
-        .sdot8 { top: 65%; left: 55%; }  /* хвост 1 */
-        .sdot9 { top: 72%; left: 60%; }  /* хвост 2 */
-        .sdot10 { top: 78%; left: 58%; } /* жало */
+        .sdot1 { top: 35%; left: 50%; }
+        .sdot2 { top: 30%; left: 45%; }
+        .sdot3 { top: 30%; left: 55%; }
+        .sdot4 { top: 45%; left: 50%; }
+        .sdot5 { top: 52%; left: 42%; }
+        .sdot6 { top: 52%; left: 58%; }
+        .sdot7 { top: 58%; left: 48%; }
+        .sdot8 { top: 65%; left: 55%; }
+        .sdot9 { top: 72%; left: 60%; }
+        .sdot10 { top: 78%; left: 58%; }
 
         /* КАРТОЧКА ВХОДА */
         .auth-card {
-            background: rgba(10, 10, 20, 0.8);
-            border: 1px solid rgba(255,255,255,0.15);
-            box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 60px rgba(0,57,166,0.15);
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--glass-shadow), var(--neon-blue);
             padding: 28px 22px;
             width: 90%;
             max-width: 370px;
@@ -191,38 +188,129 @@
             position:absolute; right:12px; top:50%; transform:translateY(-50%);
             font-size:20px; cursor:pointer; color:var(--rus-white); display:none; z-index:10; opacity: 0.7;
         }
-        .gear-btn:hover { opacity: 1; }
 
         #map { position:absolute; top:0; left:0; right:0; bottom:0; z-index:1; background:#1a1e1a; }
         #drawing-layer { position:absolute; top:0; left:0; right:0; bottom:0; z-index:100; display:none; cursor:crosshair; touch-action:none; }
 
-        .side-panel { position:fixed; left:0; top:44px; bottom:0; width:80px; background:var(--panel-bg); border-right:2px solid var(--border-color); z-index:5000; display:none; flex-direction:column; overflow-y:auto; }
-        .tool-btn { width:100%; min-height:48px; display:flex; flex-direction:column; align-items:center; justify-content:center; border-bottom:1px solid #1a1a3e; color:var(--text-color); cursor:pointer; font-size:9px; font-weight:bold; padding:3px 2px; transition:all 0.2s; }
-        .tool-btn b { font-size:18px; margin-bottom:1px; }
-        .tool-btn.active { background:var(--active-bg); color:var(--active-text); border-left:3px solid var(--rus-white); }
-        .tool-btn:active { transform:scale(0.95); background:#1a1a4e; }
+        /* ========== СТЕКЛЯННАЯ ПАНЕЛЬ ИНСТРУМЕНТОВ ========== */
+        .side-panel {
+            position:fixed; left:0; top:44px; bottom:0; width:80px;
+            background: var(--panel-bg);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border-right: 1px solid var(--glass-border);
+            box-shadow: 4px 0 20px rgba(0,0,0,0.5);
+            z-index:5000; display:none; flex-direction:column; overflow-y:auto;
+        }
+        .tool-btn {
+            width:100%; min-height:48px;
+            display:flex; flex-direction:column; align-items:center; justify-content:center;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            color: var(--text-dim);
+            cursor:pointer; font-size:9px; font-weight:bold; padding:4px 2px;
+            transition: all 0.25s ease;
+            background: transparent;
+            position: relative;
+        }
+        .tool-btn b { font-size:18px; margin-bottom:2px; transition: transform 0.2s; }
+        .tool-btn:hover { color: var(--rus-white); background: rgba(255,255,255,0.05); }
+        .tool-btn:active { transform: scale(0.95); }
+        .tool-btn.active {
+            background: rgba(213,43,30,0.8);
+            color: #fff;
+            border-left: 3px solid var(--rus-white);
+            box-shadow: var(--neon-red), inset 0 0 20px rgba(213,43,30,0.3);
+            text-shadow: 0 0 8px rgba(255,255,255,0.6);
+        }
+        .tool-btn.active b { transform: scale(1.1); }
 
         #grid-overlay { position:fixed; top:44px; left:0; right:0; bottom:0; pointer-events:none; z-index:900; }
         .grid-letter-top { position:absolute; font-weight:900; font-family:'Courier New',monospace; background:rgba(0,0,0,0.9); color:#ccc; border:1px solid #666; border-radius:3px; transform:translate(-50%,-50%); z-index:950; font-size:12px; padding:4px 8px; }
         .grid-number-right { position:absolute; font-weight:900; font-family:'Courier New',monospace; background:rgba(0,0,0,0.9); color:#ccc; border:1px solid #666; border-radius:3px; transform:translate(0,-50%); z-index:950; font-size:12px; padding:4px 8px; }
 
-        #chat-win { position:fixed; bottom:10px; left:90px; right:10px; height:280px; background:rgba(0,0,0,0.95); border:1px solid var(--border-color); z-index:6000; display:none; flex-direction:column; border-radius:5px; }
-        #chat-messages { flex:1; overflow-y:auto; padding:10px; font-size:12px; font-family:'Courier New',monospace; }
-        .msg-line { margin-bottom:4px; padding:4px 6px; border-bottom:1px solid #1a1a3e; }
-        .msg-name { font-weight:900; margin-right:5px; }
-        .msg-text { color:#ccc; }
-        #chat-input { background:#000; color:var(--rus-white); border:1px solid var(--rus-blue); padding:10px; outline:none; font-size:12px; font-family:'Courier New',monospace; margin:5px; border-radius:3px; flex:1; }
-        #send-btn { background:var(--rus-blue); color:var(--rus-white); border:1px solid var(--rus-white); padding:8px 14px; font-size:12px; font-weight:bold; cursor:pointer; }
+        /* ========== СТЕКЛЯННЫЙ ЧАТ ========== */
+        #chat-win {
+            position:fixed; bottom:10px; left:90px; right:10px; height:280px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--glass-shadow);
+            z-index:6000; display:none; flex-direction:column; border-radius:12px;
+        }
+        #chat-messages {
+            flex:1; overflow-y:auto; padding:12px;
+            font-size:12px; font-family:'Courier New',monospace;
+            color: var(--text-color);
+        }
+        .msg-line {
+            margin-bottom:5px; padding:5px 8px;
+            border-radius: 6px;
+            background: rgba(255,255,255,0.03);
+            border-left: 2px solid var(--rus-blue);
+            animation: fadeIn 0.2s ease;
+        }
+        @keyframes fadeIn { from { opacity:0; transform:translateX(-10px); } to { opacity:1; transform:translateX(0); } }
+        .msg-name { font-weight:900; margin-right:6px; }
+        .msg-text { color: #ccc; }
+
+        #chat-input {
+            background: rgba(0,0,0,0.6);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: var(--rus-white);
+            padding:10px 14px; outline:none;
+            font-size:12px; font-family:'Courier New',monospace;
+            margin:8px; border-radius:20px;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s;
+        }
+        #chat-input:focus {
+            border-color: var(--rus-white);
+            box-shadow: 0 0 15px rgba(255,255,255,0.2);
+        }
+        #chat-input::placeholder { color: #555; }
+
+        #send-btn {
+            background: linear-gradient(135deg, var(--rus-blue), #001a4d);
+            color: var(--rus-white);
+            border: 1px solid rgba(255,255,255,0.3);
+            padding:8px 16px; margin:8px 8px 8px 0;
+            border-radius:20px; font-size:12px; font-weight:bold;
+            cursor:pointer; transition: all 0.3s;
+            box-shadow: 0 2px 8px rgba(0,57,166,0.3);
+        }
+        #send-btn:active {
+            background: var(--rus-red);
+            box-shadow: 0 2px 12px rgba(213,43,30,0.5);
+        }
 
         .player-marker { display:flex; flex-direction:column; align-items:center; cursor:pointer; }
         .player-name-tag { font-weight:900; font-size:11px; text-shadow:1px 1px 2px #000; white-space:nowrap; margin-bottom:2px; background:rgba(0,0,0,0.85); padding:3px 6px; border-radius:8px; }
         .player-dot { width:14px; height:14px; border-radius:50%; border:2px solid #fff; }
 
-        #distance-bar { position:fixed; bottom:80px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.9); border:2px solid var(--rus-red); color:var(--rus-white); padding:14px 24px; border-radius:25px; z-index:8000; display:none; font-family:'Courier New',monospace; font-size:20px; font-weight:900; text-align:center; box-shadow:0 0 40px rgba(213,43,30,0.5); animation:slideUp 0.3s ease-out; pointer-events:none; }
+        #distance-bar {
+            position:fixed; bottom:80px; left:50%; transform:translateX(-50%);
+            background: var(--glass-bg);
+            backdrop-filter: blur(15px);
+            border: 1px solid var(--rus-red);
+            box-shadow: 0 0 30px rgba(213,43,30,0.5);
+            color: var(--rus-white); padding:14px 24px; border-radius:30px;
+            z-index:8000; display:none; font-family:'Courier New',monospace;
+            font-size:20px; font-weight:900; text-align:center;
+            animation:slideUp 0.3s ease-out; pointer-events:none;
+        }
         @keyframes slideUp { from{opacity:0;transform:translate(-50%,15px)} to{opacity:1;transform:translate(-50%,0)} }
 
         .creator-tooltip { background:rgba(0,0,0,0.9)!important; border:1px solid var(--rus-blue)!important; color:var(--rus-white)!important; font-family:'Courier New',monospace!important; font-size:12px!important; padding:5px 10px!important; border-radius:5px!important; }
-        #connection-status { position:fixed; top:50px; right:8px; background:rgba(0,0,0,0.85); color:var(--rus-white); padding:4px 8px; border-radius:12px; font-size:9px; z-index:7000; display:none; font-family:monospace; border:1px solid var(--rus-blue); }
+        #connection-status {
+            position:fixed; top:50px; right:8px;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(10px);
+            color: var(--rus-white); padding:4px 10px;
+            border-radius:15px; font-size:9px; z-index:7000;
+            display:none; font-family:monospace;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
         .snap-tooltip { background:rgba(0,0,0,0.9)!important; border:1px solid var(--rus-red)!important; color:var(--rus-white)!important; font-family:'Courier New',monospace!important; font-size:10px!important; padding:3px 6px!important; border-radius:5px!important; }
     </style>
 </head>
@@ -246,21 +334,13 @@
 </div>
 
 <div id="auth-screen">
-    <!-- РАДАР СО СКОРПИОНОМ -->
     <div class="radar-container">
-        <div class="radar-circle"></div>
-        <div class="radar-scan"></div>
-        <div class="radar-grid"></div>
-        <div class="scorpion-dot sdot1"></div>
-        <div class="scorpion-dot sdot2"></div>
-        <div class="scorpion-dot sdot3"></div>
-        <div class="scorpion-dot sdot4"></div>
-        <div class="scorpion-dot sdot5"></div>
-        <div class="scorpion-dot sdot6"></div>
-        <div class="scorpion-dot sdot7"></div>
-        <div class="scorpion-dot sdot8"></div>
-        <div class="scorpion-dot sdot9"></div>
-        <div class="scorpion-dot sdot10"></div>
+        <div class="radar-circle"></div><div class="radar-scan"></div><div class="radar-grid"></div>
+        <div class="scorpion-dot sdot1"></div><div class="scorpion-dot sdot2"></div>
+        <div class="scorpion-dot sdot3"></div><div class="scorpion-dot sdot4"></div>
+        <div class="scorpion-dot sdot5"></div><div class="scorpion-dot sdot6"></div>
+        <div class="scorpion-dot sdot7"></div><div class="scorpion-dot sdot8"></div>
+        <div class="scorpion-dot sdot9"></div><div class="scorpion-dot sdot10"></div>
     </div>
 
     <div class="auth-card">
@@ -274,7 +354,7 @@
             <span class="gear-btn" id="settingsGear" onclick="changeAccessCode()">⚙️</span>
         </div>
         <button onclick="doLogin()" class="auth-btn">⚡ ВОЙТИ ⚡</button>
-        <div class="auth-info">v10.5 • <span onclick="tryBecomeAdmin()">АДМИН</span></div>
+        <div class="auth-info">v10.6 • <span onclick="tryBecomeAdmin()">АДМИН</span></div>
         <div id="autoLoginMsg" style="color:#fff; font-size:12px; margin-top:10px; display:none;"></div>
     </div>
 </div>
@@ -308,8 +388,8 @@
 
 <div id="chat-win">
     <div id="chat-messages"></div>
-    <div style="display:flex;gap:4px;padding:5px;background:#000;border-top:1px solid #1a1a3e;">
-        <input id="chat-input" placeholder="Сообщение..." onkeypress="if(event.key==='Enter')sendChatMessage()">
+    <div style="display:flex; align-items:center; gap:4px; padding:0; background:transparent; border-top:1px solid rgba(255,255,255,0.1);">
+        <input id="chat-input" placeholder="Сообщение...">
         <button id="send-btn" onclick="sendChatMessage()">📡</button>
     </div>
 </div>
@@ -527,7 +607,7 @@ window.changeMap=changeMap; window.toggleChat=toggleChat; window.sendChatMessage
 window.deleteMyObjects=deleteMyObjects; window.reconnectApp=reconnectApp; window.exitApp=exitApp;
 window.changeAccessCode=changeAccessCode; window.tryBecomeAdmin=tryBecomeAdmin;
 
-console.log('🇷🇺 ScorpGEO v10.5 — PWA центрирование');
+console.log('🇷🇺 ScorpGEO v10.6 — Стеклянный интерфейс');
 </script>
 </body>
 </html>
