@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#000000">
-    <title>SCORPION TACTICAL v5.2</title>
+    <title>SCORPION TACTICAL v5.3</title>
     
     <link rel="manifest" href="/manifest.json">
     <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='192' height='192' viewBox='0 0 192 192'%3E%3Ccircle cx='96' cy='96' r='90' fill='none' stroke='%2300ff00' stroke-width='4'/%3E%3Ctext x='96' y='105' text-anchor='middle' fill='%2300ff00' font-size='14' font-family='monospace' font-weight='bold'%3ESCORPION%3C/text%3E%3C/svg%3E">
@@ -57,10 +57,10 @@
         .auth-card { background:rgba(0,0,0,0.85); border:1px solid #0f0; box-shadow:0 0 30px rgba(0,255,0,0.2); padding:30px 25px; width:90%; max-width:360px; text-align:center; z-index:10001; }
         .auth-title { font-size:2rem; font-weight:900; color:#0f0; margin-bottom:5px; text-shadow:0 0 20px rgba(0,255,0,0.5); letter-spacing:3px; }
         .auth-subtitle { font-size:10px; color:#0a0; margin-bottom:25px; letter-spacing:5px; }
-        .auth-input { width:100%; background:#000; border:1px solid #0f0; color:#0f0; padding:14px; margin-bottom:12px; font-family:'Courier New',monospace; font-size:14px; text-align:center; outline:none; transition:all 0.3s; }
+        .auth-input { width:100%; background:#000; border:1px solid #0f0; color:#0f0; padding:14px; margin-bottom:12px; font-family:'Courier New',monospace; font-size:14px; text-align:center; outline:none; }
         .auth-input:focus { border-color:#0f0; box-shadow:0 0 15px rgba(0,255,0,0.3); background:#020; }
         .auth-input::placeholder { color:#050; letter-spacing:2px; }
-        .auth-btn { width:100%; background:#000; color:#0f0; border:2px solid #0f0; padding:14px; font-weight:bold; font-size:16px; cursor:pointer; font-family:'Courier New',monospace; letter-spacing:3px; transition:all 0.3s; margin-top:10px; }
+        .auth-btn { width:100%; background:#000; color:#0f0; border:2px solid #0f0; padding:14px; font-weight:bold; font-size:16px; cursor:pointer; font-family:'Courier New',monospace; letter-spacing:3px; margin-top:10px; }
         .auth-btn:hover { background:#0f0; color:#000; box-shadow:0 0 30px rgba(0,255,0,0.5); }
         .auth-btn:active { transform:scale(0.97); }
         .auth-info { color:#050; font-size:9px; margin-top:15px; letter-spacing:1px; }
@@ -70,27 +70,26 @@
         #map { position:absolute; inset:0; z-index:1; background:#1a1e1a; }
         
         .side-panel { position:fixed; left:0; top:0; bottom:0; width:78px; background:rgba(0,0,0,0.96); border-right:2px solid #0f0; z-index:5000; display:none; flex-direction:column; overflow-y:auto; }
-        .tool-btn { width:100%; min-height:62px; display:flex; flex-direction:column; align-items:center; justify-content:center; border-bottom:1px solid #0a0; color:#0f0; cursor:pointer; font-size:10px; font-weight:bold; padding:5px 2px; transition:all 0.2s; }
+        .tool-btn { width:100%; min-height:62px; display:flex; flex-direction:column; align-items:center; justify-content:center; border-bottom:1px solid #0a0; color:#0f0; cursor:pointer; font-size:10px; font-weight:bold; padding:5px 2px; }
         .tool-btn b { font-size:22px; margin-bottom:3px; }
         .tool-btn.active { background:#020; color:#fff; border-left:3px solid #0f0; }
         .tool-btn:active { transform:scale(0.95); background:#030; }
         
         #grid-overlay { position:fixed; inset:0; pointer-events:none; z-index:900; }
-        .grid-letter-top { position:absolute; font-weight:900; font-family:'Courier New',monospace; background:rgba(0,0,0,0.85); color:#bbb; border:1px solid #555; border-radius:3px; transform:translate(-50%,-50%); z-index:950; }
-        .grid-number-right { position:absolute; font-weight:900; font-family:'Courier New',monospace; background:rgba(0,0,0,0.85); color:#bbb; border:1px solid #555; border-radius:3px; transform:translate(0,-50%); z-index:950; }
+        .grid-letter-top { position:absolute; font-weight:900; font-family:'Courier New',monospace; background:rgba(0,0,0,0.8); color:#999; border:1px solid #444; border-radius:3px; transform:translate(-50%,-50%); z-index:950; }
+        .grid-number-right { position:absolute; font-weight:900; font-family:'Courier New',monospace; background:rgba(0,0,0,0.8); color:#999; border:1px solid #444; border-radius:3px; transform:translate(0,-50%); z-index:950; }
         
         #chat-win { position:fixed; bottom:10px; left:88px; right:10px; height:170px; background:rgba(0,0,0,0.95); border:1px solid #0f0; z-index:6000; display:none; flex-direction:column; border-radius:5px; }
         #chat-messages { flex:1; overflow-y:auto; padding:8px; font-size:11px; font-family:'Courier New',monospace; }
-        .msg-line { margin-bottom:4px; padding:3px 5px; border-bottom:1px solid #0a0; word-break:break-word; animation:fadeIn 0.3s; }
-        @keyframes fadeIn { from{opacity:0;transform:translateY(5px)} to{opacity:1;transform:translateY(0)} }
+        .msg-line { margin-bottom:4px; padding:3px 5px; border-bottom:1px solid #0a0; word-break:break-word; }
         .msg-name { font-weight:900; margin-right:5px; }
         .msg-text { color:#ccc; }
         #chat-input { background:#000; color:#0f0; border:1px solid #0f0; padding:8px; outline:none; font-size:11px; font-family:'Courier New',monospace; margin:4px; border-radius:3px; flex:1; }
         #send-btn { background:#000; color:#0f0; border:1px solid #0f0; padding:6px 12px; font-size:11px; font-weight:bold; cursor:pointer; font-family:'Courier New',monospace; }
         
         .player-marker { display:flex; flex-direction:column; align-items:center; cursor:pointer; }
-        .player-name-tag { font-weight:900; font-size:10px; text-shadow:1px 1px 2px #000; white-space:nowrap; margin-bottom:2px; background:rgba(0,0,0,0.8); padding:2px 5px; border-radius:8px; pointer-events:auto; }
-        .player-dot { width:14px; height:14px; border-radius:50%; border:2px solid #fff; box-shadow:0 0 8px rgba(0,0,0,0.7); pointer-events:auto; }
+        .player-name-tag { font-weight:900; font-size:11px; text-shadow:1px 1px 2px #000; white-space:nowrap; margin-bottom:2px; background:rgba(0,0,0,0.85); padding:3px 6px; border-radius:10px; pointer-events:auto; }
+        .player-dot { width:16px; height:16px; border-radius:50%; border:2px solid #fff; box-shadow:0 0 10px rgba(0,0,0,0.8); pointer-events:auto; }
         
         #distance-bar {
             position:fixed; bottom:60px; left:50%; transform:translateX(-50%);
@@ -98,8 +97,7 @@
             padding:14px 24px; border-radius:30px; z-index:8000; display:none;
             font-family:'Courier New',monospace; font-size:20px; font-weight:900;
             text-align:center; box-shadow:0 0 40px rgba(255,136,0,0.5);
-            animation:slideUp 0.3s ease-out;
-            pointer-events:none;
+            animation:slideUp 0.3s ease-out; pointer-events:none;
         }
         @keyframes slideUp { from{opacity:0;transform:translate(-50%,20px)} to{opacity:1;transform:translate(-50%,0)} }
         
@@ -119,13 +117,9 @@
 
 <div id="auth-screen">
     <div class="radar-container">
-        <div class="radar-circle"></div>
-        <div class="radar-scan"></div>
-        <div class="radar-grid"></div>
-        <div class="radar-dot dot1"></div><div class="radar-dot dot2"></div>
-        <div class="radar-dot dot3"></div><div class="radar-dot dot4"></div>
-        <div class="radar-dot dot5"></div><div class="radar-dot dot6"></div>
-        <div class="radar-dot dot7"></div><div class="radar-dot dot8"></div>
+        <div class="radar-circle"></div><div class="radar-scan"></div><div class="radar-grid"></div>
+        <div class="radar-dot dot1"></div><div class="radar-dot dot2"></div><div class="radar-dot dot3"></div><div class="radar-dot dot4"></div>
+        <div class="radar-dot dot5"></div><div class="radar-dot dot6"></div><div class="radar-dot dot7"></div><div class="radar-dot dot8"></div>
     </div>
     <div class="auth-card">
         <div class="auth-title">SCORPION</div>
@@ -134,7 +128,7 @@
         <input type="text" id="playerName" class="auth-input" placeholder="ПОЗЫВНОЙ" maxlength="10" autocomplete="off">
         <input type="password" id="password" class="auth-input" placeholder="ПАРОЛЬ" maxlength="20" autocomplete="off">
         <button onclick="doLogin()" class="auth-btn">⚡ ВОЙТИ ⚡</button>
-        <div class="auth-info">ЗАЩИЩЕННЫЙ КАНАЛ • АВТОВХОД</div>
+        <div class="auth-info">ТАП ПО БОЙЦУ → РАССТОЯНИЕ</div>
         <div id="autoLoginMsg" class="auto-login-msg" style="display:none;"></div>
     </div>
 </div>
@@ -185,9 +179,9 @@ function tryAutoLogin(){
     const s=loadSession();
     if(s&&s.team&&s.name){
         currentUser.name=s.name; currentUser.team=s.team; currentUser.color=s.color;
-        const msg=document.getElementById('autoLoginMsg');
-        msg.textContent=`↻ Автовход: ${s.name}`; msg.style.display='block';
-        setTimeout(()=>msg.style.display='none',2500);
+        document.getElementById('autoLoginMsg').textContent=`↻ Автовход: ${s.name}`;
+        document.getElementById('autoLoginMsg').style.display='block';
+        setTimeout(()=>document.getElementById('autoLoginMsg').style.display='none',2500);
         socket.emit('join_room',{room:s.team,name:s.name,team:s.team,pass:'1234'});
         return true;
     }
@@ -197,10 +191,7 @@ function tryAutoLogin(){
 // ==================== АНТИ-БЛОКИРОВКА ====================
 document.addEventListener('visibilitychange',()=>{
     if(document.visibilityState==='visible'){
-        if(socket.disconnected&&currentUser.name){
-            socket.connect();
-            setTimeout(()=>{ if(socket.connected) socket.emit('rejoin_room',{room:currentUser.team,name:currentUser.name,color:currentUser.color}); },1000);
-        }
+        if(socket.disconnected&&currentUser.name){ socket.connect(); setTimeout(()=>{ if(socket.connected) socket.emit('rejoin_room',{room:currentUser.team,name:currentUser.name,color:currentUser.color}); },1000); }
     }else{ if(socket.connected&&currentUser.name) socket.emit('keep_alive',{name:currentUser.name,room:currentUser.team}); }
 });
 window.addEventListener('beforeunload',()=>{ if(currentUser.name) saveSession(); });
@@ -239,57 +230,49 @@ socket.on('player_move',(d)=>{ if(d.name!==currentUser.name) updatePlayerMarker(
 // ==================== ОБЪЕКТЫ ====================
 socket.on('draw',(obj)=>{
     if(tacticalObjects[obj.id]){ tacticalObjects[obj.id].layers.forEach(l=>{ if(map&&map.hasLayer(l)) map.removeLayer(l); }); delete tacticalObjects[obj.id]; }
-    let layers=[];
-    const creatorName=obj.creator||'???';
-    
+    let layers=[]; const cn=obj.creator||'???';
     if(obj.type==='enemy'||obj.type==='target'){
-        const iconHtml=obj.type==='enemy'?'💀':'🎯';
-        const icon=L.divIcon({ html:`<div style="font-size:34px;filter:drop-shadow(2px 2px 3px black);cursor:pointer;">${iconHtml}</div>`, iconSize:[34,34], iconAnchor:[17,17], className:'' });
-        const marker=L.marker([obj.lat,obj.lng],{icon,zIndexOffset:500}).addTo(map);
-        marker.on('click',()=>{
-            if(activeTool==='eraser'){ socket.emit('delete_obj',obj.id); return; }
-            L.popup({closeButton:false,className:'creator-tooltip',autoClose:true,closeOnClick:true})
-                .setLatLng([obj.lat,obj.lng]).setContent(`👤 <b>${creatorName}</b>`).openOn(map);
-        });
-        layers.push(marker);
+        const ih=obj.type==='enemy'?'💀':'🎯';
+        const mk=L.marker([obj.lat,obj.lng],{icon:L.divIcon({html:`<div style="font-size:34px;filter:drop-shadow(2px 2px 3px black);cursor:pointer;">${ih}</div>`,iconSize:[34,34],iconAnchor:[17,17],className:''}),zIndexOffset:500}).addTo(map);
+        mk.on('click',()=>{ if(activeTool==='eraser'){socket.emit('delete_obj',obj.id);return;} L.popup({closeButton:false,className:'creator-tooltip',autoClose:true}).setLatLng([obj.lat,obj.lng]).setContent(`👤 <b>${cn}</b>`).openOn(map); });
+        layers.push(mk);
+    }else if(obj.type==='arrow'){
+        const ln=L.polyline([obj.start,obj.end],{color:'#f44',weight:4,opacity:0.8,interactive:true}).addTo(map);
+        const ag=Math.atan2(obj.end.lat-obj.start.lat,obj.end.lng-obj.start.lng);
+        const hd=L.polygon([obj.end,{lat:obj.end.lat+Math.sin(ag+2.5)*8e-5,lng:obj.end.lng+Math.cos(ag+2.5)*8e-5},{lat:obj.end.lat+Math.sin(ag-2.5)*8e-5,lng:obj.end.lng+Math.cos(ag-2.5)*8e-5}],{color:'#f44',fillColor:'#f44',fillOpacity:0.8,interactive:true}).addTo(map);
+        const sh=(e)=>{ if(activeTool==='eraser'){socket.emit('delete_obj',obj.id);return;} L.popup({closeButton:false,className:'creator-tooltip',autoClose:true}).setLatLng(e.latlng).setContent(`👤 <b>${cn}</b>`).openOn(map); };
+        ln.on('click',sh); hd.on('click',sh);
+        layers.push(ln,hd);
+    }else if(obj.type==='ruler'){
+        const ln=L.polyline([obj.start,obj.end],{color:'#ff0',weight:3,dashArray:'10,10',interactive:true}).addTo(map);
+        const d=map.distance([obj.start.lat,obj.start.lng],[obj.end.lat,obj.end.lng]);
+        const tx=d<1000?`${Math.round(d)} м`:`${(d/1000).toFixed(1)} км`;
+        const md={lat:(obj.start.lat+obj.end.lat)/2,lng:(obj.start.lng+obj.end.lng)/2};
+        const lb=L.marker([md.lat,md.lng],{icon:L.divIcon({html:`<div style="background:#000;color:#ff0;padding:4px 8px;border:1px solid #ff0;border-radius:12px;font-size:12px;font-weight:bold;">📏 ${tx}</div>`,iconSize:[80,24],iconAnchor:[40,12],className:''}),interactive:false}).addTo(map);
+        ln.on('click',(e)=>{ if(activeTool==='eraser'){socket.emit('delete_obj',obj.id);return;} L.popup({closeButton:false,className:'creator-tooltip',autoClose:true}).setLatLng(e.latlng).setContent(`👤 <b>${cn}</b>`).openOn(map); });
+        layers.push(ln,lb);
     }
-    else if(obj.type==='arrow'){
-        const line=L.polyline([obj.start,obj.end],{color:'#f44',weight:4,opacity:0.8,interactive:true}).addTo(map);
-        const angle=Math.atan2(obj.end.lat-obj.start.lat,obj.end.lng-obj.start.lng);
-        const head=L.polygon([obj.end,{lat:obj.end.lat+Math.sin(angle+2.5)*8e-5,lng:obj.end.lng+Math.cos(angle+2.5)*8e-5},{lat:obj.end.lat+Math.sin(angle-2.5)*8e-5,lng:obj.end.lng+Math.cos(angle-2.5)*8e-5}],{color:'#f44',fillColor:'#f44',fillOpacity:0.8,interactive:true}).addTo(map);
-        const show=(e)=>{ if(activeTool==='eraser'){socket.emit('delete_obj',obj.id);return;} L.popup({closeButton:false,className:'creator-tooltip',autoClose:true}).setLatLng(e.latlng).setContent(`👤 <b>${creatorName}</b>`).openOn(map); };
-        line.on('click',show); head.on('click',show);
-        layers.push(line,head);
-    }
-    else if(obj.type==='ruler'){
-        const line=L.polyline([obj.start,obj.end],{color:'#ff0',weight:3,dashArray:'10,10',interactive:true}).addTo(map);
-        const dist=map.distance([obj.start.lat,obj.start.lng],[obj.end.lat,obj.end.lng]);
-        const txt=dist<1000?`${Math.round(dist)} м`:`${(dist/1000).toFixed(1)} км`;
-        const mid={lat:(obj.start.lat+obj.end.lat)/2,lng:(obj.start.lng+obj.end.lng)/2};
-        const label=L.marker([mid.lat,mid.lng],{icon:L.divIcon({html:`<div style="background:#000;color:#ff0;padding:4px 8px;border:1px solid #ff0;border-radius:12px;font-size:12px;font-weight:bold;">📏 ${txt}</div>`,iconSize:[80,24],iconAnchor:[40,12],className:''}),interactive:false}).addTo(map);
-        line.on('click',(e)=>{ if(activeTool==='eraser'){socket.emit('delete_obj',obj.id);return;} L.popup({closeButton:false,className:'creator-tooltip',autoClose:true}).setLatLng(e.latlng).setContent(`👤 <b>${creatorName}</b>`).openOn(map); });
-        layers.push(line,label);
-    }
-    
-    tacticalObjects[obj.id]={type:obj.type,layers,creator:creatorName};
+    tacticalObjects[obj.id]={type:obj.type,layers,creator:cn};
     if(obj.creator===currentUser.name) myObjects.add(obj.id);
 });
-
 socket.on('remove_obj',(id)=>{ if(tacticalObjects[id]){ tacticalObjects[id].layers.forEach(l=>{ if(map&&map.hasLayer(l)) map.removeLayer(l); }); delete tacticalObjects[id]; myObjects.delete(id); } });
 
 // ==================== ЧАТ ====================
 socket.on('receive_msg',(data)=>{
-    let name,text,color;
-    if(typeof data==='string'){ const m=data.match(/^([^:]+):\s*(.+)$/); name=m?m[1]:'СИСТЕМА'; text=m?m[2]:data; color=playerColors[name]||'#ccc'; }
-    else{ name=data.name||'Аноним'; text=data.text||''; color=data.color||playerColors[name]||'#ccc'; }
-    addChatMessage(name,text,color);
+    let n,t,c;
+    if(typeof data==='string'){ const m=data.match(/^([^:]+):\s*(.+)$/); n=m?m[1]:'СИСТЕМА'; t=m?m[2]:data; c=playerColors[n]||'#ccc'; }
+    else{ n=data.name||'Аноним'; t=data.text||''; c=data.color||playerColors[n]||'#ccc'; }
+    addChatMessage(n,t,c);
 });
 
-// ==================== КАРТА ====================
+// ==================== КАРТА (С ВЫСОКИМ ZOOM) ====================
 function initMap(){
     if(map)return;
-    map=L.map('map',{zoomControl:true,attributionControl:false,maxZoom:21,minZoom:10,tap:true}).setView([55.7558,37.6176],18);
-    tileLayer=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:21}).addTo(map);
+    // Используем тайлы с zoom до 22 чтобы не было серого
+    map=L.map('map',{zoomControl:true,attributionControl:false,maxZoom:22,minZoom:10,tap:true}).setView([55.7558,37.6176],18);
+    tileLayer=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,maxNativeZoom:19}).addTo(map);
+    // При превышении — показываем спутник
+    map.on('zoomend',()=>{ if(map.getZoom()>19&&tileLayer&&tileLayer._url.includes('openstreetmap')){ changeMap('sat'); } });
     map.on('click',handleMapClick); map.on('moveend',drawGrid); map.on('zoomend',drawGrid);
     drawGrid(); setTimeout(()=>{map.invalidateSize();drawGrid();},500);
 }
@@ -298,18 +281,16 @@ function startGeolocation(){
     if(!navigator.geolocation)return; if(watchId)navigator.geolocation.clearWatch(watchId);
     watchId=navigator.geolocation.watchPosition(pos=>{updateMyPosition(pos.coords.latitude,pos.coords.longitude);socket.emit('gps_sync',{lat:pos.coords.latitude,lng:pos.coords.longitude});},err=>console.warn('GPS:',err.message),{enableHighAccuracy:true,maximumAge:3000,timeout:10000});
 }
-
 function updateMyPosition(lat,lng){
     if(!map)return;
-    if(playersMarkers[currentUser.name]){ playersMarkers[currentUser.name].setLatLng([lat,lng]); }
-    else{ playersMarkers[currentUser.name]=L.marker([lat,lng],{icon:createPlayerIcon(currentUser.name,currentUser.color),zIndexOffset:1000}).addTo(map); }
+    if(playersMarkers[currentUser.name]) playersMarkers[currentUser.name].setLatLng([lat,lng]);
+    else playersMarkers[currentUser.name]=L.marker([lat,lng],{icon:createPlayerIcon(currentUser.name,currentUser.color),zIndexOffset:1000}).addTo(map);
 }
-
 function createPlayerIcon(name,color){
     return L.divIcon({html:`<div class="player-marker"><div class="player-name-tag" style="color:${color}">${name}</div><div class="player-dot" style="background:${color}"></div></div>`,iconSize:[70,36],iconAnchor:[35,28],className:''});
 }
 
-// ===== ИСПРАВЛЕНО: ОБРАБОТЧИК НАЖАТИЯ НА МАРКЕР ИГРОКА =====
+// ===== НОВЫЙ СПОСОБ: ТАП ПО БОЙЦУ → РАССТОЯНИЕ =====
 function updatePlayerMarker(name,lat,lng,color){
     if(!map||!name||name===currentUser.name)return;
     if(playersMarkers[name]){
@@ -319,13 +300,11 @@ function updatePlayerMarker(name,lat,lng,color){
         const marker=L.marker([lat,lng],{icon,zIndexOffset:900}).addTo(map);
         playersMarkers[name]=marker;
         
-        // Переменные для удержания
-        let pressTimer=null;
-        let pressStartPos=null;
-        
-        // Функция показа расстояния
-        const showDist=()=>{
+        // КЛИК ПО МАРКЕРУ — ПОКАЗЫВАЕМ РАССТОЯНИЕ
+        marker.on('click',(e)=>{
             if(!playersMarkers[currentUser.name])return;
+            L.DomEvent.stopPropagation(e);
+            
             const myPos=playersMarkers[currentUser.name].getLatLng();
             const targetPos=marker.getLatLng();
             const d=map.distance(myPos,targetPos);
@@ -334,35 +313,18 @@ function updatePlayerMarker(name,lat,lng,color){
             const bar=document.getElementById('distance-bar');
             bar.innerHTML=`📏 <b style="color:${playerColors[name]||'#fff'}">${name}</b> — ${txt}`;
             bar.style.display='block';
-            bar.style.animation='none';
-            bar.offsetHeight;
+            bar.style.animation='none'; bar.offsetHeight;
             bar.style.animation='slideUp 0.3s ease-out';
             
             if(distanceTimer)clearTimeout(distanceTimer);
             distanceTimer=setTimeout(()=>{ bar.style.display='none'; },5000);
-        };
-        
-        // Обработчики для мыши
-        marker.on('mousedown',(e)=>{
-            pressStartPos=e.latlng;
-            pressTimer=setTimeout(showDist,400); // 400мс удержания
         });
-        marker.on('mouseup',()=>{ clearTimeout(pressTimer); });
-        marker.on('mouseout',()=>{ clearTimeout(pressTimer); });
-        
-        // Обработчики для тача (телефон)
-        marker.on('touchstart',(e)=>{
-            pressStartPos=e.latlng;
-            pressTimer=setTimeout(showDist,400);
-        });
-        marker.on('touchend',()=>{ clearTimeout(pressTimer); });
-        marker.on('touchcancel',()=>{ clearTimeout(pressTimer); });
     }
 }
 
 function centerOnMe(){
-    if(playersMarkers[currentUser.name]){ map.setView(playersMarkers[currentUser.name].getLatLng(),map.getZoom()); }
-    else{alert('Позиция не определена');}
+    if(playersMarkers[currentUser.name]) map.setView(playersMarkers[currentUser.name].getLatLng(),map.getZoom());
+    else alert('Позиция не определена');
 }
 
 // ==================== КЛИКИ ПО КАРТЕ ====================
@@ -378,108 +340,84 @@ function handleMapClick(e){
         }else{ L.popup().setLatLng([lat,lng]).setContent('<b>👆 Вторая точка</b>').openOn(map); }
     }
 }
-
 function deleteMyObjects(){ const ids=Array.from(myObjects); ids.forEach(id=>socket.emit('delete_obj',id)); myObjects.clear(); }
 
-// ==================== СЕТКА (БЕЗ КАШИ) ====================
+// ==================== СЕТКА (ТОНЬШЕ ПРИ ОТДАЛЕНИИ) ====================
 function getGridSizeForZoom(zoom){
-    // Чем меньше зум (отдаление) — тем больше квадраты
-    if(zoom>=19) return 20;   // Очень близко — 20м
-    if(zoom>=18) return 30;   // Близко — 30м
-    if(zoom>=17) return 50;   // Средне — 50м
-    if(zoom>=16) return 100;  // Отдаление — 100м
-    if(zoom>=15) return 200;  // Далеко — 200м
-    if(zoom>=14) return 400;  // Очень далеко — 400м
-    return 0;                  // Совсем далеко — без сетки
+    if(zoom>=19) return 20;
+    if(zoom>=18) return 30;
+    if(zoom>=17) return 50;
+    if(zoom>=16) return 100;
+    if(zoom>=15) return 200;
+    if(zoom>=14) return 400;
+    return 0;
 }
 
 function drawGrid(){
     if(!map)return;
-    const overlay=document.getElementById('grid-overlay');
-    overlay.innerHTML='';
-    
+    const overlay=document.getElementById('grid-overlay'); overlay.innerHTML='';
     const zoom=map.getZoom();
     const GRID_SIZE=getGridSizeForZoom(zoom);
-    
-    if(GRID_SIZE===0){
-        if(gridLayer){ map.removeLayer(gridLayer); gridLayer=null; }
-        return;
-    }
+    if(GRID_SIZE===0){ if(gridLayer){map.removeLayer(gridLayer);gridLayer=null;} return; }
     
     const GRID_STEP=(GRID_SIZE/METERS_PER_DEGREE);
     const bounds=map.getBounds();
-    const startLat=Math.floor(bounds.getSouth()/GRID_STEP)*GRID_STEP;
-    const endLat=Math.ceil(bounds.getNorth()/GRID_STEP)*GRID_STEP;
-    const startLng=Math.floor(bounds.getWest()/GRID_STEP)*GRID_STEP;
-    const endLng=Math.ceil(bounds.getEast()/GRID_STEP)*GRID_STEP;
+    const sLa=Math.floor(bounds.getSouth()/GRID_STEP)*GRID_STEP;
+    const eLa=Math.ceil(bounds.getNorth()/GRID_STEP)*GRID_STEP;
+    const sLn=Math.floor(bounds.getWest()/GRID_STEP)*GRID_STEP;
+    const eLn=Math.ceil(bounds.getEast()/GRID_STEP)*GRID_STEP;
     
     if(gridLayer) map.removeLayer(gridLayer);
     gridLayer=L.layerGroup().addTo(map);
     
-    // Стиль линий зависит от размера
-    const lineColor='#555';
-    const lineOpacity=0.5;
-    const lineWeight=GRID_SIZE>=200?3:GRID_SIZE>=100?2.5:1.5;
+    // Тоньше при больших квадратах
+    const lw=GRID_SIZE>=200?1.5:GRID_SIZE>=100?1.2:1;
+    const lo=GRID_SIZE>=200?0.35:0.4;
     
-    for(let lng=startLng;lng<=endLng;lng+=GRID_STEP)
-        L.polyline([[startLat,lng],[endLat,lng]],{color:lineColor,weight:lineWeight,opacity:lineOpacity}).addTo(gridLayer);
-    for(let lat=startLat;lat<=endLat;lat+=GRID_STEP)
-        L.polyline([[lat,startLng],[lat,endLng]],{color:lineColor,weight:lineWeight,opacity:lineOpacity}).addTo(gridLayer);
+    for(let lng=sLn;lng<=eLn;lng+=GRID_STEP)
+        L.polyline([[sLa,lng],[eLa,lng]],{color:'#555',weight:lw,opacity:lo}).addTo(gridLayer);
+    for(let lat=sLa;lat<=eLa;lat+=GRID_STEP)
+        L.polyline([[lat,sLn],[lat,eLn]],{color:'#555',weight:lw,opacity:lo}).addTo(gridLayer);
     
-    // Размер шрифта для букв/цифр
-    let fontSize, padX, padY;
-    if(GRID_SIZE>=400){ fontSize='18px'; padX='6px 14px'; }
-    else if(GRID_SIZE>=200){ fontSize='15px'; padX='5px 12px'; }
-    else if(GRID_SIZE>=100){ fontSize='13px'; padX='4px 10px'; }
-    else{ fontSize='11px'; padX='3px 7px'; }
+    let fs,pp;
+    if(GRID_SIZE>=400){ fs='16px'; pp='5px 12px'; }
+    else if(GRID_SIZE>=200){ fs='14px'; pp='4px 10px'; }
+    else if(GRID_SIZE>=100){ fs='12px'; pp='3px 8px'; }
+    else{ fs='10px'; pp='2px 6px'; }
     
-    // Буквы сверху
     let ci=0;
-    for(let lng=startLng;lng<=endLng;lng+=GRID_STEP){
+    for(let lng=sLn;lng<=eLn;lng+=GRID_STEP){
         const p=map.latLngToContainerPoint([bounds.getNorth(),lng+GRID_STEP/2]);
         if(p.x>30&&p.x<window.innerWidth-30){
             const d=document.createElement('div'); d.className='grid-letter-top';
             d.textContent=RUSSIAN_LETTERS[ci%RUSSIAN_LETTERS.length];
             d.style.left=p.x+'px'; d.style.top=Math.max(22,p.y-18)+'px';
-            d.style.fontSize=fontSize; d.style.padding=padX;
-            overlay.appendChild(d);
+            d.style.fontSize=fs; d.style.padding=pp; overlay.appendChild(d);
         }
         ci++;
     }
-    
-    // Цифры справа
     let ri=0;
-    for(let lat=startLat;lat<=endLat;lat+=GRID_STEP){
-        const p=map.latLngToContainerPoint([lat+GRID_STEP/2,endLng]);
+    for(let lat=sLa;lat<=eLa;lat+=GRID_STEP){
+        const p=map.latLngToContainerPoint([lat+GRID_STEP/2,eLn]);
         if(p.y>30&&p.y<window.innerHeight-30){
             const d=document.createElement('div'); d.className='grid-number-right';
             d.textContent=ri%100; d.style.right='10px'; d.style.top=p.y+'px';
-            d.style.fontSize=fontSize; d.style.padding=padX;
-            overlay.appendChild(d);
+            d.style.fontSize=fs; d.style.padding=pp; overlay.appendChild(d);
         }
         ri++;
     }
 }
 
 // ==================== ЧАТ ====================
-function sendChatMessage(){
-    const input=document.getElementById('chat-input'); const text=input.value.trim();
-    if(!text)return;
-    socket.emit('chat_msg',{name:currentUser.name,text,color:currentUser.color});
-    input.value=''; input.focus();
-}
-function addChatMessage(name,text,color){
-    const c=document.getElementById('chat-messages'); const d=document.createElement('div');
-    d.className='msg-line'; d.innerHTML=`<span class="msg-name" style="color:${color}">${esc(name)}:</span><span class="msg-text">${esc(text)}</span>`;
-    c.appendChild(d); c.scrollTop=c.scrollHeight;
-}
+function sendChatMessage(){ const i=document.getElementById('chat-input'); const t=i.value.trim(); if(!t)return; socket.emit('chat_msg',{name:currentUser.name,text:t,color:currentUser.color}); i.value=''; i.focus(); }
+function addChatMessage(n,t,c){ const ct=document.getElementById('chat-messages'); const d=document.createElement('div'); d.className='msg-line'; d.innerHTML=`<span class="msg-name" style="color:${c}">${esc(n)}:</span><span class="msg-text">${esc(t)}</span>`; ct.appendChild(d); ct.scrollTop=ct.scrollHeight; }
 function esc(t){ const d=document.createElement('div'); d.textContent=t; return d.innerHTML; }
 function toggleChat(){ const c=document.getElementById('chat-win'); c.style.display=c.style.display==='flex'?'none':'flex'; if(c.style.display==='flex')document.getElementById('chat-input').focus(); }
 
 // ==================== ИНСТРУМЕНТЫ ====================
 function setTool(t){
     activeTool=t; rulerPoints=[];
-    const bar=document.getElementById('distance-bar'); bar.style.display='none';
+    document.getElementById('distance-bar').style.display='none';
     if(distanceTimer){clearTimeout(distanceTimer);distanceTimer=null;}
     document.querySelectorAll('.tool-btn').forEach(b=>b.classList.remove('active'));
     const btn=document.getElementById(`btn-${t}`); if(btn)btn.classList.add('active');
@@ -487,7 +425,11 @@ function setTool(t){
 }
 function changeMap(type){
     if(tileLayer)map.removeLayer(tileLayer);
-    tileLayer=L.tileLayer(type==='sat'?'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}':'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:21}).addTo(map);
+    if(type==='sat'){
+        tileLayer=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:20}).addTo(map);
+    }else{
+        tileLayer=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,maxNativeZoom:19}).addTo(map);
+    }
     drawGrid();
 }
 function exitApp(){
@@ -501,7 +443,6 @@ function exitApp(){
         location.reload();
     }
 }
-
 window.addEventListener('resize',()=>{ if(map)setTimeout(()=>{map.invalidateSize();drawGrid();},200); });
 
 const autoLoggedIn=tryAutoLogin();
@@ -511,7 +452,7 @@ window.doLogin=doLogin; window.setTool=setTool; window.centerOnMe=centerOnMe;
 window.changeMap=changeMap; window.toggleChat=toggleChat; window.sendChatMessage=sendChatMessage;
 window.deleteMyObjects=deleteMyObjects; window.exitApp=exitApp;
 
-console.log('⚡ SCORPION v5.2 — Расстояние: удержание 0.4с | Сетка: 20→400м | Без каши');
+console.log('⚡ v5.3 — Тап по бойцу = расстояние | Сетка тонкая | Карта до zoom 19');
 </script>
 
 <script>
