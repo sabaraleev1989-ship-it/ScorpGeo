@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="ScorpGEO">
     <meta name="theme-color" content="#000000">
-    <title>ScorpGEO v9.2</title>
+    <title>ScorpGEO v9.3</title>
     
     <link rel="manifest" href="/manifest.json">
     <link rel="apple-touch-icon" href="/icons/icon-512.png">
@@ -49,8 +49,8 @@
         #drawing-layer { position:absolute; top:0; left:0; right:0; bottom:0; z-index:100; display:none; cursor:crosshair; touch-action:none; }
         
         .side-panel { position:fixed; left:0; top:44px; bottom:0; width:72px; background:rgba(0,0,0,0.96); border-right:2px solid #0f0; z-index:5000; display:none; flex-direction:column; overflow-y:auto; }
-        .tool-btn { width:100%; min-height:44px; display:flex; flex-direction:column; align-items:center; justify-content:center; border-bottom:1px solid #0a0; color:#0f0; cursor:pointer; font-size:7px; font-weight:bold; padding:2px; }
-        .tool-btn b { font-size:16px; margin-bottom:1px; }
+        .tool-btn { width:100%; min-height:42px; display:flex; flex-direction:column; align-items:center; justify-content:center; border-bottom:1px solid #0a0; color:#0f0; cursor:pointer; font-size:7px; font-weight:bold; padding:2px; }
+        .tool-btn b { font-size:15px; margin-bottom:1px; }
         .tool-btn.active { background:#020; color:#fff; border-left:3px solid #0f0; }
         
         #grid-overlay { position:fixed; top:44px; left:0; right:0; bottom:0; pointer-events:none; z-index:900; }
@@ -74,7 +74,6 @@
         
         .creator-tooltip { background:rgba(0,0,0,0.9)!important; border:1px solid #0f0!important; color:#0f0!important; font-family:'Courier New',monospace!important; font-size:11px!important; padding:4px 8px!important; border-radius:5px!important; }
         #connection-status { position:fixed; top:48px; right:8px; background:rgba(0,0,0,0.85); color:#0f0; padding:3px 7px; border-radius:10px; font-size:8px; z-index:7000; display:none; font-family:monospace; border:1px solid #0f0; }
-        
         .snap-tooltip { background:rgba(0,0,0,0.9)!important; border:1px solid #ff0!important; color:#ff0!important; font-family:'Courier New',monospace!important; font-size:10px!important; padding:3px 6px!important; border-radius:5px!important; }
     </style>
 </head>
@@ -113,7 +112,7 @@
             <span class="gear-btn" id="settingsGear" onclick="changeAccessCode()">⚙️</span>
         </div>
         <button onclick="doLogin()" class="auth-btn">⚡ ВОЙТИ ⚡</button>
-        <div style="color:#050;font-size:8px;margin-top:12px;">v9.2 • <span onclick="tryBecomeAdmin()" style="color:#0a0;cursor:pointer;text-decoration:underline;">АДМИН</span> • 📏🎯</div>
+        <div style="color:#050;font-size:8px;margin-top:12px;">v9.3 • <span onclick="tryBecomeAdmin()" style="color:#0a0;cursor:pointer;text-decoration:underline;">АДМИН</span></div>
         <div id="autoLoginMsg" style="color:#0f0;font-size:11px;margin-top:8px;display:none;"></div>
     </div>
 </div>
@@ -133,7 +132,8 @@
     <div onclick="toggleChat()" class="tool-btn"><b>💬</b><span>Чат</span></div>
     <div onclick="changeMap('sat')" class="tool-btn"><b>🛰️</b><span>Спут</span></div>
     <div onclick="changeMap('map')" class="tool-btn"><b>🗺️</b><span>Схема</span></div>
-    <div onclick="resetZoom()" class="tool-btn" style="color:#ff0;"><b>🔍</b><span>Зум</span></div>
+    <div onclick="zoomTo(18)" class="tool-btn" style="color:#ff0;"><b>🔍</b><span>X1</span></div>
+    <div onclick="zoomTo(20)" class="tool-btn" style="color:#fa0;"><b>🔍</b><span>X2</span></div>
     <div onclick="toggleCompass()" id="btn-compass" class="tool-btn" style="color:#0ff;"><b>🧭</b><span>Компас</span></div>
     <div onclick="reconnectApp()" class="tool-btn" style="color:#0af;"><b>🔄</b><span>Обнов</span></div>
     <div onclick="exitApp()" class="tool-btn" style="color:#f44;"><b>🚪</b><span>Выход</span></div>
@@ -169,7 +169,7 @@ const METERS_PER_DEGREE=111320;
 const RUSSIAN_LETTERS=['А','Б','В','Г','Д','Е','Ё','Ж','З','И','Й','К','Л','М','Н','О','П','Р','С','Т','У','Ф','Х','Ц','Ч','Ш','Щ','Ъ','Ы','Ь','Э','Ю','Я'];
 const STORAGE_KEY='scorpgeo_session';
 const ADMIN_PASSWORD='Mpfp13zi';
-const SNAP_RADIUS=30; // 30 метров для привязки линейки
+const SNAP_RADIUS=30;
 
 function saveSession(){ const s={team:currentUser.team,name:currentUser.name,color:currentUser.color,deviceId:DEVICE_ID,timestamp:Date.now()}; localStorage.setItem(STORAGE_KEY,JSON.stringify(s)); }
 function loadSession(){ try{ const d=localStorage.getItem(STORAGE_KEY); if(d){ const s=JSON.parse(d); if(Date.now()-s.timestamp<86400000&&s.deviceId===DEVICE_ID) return s; } }catch(e){} return null; }
@@ -205,20 +205,10 @@ function findNearestObject(clickLatLng){
     let closest=null; let minDist=SNAP_RADIUS;
     for(const[id,obj] of Object.entries(tacticalObjects)){
         let objLat,objLng;
-        if(obj.type==='enemy'||obj.type==='target'){
-            const layer=obj.layers[0];
-            if(layer&&layer.getLatLng){ const pos=layer.getLatLng(); objLat=pos.lat; objLng=pos.lng; }
-        }else if(obj.type==='arrow'||obj.type==='ruler'){
-            const latlngs=obj.layers[0]?.getLatLngs?.();
-            if(latlngs&&latlngs.length>=2){ objLat=latlngs[1].lat; objLng=latlngs[1].lng; }
-        }else if(obj.type==='pencil'){
-            const latlngs=obj.layers[0]?.getLatLngs?.();
-            if(latlngs&&latlngs.length>0){ const last=latlngs[latlngs.length-1]; objLat=last.lat; objLng=last.lng; }
-        }
-        if(objLat!==undefined&&objLng!==undefined){
-            const dist=map.distance(clickLatLng,[objLat,objLng]);
-            if(dist<minDist){ minDist=dist; closest={lat:objLat,lng:objLng,type:obj.type}; }
-        }
+        if(obj.type==='enemy'||obj.type==='target'){ const layer=obj.layers[0]; if(layer&&layer.getLatLng){ const pos=layer.getLatLng(); objLat=pos.lat; objLng=pos.lng; } }
+        else if(obj.type==='arrow'||obj.type==='ruler'){ const latlngs=obj.layers[0]?.getLatLngs?.(); if(latlngs&&latlngs.length>=2){ objLat=latlngs[1].lat; objLng=latlngs[1].lng; } }
+        else if(obj.type==='pencil'){ const latlngs=obj.layers[0]?.getLatLngs?.(); if(latlngs&&latlngs.length>0){ const last=latlngs[latlngs.length-1]; objLat=last.lat; objLng=last.lng; } }
+        if(objLat!==undefined&&objLng!==undefined){ const dist=map.distance(clickLatLng,[objLat,objLng]); if(dist<minDist){ minDist=dist; closest={lat:objLat,lng:objLng,type:obj.type}; } }
     }
     return closest;
 }
@@ -271,19 +261,13 @@ socket.on('draw',(obj)=>{
     let layers=[]; const cn=obj.creator||'???';
     if(obj.type==='enemy'||obj.type==='target'){
         const mk=L.marker([obj.lat,obj.lng],{icon:L.divIcon({html:`<div style="font-size:30px;filter:drop-shadow(2px 2px 2px black);cursor:pointer;">${obj.type==='enemy'?'💀':'🎯'}</div>`,iconSize:[30,30],iconAnchor:[15,15],className:''}),zIndexOffset:500}).addTo(map);
-        mk.on('click',()=>{
-            if(activeTool==='eraser'){socket.emit('delete_obj',obj.id);return;}
-            L.popup({closeButton:false,className:'creator-tooltip',autoClose:true}).setLatLng([obj.lat,obj.lng]).setContent(`👤 <b>${cn}</b>`).openOn(map);
-        });
+        mk.on('click',()=>{ if(activeTool==='eraser'){socket.emit('delete_obj',obj.id);return;} L.popup({closeButton:false,className:'creator-tooltip',autoClose:true}).setLatLng([obj.lat,obj.lng]).setContent(`👤 <b>${cn}</b>`).openOn(map); });
         layers.push(mk);
     }else if(obj.type==='arrow'){
         const ln=L.polyline([obj.start,obj.end],{color:'#f44',weight:3,opacity:0.8,interactive:true}).addTo(map);
         const ag=Math.atan2(obj.end.lat-obj.start.lat,obj.end.lng-obj.start.lng);
         const hd=L.polygon([obj.end,{lat:obj.end.lat+Math.sin(ag+2.5)*8e-5,lng:obj.end.lng+Math.cos(ag+2.5)*8e-5},{lat:obj.end.lat+Math.sin(ag-2.5)*8e-5,lng:obj.end.lng+Math.cos(ag-2.5)*8e-5}],{color:'#f44',fillColor:'#f44',fillOpacity:0.8,interactive:true}).addTo(map);
-        const sh=(e)=>{ 
-            if(activeTool==='eraser'){socket.emit('delete_obj',obj.id);return;}
-            L.popup({closeButton:false,className:'creator-tooltip',autoClose:true}).setLatLng(e.latlng).setContent(`👤 <b>${cn}</b>`).openOn(map); 
-        };
+        const sh=(e)=>{ if(activeTool==='eraser'){socket.emit('delete_obj',obj.id);return;} L.popup({closeButton:false,className:'creator-tooltip',autoClose:true}).setLatLng(e.latlng).setContent(`👤 <b>${cn}</b>`).openOn(map); };
         ln.on('click',sh); hd.on('click',sh); layers.push(ln,hd);
     }else if(obj.type==='ruler'){
         const ln=L.polyline([obj.start,obj.end],{color:'#ff2222',weight:3,dashArray:'10, 8',opacity:0.9,interactive:true}).addTo(map);
@@ -291,18 +275,12 @@ socket.on('draw',(obj)=>{
         const tx=d<1000?`${Math.round(d)} м`:`${(d/1000).toFixed(1)} км`;
         const md={lat:(obj.start.lat+obj.end.lat)/2,lng:(obj.start.lng+obj.end.lng)/2};
         const lb=L.marker([md.lat,md.lng],{icon:L.divIcon({html:`<div style="background:#000;color:#ff0;padding:3px 6px;border:1px solid #ff0;border-radius:10px;font-size:10px;font-weight:bold;">📏 ${tx}</div>`,iconSize:[70,22],iconAnchor:[35,11],className:''}),interactive:false}).addTo(map);
-        ln.on('click',(e)=>{ 
-            if(activeTool==='eraser'){socket.emit('delete_obj',obj.id);return;}
-            L.popup({closeButton:false,className:'creator-tooltip',autoClose:true}).setLatLng(e.latlng).setContent(`👤 <b>${cn}</b>`).openOn(map); 
-        });
+        ln.on('click',(e)=>{ if(activeTool==='eraser'){socket.emit('delete_obj',obj.id);return;} L.popup({closeButton:false,className:'creator-tooltip',autoClose:true}).setLatLng(e.latlng).setContent(`👤 <b>${cn}</b>`).openOn(map); });
         layers.push(ln,lb);
         if(obj.creator===currentUser.name){ rulerTimers[obj.id]=setTimeout(()=>{ socket.emit('delete_obj',obj.id); },3000); }
     }else if(obj.type==='pencil'){
         const pl=L.polyline(obj.points,{color:'#ff4444',weight:4,opacity:0.85,interactive:true}).addTo(map);
-        pl.on('click',(e)=>{ 
-            if(activeTool==='eraser'){socket.emit('delete_obj',obj.id);return;}
-            L.popup({closeButton:false,className:'creator-tooltip',autoClose:true}).setLatLng(e.latlng).setContent(`👤 <b>${cn}</b>`).openOn(map); 
-        });
+        pl.on('click',(e)=>{ if(activeTool==='eraser'){socket.emit('delete_obj',obj.id);return;} L.popup({closeButton:false,className:'creator-tooltip',autoClose:true}).setLatLng(e.latlng).setContent(`👤 <b>${cn}</b>`).openOn(map); });
         layers.push(pl);
     }
     tacticalObjects[obj.id]={type:obj.type,layers,creator:cn};
@@ -316,11 +294,8 @@ function initMap(){
     if(map)return;
     map=L.map('map',{zoomControl:false,attributionControl:false,maxZoom:22,minZoom:10,tap:true}).setView([55.7558,37.6176],18);
     tileLayer=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:22,maxNativeZoom:19}).addTo(map);
-    map.on('click',handleMapClick);
-    map.on('moveend',drawGrid);
-    map.on('zoomend',drawGrid);
-    drawGrid();
-    setTimeout(()=>{map.invalidateSize();drawGrid();},500);
+    map.on('click',handleMapClick); map.on('moveend',drawGrid); map.on('zoomend',drawGrid);
+    drawGrid(); setTimeout(()=>{map.invalidateSize();drawGrid();},500);
 }
 
 function startGeolocation(){ if(!navigator.geolocation)return; if(watchId)navigator.geolocation.clearWatch(watchId); watchId=navigator.geolocation.watchPosition(pos=>{updateMyPosition(pos.coords.latitude,pos.coords.longitude);socket.emit('gps_sync',{lat:pos.coords.latitude,lng:pos.coords.longitude});},err=>console.warn('GPS:',err.message),{enableHighAccuracy:true,maximumAge:3000,timeout:10000}); }
@@ -331,39 +306,28 @@ function updatePlayerMarker(name,lat,lng,color){ if(!map||!name||name===currentU
     marker.on('click',(e)=>{ if(!playersMarkers[currentUser.name])return; L.DomEvent.stopPropagation(e); const d=map.distance(playersMarkers[currentUser.name].getLatLng(),marker.getLatLng()); const txt=d<1000?`${Math.round(d)} м`:`${(d/1000).toFixed(1)} км`; const bar=document.getElementById('distance-bar'); bar.innerHTML=`📏 <b style="color:${playerColors[name]||'#fff'}">${name}</b> — ${txt}`; bar.style.display='block'; bar.style.animation='none'; bar.offsetHeight; bar.style.animation='slideUp 0.3s ease-out'; if(distanceTimer)clearTimeout(distanceTimer); distanceTimer=setTimeout(()=>{ bar.style.display='none'; },5000); }); } }
 
 function centerOnMe(){ if(playersMarkers[currentUser.name]) map.setView(playersMarkers[currentUser.name].getLatLng(),18); else alert('Позиция не определена'); }
-function resetZoom(){ if(map) map.setZoom(18); gridEnabled=true; drawGrid(); document.getElementById('distance-bar').style.display='none'; if(distanceTimer){clearTimeout(distanceTimer);distanceTimer=null;} }
 
-// ===== КЛИКИ С ПРИВЯЗКОЙ К ОБЪЕКТАМ =====
+// ===== ФУНКЦИИ ЗУМА =====
+function zoomTo(level){ if(map){ map.setZoom(level); gridEnabled=(level>=18&&level<=20); drawGrid(); } document.getElementById('distance-bar').style.display='none'; if(distanceTimer){clearTimeout(distanceTimer);distanceTimer=null;} }
+window.zoomTo=zoomTo;
+
 function handleMapClick(e){
     if(activeTool==='pencil') return;
     let{lat,lng}=e.latlng;
-    
-    // Привязка линейки/стрелки к объектам
-    if(activeTool==='arrow'||activeTool==='ruler'){
-        const nearest=findNearestObject(e.latlng);
-        if(nearest){ lat=nearest.lat; lng=nearest.lng; }
-    }
-    
+    if(activeTool==='arrow'||activeTool==='ruler'){ const nearest=findNearestObject(e.latlng); if(nearest){ lat=nearest.lat; lng=nearest.lng; } }
     if(activeTool==='enemy'||activeTool==='target'){
         const id=`${activeTool}_${Date.now()}_${Math.random().toString(36).substr(2,9)}`;
         const obj={id:id,type:activeTool,lat,lng,creator:currentUser.name};
-        socket.emit('new_obj',obj);
-        addToHistory(obj);
+        socket.emit('new_obj',obj); addToHistory(obj);
     } else if(activeTool==='arrow'||activeTool==='ruler'){
         rulerPoints.push({lat,lng});
         if(rulerPoints.length===2){
             const id=`${activeTool}_${Date.now()}_${Math.random().toString(36).substr(2,9)}`;
             const obj={id:id,type:activeTool,start:rulerPoints[0],end:rulerPoints[1],creator:currentUser.name};
-            socket.emit('new_obj',obj);
-            addToHistory(obj);
-            rulerPoints=[];
-        }else{ 
-            const msg=rulerPoints.length===1&&findNearestObject(e.latlng)?'✅ Привязано':'👆 Вторая точка';
-            L.popup().setLatLng([lat,lng]).setContent(`<b>${msg}</b>`).openOn(map); 
-        }
+            socket.emit('new_obj',obj); addToHistory(obj); rulerPoints=[];
+        }else{ L.popup().setLatLng([lat,lng]).setContent('<b>'+(rulerPoints.length===1&&findNearestObject(e.latlng)?'✅ Привязано':'👆 Вторая точка')+'</b>').openOn(map); }
     }
 }
-
 function deleteMyObjects(){ const ids=Array.from(myObjects); ids.forEach(id=>socket.emit('delete_obj',id)); myObjects.clear(); }
 
 // ===== СЕТКА =====
@@ -401,12 +365,12 @@ function exitApp(){ if(confirm('Выйти?')){ socket.emit('explicit_exit',{nam
 
 const autoLoggedIn=tryAutoLogin(); if(!autoLoggedIn) document.getElementById('auth-screen').style.display='flex';
 
-window.doLogin=doLogin; window.setTool=setTool; window.centerOnMe=centerOnMe; window.resetZoom=resetZoom;
+window.doLogin=doLogin; window.setTool=setTool; window.centerOnMe=centerOnMe; window.zoomTo=zoomTo;
 window.changeMap=changeMap; window.toggleChat=toggleChat; window.sendChatMessage=sendChatMessage;
 window.deleteMyObjects=deleteMyObjects; window.reconnectApp=reconnectApp; window.exitApp=exitApp;
 window.changeAccessCode=changeAccessCode; window.tryBecomeAdmin=tryBecomeAdmin;
 
-console.log('🦂 ScorpGEO v9.2 — 📏 Линейка к объектам | 👤 Рука-автор');
+console.log('🦂 ScorpGEO v9.3 — X1(18) | X2(20)');
 </script>
 </body>
 </html>
