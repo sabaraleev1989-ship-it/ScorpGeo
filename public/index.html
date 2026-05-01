@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="ScorpGEO">
     <meta name="theme-color" content="#000000">
-    <title>ScorpGEO v6.6</title>
+    <title>ScorpGEO v6.7</title>
     
     <link rel="manifest" href="/manifest.json">
     <link rel="apple-touch-icon" href="/icons/icon-512.png">
@@ -75,9 +75,9 @@
         #connection-status { position:fixed; top:48px; right:8px; background:rgba(0,0,0,0.85); color:#0f0; padding:3px 7px; border-radius:10px; font-size:8px; z-index:7000; display:none; font-family:monospace; border:1px solid #0f0; }
         
         /* КОМПАС */
-        #compass { position:fixed; top:50px; right:8px; z-index:8000; pointer-events:none; }
-        #compass-inner { background:rgba(0,0,0,0.85); border:1px solid #0f0; border-radius:50%; width:42px; height:42px; display:flex; align-items:center; justify-content:center; }
-        #compass-arrow { font-size:22px; transition:transform 0.3s ease; }
+        #compass { position:fixed; top:100px; right:35px; z-index:8000; pointer-events:none; }
+        #compass-inner { background:rgba(0,0,0,0.85); border:1px solid #0f0; border-radius:50%; width:36px; height:36px; display:flex; align-items:center; justify-content:center; }
+        #compass-arrow { font-size:18px; transition:transform 0.3s ease; color:#0f0; }
     </style>
 </head>
 <body>
@@ -87,8 +87,9 @@
 <!-- КОМПАС -->
 <div id="compass">
     <div id="compass-inner">
-        <span id="compass-arrow">🧭</span>
+        <span id="compass-arrow">⬆️</span>
     </div>
+    <div style="color:#0f0; font-size:7px; text-align:center; margin-top:2px;">N</div>
 </div>
 
 <div id="auth-screen">
@@ -111,7 +112,7 @@
         
         <button onclick="doLogin()" class="auth-btn">⚡ ВОЙТИ ⚡</button>
         <div style="color:#050;font-size:8px;margin-top:12px;letter-spacing:1px;">
-            v6.6 • <span onclick="tryBecomeAdmin()" style="color:#0a0;cursor:pointer;text-decoration:underline;">АДМИН</span> • 🧭 КОМПАС
+            v6.7 • <span onclick="tryBecomeAdmin()" style="color:#0a0;cursor:pointer;text-decoration:underline;">АДМИН</span> • 🧭
         </div>
         <div id="autoLoginMsg" style="color:#0f0;font-size:11px;margin-top:8px;display:none;"></div>
     </div>
@@ -173,8 +174,11 @@ socket.on('code_changed',(data)=>{ if(data.success){ currentAccessCode=data.newC
 // ===== КОМПАС =====
 function updateCompass(){ const arrow=document.getElementById('compass-arrow'); if(arrow) arrow.style.transform=`rotate(${compassHeading}deg)`; }
 if(window.DeviceOrientationEvent){
-    window.addEventListener('deviceorientationabsolute',(e)=>{ if(e.webkitCompassHeading!==undefined){ compassHeading=e.webkitCompassHeading; }else if(e.alpha!==null){ compassHeading=360-e.alpha; } updateCompass(); });
-    window.addEventListener('deviceorientation',(e)=>{ if(e.webkitCompassHeading!==undefined){ compassHeading=e.webkitCompassHeading; }else if(e.alpha!==null&&compassHeading===0){ compassHeading=360-e.alpha; } updateCompass(); });
+    window.addEventListener('deviceorientation',function(e){
+        if(e.webkitCompassHeading!==undefined){ compassHeading=e.webkitCompassHeading||0; }
+        else if(e.alpha!==null){ compassHeading=e.alpha||0; }
+        updateCompass();
+    },true);
 }
 
 function tryAutoLogin(){
@@ -263,11 +267,8 @@ function resetZoom(){ if(map) map.setZoom(18); document.getElementById('distance
 function handleMapClick(e){ const{lat,lng}=e.latlng; if(activeTool==='enemy'||activeTool==='target'){ socket.emit('new_obj',{id:`${activeTool}_${Date.now()}_${Math.random().toString(36).substr(2,9)}`,type:activeTool,lat,lng,creator:currentUser.name}); } else if(activeTool==='arrow'||activeTool==='ruler'){ rulerPoints.push({lat,lng}); if(rulerPoints.length===2){ socket.emit('new_obj',{id:`${activeTool}_${Date.now()}_${Math.random().toString(36).substr(2,9)}`,type:activeTool,start:rulerPoints[0],end:rulerPoints[1],creator:currentUser.name}); rulerPoints=[]; }else{ L.popup().setLatLng([lat,lng]).setContent('<b>👆 Вторая точка</b>').openOn(map); } } }
 function deleteMyObjects(){ const ids=Array.from(myObjects); ids.forEach(id=>socket.emit('delete_obj',id)); myObjects.clear(); }
 
-// ===== ФИКСИРОВАННАЯ СЕТКА 20М (ПО КООРДИНАТАМ) =====
-function getGridSizeForZoom(zoom){
-    if(zoom < 15) return 0;  // Сетка исчезает при zoom < 15
-    return 20;                // 20 метров
-}
+// ===== СЕТКА: ИСЧЕЗАЕТ ПРИ ZOOM < 18 =====
+function getGridSizeForZoom(zoom){ if(zoom<18) return 0; return 20; }
 
 function drawGrid(){
     if(!map)return;
@@ -280,7 +281,6 @@ function drawGrid(){
     const bounds=map.getBounds();
     const center=map.getCenter();
     
-    // Фиксируем по координатам центра
     const baseLat=Math.floor(center.lat/GRID_STEP)*GRID_STEP;
     const baseLng=Math.floor(center.lng/GRID_STEP)*GRID_STEP;
     
@@ -299,7 +299,6 @@ function drawGrid(){
     
     const fs='11px',pp='3px 7px';
     
-    // Буквы — фиксированный индекс по координатам
     let colIndex=Math.round(baseLng/GRID_STEP);
     for(let lng=sLn;lng<=eLn;lng+=GRID_STEP){
         const p=map.latLngToContainerPoint([bounds.getNorth(),lng+GRID_STEP/2]);
@@ -312,7 +311,6 @@ function drawGrid(){
         colIndex++;
     }
     
-    // Цифры — фиксированный индекс по координатам
     let rowIndex=Math.round(baseLat/GRID_STEP);
     for(let lat=sLa;lat<=eLa;lat+=GRID_STEP){
         const p=map.latLngToContainerPoint([lat+GRID_STEP/2,eLn]);
@@ -342,7 +340,7 @@ window.changeMap=changeMap; window.toggleChat=toggleChat; window.sendChatMessage
 window.deleteMyObjects=deleteMyObjects; window.reconnectApp=reconnectApp; window.exitApp=exitApp;
 window.changeAccessCode=changeAccessCode; window.tryBecomeAdmin=tryBecomeAdmin;
 
-console.log('🦂 ScorpGEO v6.6 — 🧭 Компас | Сетка фикс | Линейка 3с');
+console.log('🦂 ScorpGEO v6.7 — ФИНАЛ');
 </script>
 </body>
 </html>
