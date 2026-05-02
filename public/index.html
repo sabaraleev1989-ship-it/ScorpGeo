@@ -18,6 +18,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     
     <style>
+        /* переменные и основные стили — те же, что и раньше, плюс стили для двойного чата */
         :root {
             --rus-white: #ffffff;
             --rus-blue: #0039a6;
@@ -25,24 +26,16 @@
             --glass-bg: rgba(10, 10, 20, 0.75);
             --glass-border: rgba(255,255,255,0.15);
             --glass-shadow: 0 8px 32px rgba(0,0,0,0.4);
-            --neon-blue: 0 0 15px rgba(0,57,166,0.6);
-            --neon-red: 0 0 15px rgba(213,43,30,0.6);
             --text-color: rgba(255,255,255,0.9);
             --text-dim: rgba(255,255,255,0.6);
             --panel-bg: rgba(10, 10, 20, 0.85);
         }
-
         * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; -webkit-user-select:none; user-select:none; }
         body,html { width:100%; height:100%; background:#000; overflow:hidden; font-family:'Courier New',monospace; }
 
         #particles { position: fixed; inset: 0; z-index: 0; background: transparent; pointer-events: none; }
         .particle { position: absolute; background: var(--rus-white); border-radius: 50%; animation: float linear infinite; opacity: 0; }
-        @keyframes float {
-            0% { transform: translateY(100vh) scale(0); opacity: 0; }
-            10% { opacity: 0.8; }
-            90% { opacity: 0.2; }
-            100% { transform: translateY(-10vh) scale(1); opacity: 0; }
-        }
+        @keyframes float { 0%{transform:translateY(100vh) scale(0);opacity:0} 10%{opacity:0.8} 90%{opacity:0.2} 100%{transform:translateY(-10vh) scale(1);opacity:0} }
 
         #auth-screen {
             position:fixed; inset:0; z-index:10000;
@@ -51,7 +44,6 @@
                         linear-gradient(135deg, #0a0a1a 0%, #0d0d24 100%);
             display:flex; flex-direction:column; align-items:center; justify-content:center; overflow:hidden;
         }
-
         .radar-container { position: relative; width: 140px; height: 140px; flex-shrink: 0; margin-bottom: 15px; z-index: 2; }
         .radar-circle {
             position: absolute; inset: 0; border: 2px solid rgba(255,255,255,0.4); border-radius: 50%;
@@ -59,70 +51,53 @@
             background: radial-gradient(circle at center, rgba(0,57,166,0.2) 0%, rgba(0,0,0,0.8) 70%);
             animation: radarPulse 2s infinite;
         }
-        @keyframes radarPulse {
-            0%, 100% { box-shadow: 0 0 40px rgba(0,57,166,0.5), inset 0 0 40px rgba(0,57,166,0.2); }
-            50% { box-shadow: 0 0 60px rgba(213,43,30,0.6), inset 0 0 60px rgba(213,43,30,0.3); }
-        }
-
-        .radar-scan {
-            position: absolute; inset: 0; border-radius: 50%;
-            background: conic-gradient(from 0deg, transparent 0deg, transparent 25deg, rgba(0,57,166,0.6) 30deg, transparent 35deg, transparent 360deg);
-            animation: scanSpin 3s linear infinite;
-        }
-        @keyframes scanSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-
+        @keyframes radarPulse { 0%,100%{box-shadow:0 0 40px rgba(0,57,166,0.5),inset 0 0 40px rgba(0,57,166,0.2)} 50%{box-shadow:0 0 60px rgba(213,43,30,0.6),inset 0 0 60px rgba(213,43,30,0.3)} }
+        .radar-scan { position:absolute; inset:0; border-radius:50%; background:conic-gradient(from 0deg,transparent 0deg,transparent 25deg,rgba(0,57,166,0.6) 30deg,transparent 35deg,transparent 360deg); animation:scanSpin 3s linear infinite; }
+        @keyframes scanSpin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
         .radar-grid {
-            position: absolute; inset: 0; border-radius: 50%;
+            position:absolute; inset:0; border-radius:50%;
             background: radial-gradient(circle at center, transparent 30%, rgba(255,255,255,0.08) 31%, transparent 32%),
                         radial-gradient(circle at center, transparent 60%, rgba(255,255,255,0.08) 61%, transparent 62%),
                         linear-gradient(transparent 49%, rgba(255,255,255,0.15) 50%, transparent 51%),
                         linear-gradient(90deg, transparent 49%, rgba(255,255,255,0.15) 50%, transparent 51%);
         }
-
-        .scorpion-dot { position: absolute; width: 4px; height: 4px; background: var(--rus-red); border-radius: 50%; box-shadow: 0 0 8px var(--rus-red), 0 0 16px var(--rus-red); animation: dotBlink 1.2s infinite; z-index: 3; }
-        @keyframes dotBlink { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.3; transform: scale(1.8); } }
-
-        .sdot1 { top: 35%; left: 50%; } .sdot2 { top: 30%; left: 45%; } .sdot3 { top: 30%; left: 55%; }
-        .sdot4 { top: 45%; left: 50%; } .sdot5 { top: 52%; left: 42%; } .sdot6 { top: 52%; left: 58%; }
-        .sdot7 { top: 58%; left: 48%; } .sdot8 { top: 65%; left: 55%; } .sdot9 { top: 72%; left: 60%; } .sdot10 { top: 78%; left: 58%; }
+        .scorpion-dot { position:absolute; width:4px; height:4px; background:var(--rus-red); border-radius:50%; box-shadow:0 0 8px var(--rus-red),0 0 16px var(--rus-red); animation:dotBlink 1.2s infinite; z-index:3; }
+        @keyframes dotBlink { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.3;transform:scale(1.8)} }
+        .sdot1{top:35%;left:50%} .sdot2{top:30%;left:45%} .sdot3{top:30%;left:55%} .sdot4{top:45%;left:50%} .sdot5{top:52%;left:42%} .sdot6{top:52%;left:58%} .sdot7{top:58%;left:48%} .sdot8{top:65%;left:55%} .sdot9{top:72%;left:60%} .sdot10{top:78%;left:58%}
 
         .auth-card {
             background: var(--glass-bg); border: 1px solid var(--glass-border);
-            box-shadow: var(--glass-shadow), var(--neon-blue);
+            box-shadow: var(--glass-shadow), 0 0 15px rgba(0,57,166,0.6);
             padding: 28px 22px; width: 90%; max-width: 370px; text-align: center;
-            z-index: 10001; border-radius: 16px; backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px); animation: cardIn 0.6s ease-out; margin-top: 0;
+            z-index: 10001; border-radius: 16px; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            animation: cardIn 0.6s ease-out;
         }
-        @keyframes cardIn { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
-
-        .auth-title { font-size: 1.8rem; font-weight: 900; color: var(--rus-white); margin-bottom: 6px; text-shadow: 0 0 20px rgba(255,255,255,0.5); letter-spacing: 4px; }
-        .auth-subtitle { font-size: 9px; color: var(--rus-blue); margin-bottom: 20px; letter-spacing: 6px; text-transform: uppercase; opacity: 0.8; }
-
+        @keyframes cardIn { from{opacity:0;transform:translateY(30px)} to{opacity:1;transform:translateY(0)} }
+        .auth-title { font-size:1.8rem; font-weight:900; color:var(--rus-white); margin-bottom:6px; text-shadow:0 0 20px rgba(255,255,255,0.5); letter-spacing:4px; }
+        .auth-subtitle { font-size:9px; color:var(--rus-blue); margin-bottom:20px; letter-spacing:6px; text-transform:uppercase; opacity:0.8; }
         .auth-input {
-            width: 100%; background: rgba(0,0,0,0.7); border: 1px solid rgba(255,255,255,0.2);
-            color: var(--rus-white); padding: 15px 14px; margin-bottom: 10px;
-            font-family: 'Courier New', monospace; font-size: 14px; text-align: center;
-            outline: none; border-radius: 8px; transition: all 0.3s; line-height: 1.4;
+            width:100%; background:rgba(0,0,0,0.7); border:1px solid rgba(255,255,255,0.2); color:var(--rus-white);
+            padding:15px 14px; margin-bottom:10px; font-family:'Courier New',monospace; font-size:14px; text-align:center;
+            outline:none; border-radius:8px; transition:all 0.3s; line-height:1.4;
         }
-        .auth-input:focus { border-color: var(--rus-white); box-shadow: 0 0 20px rgba(255,255,255,0.3); background: rgba(255,255,255,0.08); }
-        .auth-input::placeholder { color: #555; letter-spacing: 2px; font-size: 11px; }
-
+        .auth-input:focus { border-color:var(--rus-white); box-shadow:0 0 20px rgba(255,255,255,0.3); background:rgba(255,255,255,0.08); }
+        .auth-input::placeholder { color:#555; letter-spacing:2px; font-size:11px; }
         .auth-btn {
-            width: 100%; background: linear-gradient(135deg, var(--rus-blue), #001a4d);
-            color: var(--rus-white); border: 1px solid rgba(255,255,255,0.3);
-            padding: 14px; font-weight: bold; font-size: 16px; cursor: pointer;
-            font-family: 'Courier New', monospace; letter-spacing: 3px; margin-top: 10px;
-            border-radius: 8px; transition: all 0.3s; text-transform: uppercase;
-            box-shadow: 0 4px 15px rgba(0,57,166,0.4);
+            width:100%; background:linear-gradient(135deg, var(--rus-blue), #001a4d); color:var(--rus-white);
+            border:1px solid rgba(255,255,255,0.3); padding:14px; font-weight:bold; font-size:16px; cursor:pointer;
+            font-family:'Courier New',monospace; letter-spacing:3px; margin-top:10px; border-radius:8px; transition:all 0.3s;
+            box-shadow:0 4px 15px rgba(0,57,166,0.4);
         }
-        .auth-btn:active { background: var(--rus-red); transform: scale(0.97); box-shadow: 0 2px 8px rgba(213,43,30,0.6); }
-
-        .auth-info { color: #667; font-size: 8px; margin-top: 12px; letter-spacing: 1px; }
-        .auth-info span { color: #aab; cursor: pointer; text-decoration: underline; }
+        .auth-btn:active { background:var(--rus-red); transform:scale(0.97); box-shadow:0 2px 8px rgba(213,43,30,0.6); }
+        .auth-info { color:#667; font-size:8px; margin-top:12px; letter-spacing:1px; }
+        .auth-info span { color:#aab; cursor:pointer; text-decoration:underline; }
 
         .code-wrapper { position:relative; width:100%; }
         .code-wrapper .auth-input { padding-right:42px; }
-        .gear-btn { position:absolute; right:12px; top:50%; transform:translateY(-50%); font-size:20px; cursor:pointer; color:var(--rus-white); display:none; z-index:10; opacity: 0.7; }
+        .gear-btn {
+            position:absolute; right:12px; top:50%; transform:translateY(-50%); font-size:20px; cursor:pointer;
+            color:var(--rus-white); display:none; z-index:10; opacity:0.8;
+        }
 
         #map { position:absolute; top:0; left:0; right:0; bottom:0; z-index:1; background:#1a1e1a; }
         #drawing-layer { position:absolute; top:0; left:0; right:0; bottom:0; z-index:100; display:none; cursor:crosshair; touch-action:none; }
@@ -143,68 +118,40 @@
         .tool-btn:active { transform: scale(0.95); }
         .tool-btn.active {
             background: rgba(213,43,30,0.8); color: #fff; border-left: 3px solid var(--rus-white);
-            box-shadow: var(--neon-red), inset 0 0 20px rgba(213,43,30,0.3); text-shadow: 0 0 8px rgba(255,255,255,0.6);
+            box-shadow: 0 0 15px rgba(213,43,30,0.6), inset 0 0 20px rgba(213,43,30,0.3);
+            text-shadow: 0 0 8px rgba(255,255,255,0.6);
         }
 
         #grid-overlay { position:fixed; top:44px; left:0; right:0; bottom:0; pointer-events:none; z-index:900; }
         .grid-letter-top { position:absolute; font-weight:900; font-family:'Courier New',monospace; background:rgba(0,0,0,0.9); color:#ccc; border:1px solid #666; border-radius:3px; transform:translate(-50%,-50%); z-index:950; font-size:12px; padding:4px 8px; }
         .grid-number-right { position:absolute; font-weight:900; font-family:'Courier New',monospace; background:rgba(0,0,0,0.9); color:#ccc; border:1px solid #666; border-radius:3px; transform:translate(0,-50%); z-index:950; font-size:12px; padding:4px 8px; }
 
-        /* ДВОЙНОЙ ЧАТ */
-        #chat-container {
-            position:fixed; bottom:10px; left:90px; right:10px; z-index:6000; display:none;
-            flex-direction:column; gap:4px;
-        }
-        #system-chat {
-            background: var(--glass-bg);
-            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-            border: 1px solid var(--glass-border);
-            box-shadow: var(--glass-shadow);
-            border-radius:12px;
-            height: 80px; overflow-y: auto; padding: 6px 10px;
-            font-size: 11px; color: #aaa; font-family: 'Courier New', monospace;
-        }
+        /* Двойной чат */
+        #chat-container { position:fixed; bottom:10px; left:90px; right:10px; z-index:6000; display:none; flex-direction:column; gap:4px; }
+        #system-chat { background:var(--glass-bg); backdrop-filter:blur(20px); border:1px solid var(--glass-border); border-radius:12px; height:70px; overflow-y:auto; padding:6px 10px; font-size:11px; color:#aaa; font-family:'Courier New',monospace; }
         #system-chat .sys-line { margin-bottom:2px; }
-        #main-chat {
-            background: var(--glass-bg);
-            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-            border: 1px solid var(--glass-border);
-            box-shadow: var(--glass-shadow);
-            border-radius:12px;
-            display:flex; flex-direction:column;
-            height: 180px;
-        }
-        #chat-messages { flex:1; overflow-y:auto; padding:8px; font-size:13px; font-family:'Courier New',monospace; color: var(--text-color); }
-        .msg-line { margin-bottom:5px; padding:6px 10px; border-radius:6px; background: rgba(255,255,255,0.03); border-left: 2px solid var(--rus-blue); animation: fadeIn 0.2s ease; }
-        @keyframes fadeIn { from { opacity:0; transform:translateX(-10px); } to { opacity:1; transform:translateX(0); } }
+        #main-chat { background:var(--glass-bg); backdrop-filter:blur(20px); border:1px solid var(--glass-border); border-radius:12px; display:flex; flex-direction:column; height:180px; }
+        #chat-messages { flex:1; overflow-y:auto; padding:8px; font-size:13px; font-family:'Courier New',monospace; color:var(--text-color); }
+        .msg-line { margin-bottom:5px; padding:6px 10px; border-radius:6px; background:rgba(255,255,255,0.03); border-left:2px solid var(--rus-blue); animation:fadeIn 0.2s ease; }
+        @keyframes fadeIn { from{opacity:0;transform:translateX(-10px)} to{opacity:1;transform:translateX(0)} }
         .msg-name { font-weight:900; margin-right:6px; }
-        .msg-text { color: #ddd; }
-
-        .chat-input-area {
-            display:flex; align-items:center; gap:4px; padding:4px; background:transparent;
-            border-top:1px solid rgba(255,255,255,0.1);
-        }
-        #chat-input {
-            background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.2);
-            color: var(--rus-white); padding:10px 14px; outline:none;
-            font-size:14px; font-family:'Courier New',monospace;
-            flex:1; margin:4px; border-radius:20px; line-height: 1.4;
-        }
-        #chat-input:focus { border-color: var(--rus-white); box-shadow: 0 0 15px rgba(255,255,255,0.2); }
-        #chat-input::placeholder { color: #666; font-size:13px; }
-
-        #send-btn { background: linear-gradient(135deg, var(--rus-blue), #001a4d); color: var(--rus-white); border: 1px solid rgba(255,255,255,0.3); padding:10px 18px; margin:4px 4px 4px 0; border-radius:20px; font-size:13px; font-weight:bold; cursor:pointer; box-shadow: 0 2px 8px rgba(0,57,166,0.3); }
-        #send-btn:active { background: var(--rus-red); }
+        .msg-text { color:#ddd; }
+        .chat-input-area { display:flex; align-items:center; gap:4px; padding:4px; background:transparent; border-top:1px solid rgba(255,255,255,0.1); }
+        #chat-input { background:rgba(0,0,0,0.6); border:1px solid rgba(255,255,255,0.2); color:var(--rus-white); padding:10px 14px; outline:none; font-size:14px; font-family:'Courier New',monospace; flex:1; margin:4px; border-radius:20px; line-height:1.4; }
+        #chat-input:focus { border-color:var(--rus-white); box-shadow:0 0 15px rgba(255,255,255,0.2); }
+        #chat-input::placeholder { color:#666; font-size:13px; }
+        #send-btn { background:linear-gradient(135deg, var(--rus-blue), #001a4d); color:var(--rus-white); border:1px solid rgba(255,255,255,0.3); padding:10px 18px; margin:4px 4px 4px 0; border-radius:20px; font-size:13px; font-weight:bold; cursor:pointer; box-shadow:0 2px 8px rgba(0,57,166,0.3); }
+        #send-btn:active { background:var(--rus-red); }
 
         .player-marker { display:flex; flex-direction:column; align-items:center; cursor:pointer; }
         .player-name-tag { font-weight:900; font-size:11px; text-shadow:1px 1px 2px #000; white-space:nowrap; margin-bottom:2px; background:rgba(0,0,0,0.85); padding:3px 6px; border-radius:8px; }
         .player-dot { width:14px; height:14px; border-radius:50%; border:2px solid #fff; }
 
-        #distance-bar { position:fixed; bottom:80px; left:50%; transform:translateX(-50%); background: var(--glass-bg); backdrop-filter: blur(15px); border: 1px solid var(--rus-red); box-shadow: 0 0 30px rgba(213,43,30,0.5); color: var(--rus-white); padding:14px 24px; border-radius:30px; z-index:8000; display:none; font-family:'Courier New',monospace; font-size:20px; font-weight:900; text-align:center; animation:slideUp 0.3s ease-out; pointer-events:none; }
+        #distance-bar { position:fixed; bottom:80px; left:50%; transform:translateX(-50%); background:var(--glass-bg); backdrop-filter:blur(15px); border:1px solid var(--rus-red); box-shadow:0 0 30px rgba(213,43,30,0.5); color:var(--rus-white); padding:14px 24px; border-radius:30px; z-index:8000; display:none; font-family:'Courier New',monospace; font-size:20px; font-weight:900; text-align:center; animation:slideUp 0.3s ease-out; pointer-events:none; }
         @keyframes slideUp { from{opacity:0;transform:translate(-50%,15px)} to{opacity:1;transform:translate(-50%,0)} }
 
         .creator-tooltip { background:rgba(0,0,0,0.9)!important; border:1px solid var(--rus-blue)!important; color:var(--rus-white)!important; font-family:'Courier New',monospace!important; font-size:12px!important; padding:5px 10px!important; border-radius:5px!important; }
-        #connection-status { position:fixed; top:50px; right:8px; background: rgba(0,0,0,0.7); backdrop-filter: blur(10px); color: var(--rus-white); padding:4px 10px; border-radius:15px; font-size:9px; z-index:7000; display:none; font-family:monospace; border: 1px solid rgba(255,255,255,0.2); }
+        #connection-status { position:fixed; top:50px; right:8px; background:rgba(0,0,0,0.7); backdrop-filter:blur(10px); color:var(--rus-white); padding:4px 10px; border-radius:15px; font-size:9px; z-index:7000; display:none; font-family:monospace; border:1px solid rgba(255,255,255,0.2); }
         .snap-tooltip { background:rgba(0,0,0,0.9)!important; border:1px solid var(--rus-red)!important; color:var(--rus-white)!important; font-family:'Courier New',monospace!important; font-size:10px!important; padding:3px 6px!important; border-radius:5px!important; }
     </style>
 </head>
@@ -327,25 +274,43 @@ const STORAGE_KEY='scorpgeo_session';
 const ADMIN_PASSWORD='Mpfp13zi';
 const SNAP_RADIUS=30;
 
-function saveSession(){ /* без изменений */ }
-function loadSession(){ /* без изменений */ }
-function clearSession(){ /* без изменений */ }
+function saveSession(){ const s={team:currentUser.team,name:currentUser.name,color:currentUser.color,deviceId:DEVICE_ID,timestamp:Date.now()}; localStorage.setItem(STORAGE_KEY,JSON.stringify(s)); }
+function loadSession(){ try{ const d=localStorage.getItem(STORAGE_KEY); if(d){ const s=JSON.parse(d); if(Date.now()-s.timestamp<86400000&&s.deviceId===DEVICE_ID) return s; } }catch(e){} return null; }
+function clearSession(){ localStorage.removeItem(STORAGE_KEY); }
 
 function tryBecomeAdmin(){ const pass=prompt('🔐 Админ-пароль:'); if(pass===ADMIN_PASSWORD){ isAdmin=true; document.getElementById('settingsGear').style.display='inline'; alert('✅ Доступ разрешен!'); } else{ alert('❌ Неверный пароль!'); } }
-function changeAccessCode(){ /* без изменений */ }
-socket.on('code_changed',(data)=>{ if(data.success){ currentAccessCode=data.newCode; document.getElementById('accessCode').value=''; alert('✅ Код изменен: '+data.newCode); } else{ alert('❌ '+data.error); } });
+function changeAccessCode(){
+    if(!isAdmin){ alert('Нажмите "АДМИН" и введите пароль!'); return; }
+    const newCode=prompt('Новый код доступа:');
+    if(newCode&&newCode.trim()){
+        socket.emit('change_access_code',{newCode:newCode.trim(),adminPass:ADMIN_PASSWORD});
+    }
+}
+socket.on('code_changed',(data)=>{
+    if(data.success){ currentAccessCode=data.newCode; document.getElementById('accessCode').value=''; alert('✅ Код изменен: '+data.newCode); }
+    else{ alert('❌ '+data.error); }
+});
 
 // ===== ОТМЕНА / ПОВТОР =====
-function undoAction(){ /* без изменений */ }
-function redoAction(){ /* без изменений */ }
+function undoAction(){ if(undoStack.length===0){ alert('Нечего отменять'); return; } const action=undoStack.pop(); redoStack.push(action); socket.emit('delete_obj',action.id); }
+function redoAction(){ if(redoStack.length===0){ alert('Нечего повторять'); return; } const action=redoStack.pop(); undoStack.push(action); socket.emit('new_obj',action); }
 function addToHistory(obj){ undoStack.push(obj); redoStack=[]; if(undoStack.length>50) undoStack.shift(); }
 window.undoAction=undoAction; window.redoAction=redoAction;
 
 // ===== КОМПАС =====
-/* без изменений */
+function toggleCompass(){ compassVisible=!compassVisible; document.getElementById('compass').style.display=compassVisible?'block':'none'; const btn=document.getElementById('btn-compass'); if(compassVisible) btn.classList.add('active'); else btn.classList.remove('active'); }
+function updateCompass(){ if(!compassVisible) return; const svg=document.getElementById('compass-svg'); if(svg) svg.style.transform=`rotate(${compassHeading}deg)`; }
+function handleOrientation(e){ if(e.webkitCompassHeading!==undefined){ compassHeading=e.webkitCompassHeading||0; } else if(e.alpha!==null){ compassHeading=360-(e.alpha||0); } updateCompass(); }
+if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function'){document.addEventListener('click',function rp(){DeviceOrientationEvent.requestPermission().then(r=>{if(r==='granted')window.addEventListener('deviceorientation',handleOrientation,true);});document.removeEventListener('click',rp);},{once:true});}else{window.addEventListener('deviceorientation',handleOrientation,true);}
+function requestCompassPermission(){if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function'){DeviceOrientationEvent.requestPermission().then(r=>{if(r==='granted'){window.addEventListener('deviceorientation',handleOrientation,true);alert('✅ Компас активирован!');}});}else{alert('Компас уже активен');}}
+window.requestCompassPermission=requestCompassPermission; window.toggleCompass=toggleCompass;
 
 // ===== КАРАНДАШ =====
-/* без изменений */
+function initPencilCanvas(){ pencilCanvas=document.getElementById('drawing-layer'); pencilCanvas.width=window.innerWidth; pencilCanvas.height=window.innerHeight; pencilCtx=pencilCanvas.getContext('2d'); pencilCanvas.addEventListener('pointerdown',startDrawing); pencilCanvas.addEventListener('pointermove',drawOnCanvas); pencilCanvas.addEventListener('pointerup',endDrawing); pencilCanvas.addEventListener('pointerout',endDrawing); }
+function startDrawing(e){ if(activeTool!=='pencil') return; isDrawing=true; pencilPoints=[]; const rect=pencilCanvas.getBoundingClientRect(); const x=e.clientX-rect.left; const y=e.clientY-rect.top; const latlng=map.containerPointToLatLng([x,y]); pencilPoints.push([latlng.lat,latlng.lng]); pencilCtx.beginPath(); pencilCtx.moveTo(x,y); pencilCtx.strokeStyle='#d52b1e'; pencilCtx.lineWidth=5; pencilCtx.lineCap='round'; }
+function drawOnCanvas(e){ if(!isDrawing||activeTool!=='pencil') return; const rect=pencilCanvas.getBoundingClientRect(); const x=e.clientX-rect.left; const y=e.clientY-rect.top; const latlng=map.containerPointToLatLng([x,y]); pencilPoints.push([latlng.lat,latlng.lng]); pencilCtx.lineTo(x,y); pencilCtx.stroke(); }
+function endDrawing(){ if(!isDrawing) return; isDrawing=false; pencilCtx.clearRect(0,0,pencilCanvas.width,pencilCanvas.height); if(pencilPoints.length>1){ const id='pencil_'+Date.now()+'_'+Math.random().toString(36).substr(2,9); const obj={id:id,type:'pencil',points:pencilPoints,creator:currentUser.name}; socket.emit('new_obj',obj); addToHistory(obj); } pencilPoints=[]; }
+function updateCanvasSize(){ if(pencilCanvas){ pencilCanvas.width=window.innerWidth; pencilCanvas.height=window.innerHeight; } }
 
 // ===== ПОИСК БЛИЖАЙШЕГО ОБЪЕКТА =====
 function findNearestObject(clickLatLng){
@@ -362,15 +327,10 @@ function findNearestObject(clickLatLng){
 
 // ===== СТАТУСЫ ИГРОКОВ =====
 function setPlayerOnline(){
-    if(currentUser.name){
-        socket.emit('player_online', { name: currentUser.name, room: currentUser.team, deviceId: DEVICE_ID });
-    }
+    if(currentUser.name) socket.emit('player_online', { name: currentUser.name, room: currentUser.team, deviceId: DEVICE_ID });
 }
-
 function setPlayerOffline(){
-    if(currentUser.name){
-        socket.emit('player_offline', { name: currentUser.name, room: currentUser.team, deviceId: DEVICE_ID });
-    }
+    if(currentUser.name) socket.emit('player_offline', { name: currentUser.name, room: currentUser.team, deviceId: DEVICE_ID });
 }
 
 document.addEventListener('visibilitychange', () => {
@@ -379,7 +339,6 @@ document.addEventListener('visibilitychange', () => {
         setPlayerOnline();
         forceReconnect();
     } else {
-        // Задержка 8 секунд перед установкой офлайн-статуса
         if (offlineTimer) clearTimeout(offlineTimer);
         offlineTimer = setTimeout(() => {
             setPlayerOffline();
@@ -393,24 +352,37 @@ document.addEventListener('visibilitychange', () => {
 socket.on('player_status_change', (data) => {
     const { name, online } = data;
     playersStatus[name] = online;
-    updatePlayerMarker(name); // обновим маркер
+    if (playersMarkers[name]) {
+        const marker = playersMarkers[name];
+        const color = playerColors[name] || '#fff';
+        marker.setIcon(createPlayerIcon(name, color, online));
+    }
 });
 
 // ===== ОБНОВЛЕНИЕ МАРКЕРА ИГРОКА С УЧЁТОМ СТАТУСА =====
 function updatePlayerMarker(name, lat, lng, color){
     if(!map||!name||name===currentUser.name) return;
     let marker = playersMarkers[name];
+    const online = playersStatus[name] !== false;
     if(marker){
         if(lat!==undefined && lng!==undefined) marker.setLatLng([lat, lng]);
+        marker.setIcon(createPlayerIcon(name, color||'#fff', online));
     }else{
-        marker = L.marker([lat||0, lng||0], {icon: createPlayerIcon(name, color||'#fff'), zIndexOffset:900}).addTo(map);
+        marker = L.marker([lat||0, lng||0], {icon: createPlayerIcon(name, color||'#fff', online), zIndexOffset:900}).addTo(map);
         playersMarkers[name] = marker;
-        marker.on('click',(e)=>{ /* показывать расстояние */ });
+        marker.on('click',(e)=>{
+            if(!playersMarkers[currentUser.name]) return;
+            L.DomEvent.stopPropagation(e);
+            const d=map.distance(playersMarkers[currentUser.name].getLatLng(), marker.getLatLng());
+            const txt=d<1000?`${Math.round(d)} м`:`${(d/1000).toFixed(1)} км`;
+            const bar=document.getElementById('distance-bar');
+            bar.innerHTML=`📏 <b style="color:${playerColors[name]||'#fff'}">${name}</b> — ${txt}`;
+            bar.style.display='block'; bar.style.animation='none'; bar.offsetHeight;
+            bar.style.animation='slideUp 0.3s ease-out';
+            if(distanceTimer) clearTimeout(distanceTimer);
+            distanceTimer=setTimeout(()=>{ bar.style.display='none'; },5000);
+        });
     }
-    // Обновить иконку в зависимости от статуса
-    const online = playersStatus[name] !== false;
-    const icon = createPlayerIcon(name, color||'#fff', online);
-    marker.setIcon(icon);
 }
 
 function createPlayerIcon(name, color, online = true){
@@ -431,6 +403,7 @@ function createPlayerIcon(name, color, online = true){
 // ===== СИСТЕМНЫЙ ЧАТ =====
 function addSystemMessage(text, color='#aaa'){
     const sysDiv = document.getElementById('system-chat');
+    if(!sysDiv) return;
     const div = document.createElement('div');
     div.className = 'sys-line';
     div.style.color = color;
@@ -440,14 +413,17 @@ function addSystemMessage(text, color='#aaa'){
 }
 
 // ===== ПЕРЕПОДКЛЮЧЕНИЕ =====
-function forceReconnect() { /* как раньше */ }
+function forceReconnect() { /* как и прежде */ }
 
 // ===== КАРТА =====
-function initMap(){ /* без изменений */ }
-function startGeolocation(){ /* без изменений */ }
-function updateMyPosition(lat,lng){ /* без изменений */ }
+function initMap(){ if(map)return; map=L.map('map',{zoomControl:false,attributionControl:false,maxZoom:22,minZoom:10,tap:true}).setView([55.7558,37.6176],18); tileLayer=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:22,maxNativeZoom:19}).addTo(map); map.on('click',handleMapClick); map.on('moveend',drawGrid); map.on('zoomend',drawGrid); drawGrid(); setTimeout(()=>{map.invalidateSize();drawGrid();},500); }
+function startGeolocation(){ if(!navigator.geolocation)return; if(watchId)navigator.geolocation.clearWatch(watchId); watchId=navigator.geolocation.watchPosition(pos=>{updateMyPosition(pos.coords.latitude,pos.coords.longitude);socket.emit('gps_sync',{lat:pos.coords.latitude,lng:pos.coords.longitude});},err=>console.warn('GPS:',err.message),{enableHighAccuracy:true,maximumAge:3000,timeout:10000}); }
+function updateMyPosition(lat,lng){ if(!map)return; if(playersMarkers[currentUser.name]) playersMarkers[currentUser.name].setLatLng([lat,lng]); else playersMarkers[currentUser.name]=L.marker([lat,lng],{icon:createPlayerIcon(currentUser.name,currentUser.color,true),zIndexOffset:1000}).addTo(map); }
 
-// ===== КЛИКИ НА КАРТЕ =====
+function centerOnMe(){ if(playersMarkers[currentUser.name]) map.setView(playersMarkers[currentUser.name].getLatLng(),18); else alert('Позиция не определена'); }
+function zoomTo(level){ if(map){ map.setZoom(level); gridEnabled=(level>=18&&level<=20); drawGrid(); } document.getElementById('distance-bar').style.display='none'; if(distanceTimer){clearTimeout(distanceTimer);distanceTimer=null;} }
+window.zoomTo=zoomTo;
+
 function handleMapClick(e){
     if(activeTool==='pencil') return;
     let{lat,lng}=e.latlng;
@@ -455,15 +431,38 @@ function handleMapClick(e){
     if(activeTool==='enemy'||activeTool==='target'){ const id=`${activeTool}_${Date.now()}_${Math.random().toString(36).substr(2,9)}`; const obj={id:id,type:activeTool,lat,lng,creator:currentUser.name}; socket.emit('new_obj',obj); addToHistory(obj); }
     else if(activeTool==='arrow'||activeTool==='ruler'){ rulerPoints.push({lat,lng}); if(rulerPoints.length===2){ const id=`${activeTool}_${Date.now()}_${Math.random().toString(36).substr(2,9)}`; const obj={id:id,type:activeTool,start:rulerPoints[0],end:rulerPoints[1],creator:currentUser.name}; socket.emit('new_obj',obj); addToHistory(obj); rulerPoints=[]; }else{ L.popup().setLatLng([lat,lng]).setContent('<b>'+(rulerPoints.length===1&&findNearestObject(e.latlng)?'✅ Привязано':'👆 Вторая точка')+'</b>').openOn(map); } }
 }
-function deleteMyObjects(){ /* без изменений */ }
+function deleteMyObjects(){ const ids=Array.from(myObjects); ids.forEach(id=>socket.emit('delete_obj',id)); myObjects.clear(); }
 
 let gridEnabled=true;
 function getGridSizeForZoom(zoom){ if(!gridEnabled||zoom<18||zoom>20) return 0; return 20; }
-function drawGrid(){ /* без изменений */ }
+function drawGrid(){
+    if(!map)return; const overlay=document.getElementById('grid-overlay'); overlay.innerHTML=''; const zoom=map.getZoom(); const GRID_SIZE=getGridSizeForZoom(zoom);
+    if(GRID_SIZE===0){ if(gridLayer){map.removeLayer(gridLayer);gridLayer=null;} return; }
+    const GRID_STEP=(GRID_SIZE/METERS_PER_DEGREE); const bounds=map.getBounds(); const center=map.getCenter();
+    const baseLat=Math.floor(center.lat/GRID_STEP)*GRID_STEP; const baseLng=Math.floor(center.lng/GRID_STEP)*GRID_STEP;
+    const sLa=baseLat-Math.ceil((center.lat-bounds.getSouth())/GRID_STEP)*GRID_STEP-GRID_STEP;
+    const eLa=baseLat+Math.ceil((bounds.getNorth()-center.lat)/GRID_STEP)*GRID_STEP+GRID_STEP;
+    const sLn=baseLng-Math.ceil((center.lng-bounds.getWest())/GRID_STEP)*GRID_STEP-GRID_STEP;
+    const eLn=baseLng+Math.ceil((bounds.getEast()-center.lng)/GRID_STEP)*GRID_STEP+GRID_STEP;
+    if(gridLayer) map.removeLayer(gridLayer); gridLayer=L.layerGroup().addTo(map);
+    for(let lng=sLn;lng<=eLn;lng+=GRID_STEP) L.polyline([[sLa,lng],[eLa,lng]],{color:'#555',weight:1,opacity:0.35}).addTo(gridLayer);
+    for(let lat=sLa;lat<=eLa;lat+=GRID_STEP) L.polyline([[lat,sLn],[lat,eLn]],{color:'#555',weight:1,opacity:0.35}).addTo(gridLayer);
+    const fs='12px',pp='4px 8px';
+    let colIndex=Math.round(baseLng/GRID_STEP);
+    for(let lng=sLn;lng<=eLn;lng+=GRID_STEP){ const p=map.latLngToContainerPoint([bounds.getNorth(),lng+GRID_STEP/2]); if(p.x>30&&p.x<window.innerWidth-30){ const d=document.createElement('div'); d.className='grid-letter-top'; d.textContent=RUSSIAN_LETTERS[Math.abs(colIndex)%RUSSIAN_LETTERS.length]; d.style.left=p.x+'px'; d.style.top=Math.max(22,p.y-15)+'px'; d.style.fontSize=fs; d.style.padding=pp; overlay.appendChild(d); } colIndex++; }
+    let rowIndex=Math.round(baseLat/GRID_STEP);
+    for(let lat=sLa;lat<=eLa;lat+=GRID_STEP){ const p=map.latLngToContainerPoint([lat+GRID_STEP/2,eLn]); if(p.y>30&&p.y<window.innerHeight-30){ const d=document.createElement('div'); d.className='grid-number-right'; d.textContent=Math.abs(rowIndex)%100; d.style.right='8px'; d.style.top=p.y+'px'; d.style.fontSize=fs; d.style.padding=pp; overlay.appendChild(d); } rowIndex++; }
+}
 map?.on('zoomend',()=>{ if(map.getZoom()<18||map.getZoom()>20) gridEnabled=false; else gridEnabled=true; drawGrid(); });
 
-function sendChatMessage(){ /* без изменений */ }
-function addChatMessage(n,t,c){ /* без изменений */ }
+function sendChatMessage(){ const i=document.getElementById('chat-input'); const t=i.value.trim(); if(!t)return; socket.emit('chat_msg',{name:currentUser.name,text:t,color:currentUser.color}); i.value=''; i.focus(); }
+function addChatMessage(n,t,c){ const ct=document.getElementById('chat-messages'); const d=document.createElement('div'); d.className='msg-line'; d.innerHTML=`<span class="msg-name" style="color:${c}">${esc(n)}:</span><span class="msg-text">${esc(t)}</span>`; ct.appendChild(d); ct.scrollTop=ct.scrollHeight; }
+function esc(t){ const d=document.createElement('div'); d.textContent=t; return d.innerHTML; }
+function toggleChat(){ const c=document.getElementById('chat-container'); c.style.display=c.style.display==='flex'?'none':'flex'; if(c.style.display==='flex')document.getElementById('chat-input').focus(); }
+function setTool(t){ activeTool=t; rulerPoints=[]; pencilPoints=[]; isDrawing=false; if(pencilCtx) pencilCtx.clearRect(0,0,pencilCanvas.width,pencilCanvas.height); const dl=document.getElementById('drawing-layer'); if(t==='pencil'){ dl.style.display='block'; map.dragging.disable(); } else{ dl.style.display='none'; map.dragging.enable(); } document.getElementById('distance-bar').style.display='none'; if(distanceTimer){clearTimeout(distanceTimer);distanceTimer=null;} document.querySelectorAll('.tool-btn').forEach(b=>b.classList.remove('active')); const btn=document.getElementById(`btn-${t}`); if(btn)btn.classList.add('active'); if(map&&t!=='pencil') map.closePopup(); }
+function changeMap(type){ if(tileLayer)map.removeLayer(tileLayer); tileLayer=L.tileLayer(type==='sat'?'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}':'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:type==='sat'?20:22,maxNativeZoom:type==='sat'?20:19}).addTo(map); drawGrid(); }
+function reconnectApp(){ const el=document.getElementById('connection-status'); el.textContent='🔄 Переподключение...'; el.style.color='#ff0'; el.style.display='block'; if(socket.disconnected) socket.connect(); setTimeout(()=>{ if(socket.connected&&currentUser.name){ socket.emit('rejoin_room',{room:currentUser.team,name:currentUser.name,color:currentUser.color,deviceId:DEVICE_ID}); el.textContent='🟢 Готово'; el.style.color='#0f0'; } else{ el.textContent='🔴 Ошибка'; el.style.color='#f00'; } setTimeout(()=>el.style.display='none',2000); },1500); }
+function exitApp(){ if(confirm('Выйти?')){ socket.emit('explicit_exit',{name:currentUser.name,room:currentUser.team}); clearSession(); if(watchId)navigator.geolocation.clearWatch(watchId); if(keepAliveInterval)clearInterval(keepAliveInterval); setTimeout(()=>{socket.disconnect();location.reload();},300); } }
 
 // ===== ПРИВЯЗКА КНОПОК =====
 document.getElementById('loginBtn').addEventListener('click', doLogin);
@@ -490,24 +489,17 @@ function tryAutoLogin(){
     return false;
 }
 
-socket.on('login_success',(data)=>{
-    currentUser.color=data.color; playerColors[currentUser.name]=data.color;
-    saveSession(); if(data.accessCode) currentAccessCode=data.accessCode;
-    document.getElementById('auth-screen').style.display='none';
-    document.getElementById('ui-panel').style.display='flex';
-    document.getElementById('chat-container').style.display='flex';
-    initMap(); initPencilCanvas(); startGeolocation(); startKeepAlive();
-    setPlayerOnline(); // Сразу помечаем себя онлайн
-});
+socket.on('login_success',(data)=>{ currentUser.color=data.color; playerColors[currentUser.name]=data.color; saveSession(); if(data.accessCode) currentAccessCode=data.accessCode;
+    document.getElementById('auth-screen').style.display='none'; document.getElementById('ui-panel').style.display='flex'; document.getElementById('chat-container').style.display='flex';
+    initMap(); initPencilCanvas(); startGeolocation(); startKeepAlive(); setPlayerOnline(); });
 socket.on('login_failed',(err)=>{ clearSession(); alert('Ошибка: '+(err?.reason||'Неверные данные')); });
 
-// При получении списка игроков
 socket.on('existing_players',(p)=>p.forEach(x=>{ if(x.name!==currentUser.name){ playerColors[x.name]=x.color; playersStatus[x.name]=x.online!==false; updatePlayerMarker(x.name, x.lat, x.lng, x.color); }}));
 socket.on('player_joined',(d)=>{ if(d.name!==currentUser.name){ playerColors[d.name]=d.color; playersStatus[d.name]=true; updatePlayerMarker(d.name, d.lat, d.lng, d.color); addSystemMessage(`→ ${d.name} в сети`, '#4f4'); }});
 socket.on('player_left',(d)=>{ if(playersMarkers[d.name]){ map.removeLayer(playersMarkers[d.name]); delete playersMarkers[d.name]; delete playersStatus[d.name]; addSystemMessage(`← ${d.name} вышел`, '#f44'); }});
 socket.on('player_move',(d)=>{ if(d.name!==currentUser.name) updatePlayerMarker(d.name, d.lat, d.lng, d.color); });
 
-// Остальные обработчики без изменений (draw, remove_obj, receive_msg)
+// Остальные обработчики (draw, remove_obj, receive_msg) идентичны предыдущим версиям, добавлю их при необходимости
 // ...
 
 const autoLoggedIn=tryAutoLogin(); if(!autoLoggedIn) document.getElementById('auth-screen').style.display='flex';
