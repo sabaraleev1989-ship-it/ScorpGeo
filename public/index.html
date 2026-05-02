@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="ScorpGEO">
     <meta name="theme-color" content="#000000">
-    <title>ScorpGEO v11.3</title>
+    <title>ScorpGEO v11.4</title>
     
     <link rel="manifest" href="/manifest.json">
     <link rel="apple-touch-icon" href="/icons/icon-512.png">
@@ -34,7 +34,7 @@
         body,html {
             width:100%; height:100%; background:#000; overflow:hidden;
             font-family:'Courier New',monospace;
-            position: fixed; /* фикс iOS */
+            position: fixed;
         }
 
         #particles { position:fixed; inset:0; z-index:0; background:transparent; pointer-events:none; }
@@ -47,7 +47,6 @@
                         radial-gradient(circle at 70% 70%, rgba(213,43,30,0.1) 0%, transparent 50%),
                         linear-gradient(135deg, #0a0a1a 0%, #0d0d24 100%);
             display:flex; flex-direction:column; align-items:center; justify-content:center; overflow:hidden;
-            -webkit-overflow-scrolling: touch;
         }
 
         .radar-container { position:relative; width:140px; height:140px; flex-shrink:0; margin-bottom:15px; z-index:2; }
@@ -81,7 +80,7 @@
             padding:28px 22px; width:90%; max-width:370px; text-align:center;
             z-index:10001; border-radius:16px; backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
             animation:cardIn 0.6s ease-out;
-            overflow-y: auto; -webkit-overflow-scrolling: touch;
+            max-height: 80vh; overflow-y: auto; -webkit-overflow-scrolling: touch;
         }
         @keyframes cardIn { from{opacity:0;transform:translateY(30px)} to{opacity:1;transform:translateY(0)} }
         .auth-title { font-size:1.8rem; font-weight:900; color:var(--rus-white); margin-bottom:6px; text-shadow:0 0 20px rgba(255,255,255,0.5); letter-spacing:4px; }
@@ -90,7 +89,6 @@
             width:100%; background:rgba(0,0,0,0.7); border:1px solid rgba(255,255,255,0.2); color:var(--rus-white);
             padding:15px 14px; margin-bottom:10px; font-family:'Courier New',monospace; font-size:16px; text-align:center;
             outline:none; border-radius:8px; transition:all 0.3s; line-height:1.4;
-            position: relative; z-index: 1;
         }
         .auth-input:focus { border-color:var(--rus-white); box-shadow:0 0 20px rgba(255,255,255,0.3); background:rgba(255,255,255,0.08); }
         .auth-input::placeholder { color:#555; letter-spacing:2px; font-size:13px; }
@@ -206,7 +204,7 @@
             <span class="gear-btn" id="settingsGear" onclick="changeAccessCode()">⚙️</span>
         </div>
         <button id="loginBtn" class="auth-btn">⚡ ВОЙТИ ⚡</button>
-        <div class="auth-info">v11.3 • <span onclick="tryBecomeAdmin()">АДМИН</span></div>
+        <div class="auth-info">v11.4 • <span onclick="tryBecomeAdmin()">АДМИН</span></div>
         <div id="autoLoginMsg" style="color:#fff; font-size:12px; margin-top:10px; display:none;"></div>
     </div>
 </div>
@@ -271,9 +269,8 @@
 document.querySelectorAll('.auth-input, #chat-input').forEach(input => {
     input.addEventListener('focus', function() {
         setTimeout(() => {
-            window.scrollTo(0, 0);
-            document.body.scrollTop = 0;
-            document.documentElement.scrollTop = 0;
+            // Прокручиваем внутри карточки к этому полю
+            input.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }, 300);
     });
 });
@@ -608,7 +605,7 @@ window.changeMap=changeMap; window.toggleChat=toggleChat; window.sendChatMessage
 window.deleteMyObjects=deleteMyObjects; window.reconnectApp=reconnectApp; window.exitApp=exitApp;
 window.changeAccessCode=changeAccessCode; window.tryBecomeAdmin=tryBecomeAdmin;
 
-console.log('🇷🇺 ScorpGEO v11.3 — PWA-фикс');
+console.log('🇷🇺 ScorpGEO v11.4 — Поля над клавиатурой');
 </script>
 </body>
 </html>
