@@ -7,16 +7,16 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="ScorpGEO">
     <meta name="theme-color" content="#000000">
-    <title>ScorpGEO v11.1</title>
-
+    <title>ScorpGEO v11.2</title>
+    
     <link rel="manifest" href="/manifest.json">
     <link rel="apple-touch-icon" href="/icons/icon-512.png">
-
+    
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-
+    
     <style>
         :root {
             --rus-white: #ffffff;
@@ -133,9 +133,9 @@
 
         /* Двойной чат */
         #chat-container { position:fixed; bottom:10px; left:90px; right:10px; z-index:6000; display:none; flex-direction:column; gap:4px; }
-        #system-chat { background:var(--glass-bg); backdrop-filter:blur(20px); border:1px solid var(--glass-border); border-radius:12px; height:70px; overflow-y:auto; padding:6px 10px; font-size:11px; color:#aaa; font-family:'Courier New',monospace; }
-        #system-chat .sys-line { margin-bottom:2px; }
-        #main-chat { background:var(--glass-bg); backdrop-filter:blur(20px); border:1px solid var(--glass-border); border-radius:12px; display:flex; flex-direction:column; height:180px; }
+        #system-chat { background:var(--glass-bg); backdrop-filter:blur(20px); border:1px solid var(--glass-border); border-radius:12px; height:50px; overflow-y:auto; padding:4px 10px; font-size:11px; color:#aaa; font-family:'Courier New',monospace; }
+        #system-chat .sys-line { margin-bottom:1px; }
+        #main-chat { background:var(--glass-bg); backdrop-filter:blur(20px); border:1px solid var(--glass-border); border-radius:12px; display:flex; flex-direction:column; height:200px; }
         #chat-messages { flex:1; overflow-y:auto; padding:8px; font-size:13px; font-family:'Courier New',monospace; color:var(--text-color); }
         .msg-line { margin-bottom:5px; padding:6px 10px; border-radius:6px; background:rgba(255,255,255,0.03); border-left:2px solid var(--rus-blue); animation:fadeIn 0.2s ease; }
         @keyframes fadeIn { from{opacity:0;transform:translateX(-10px)} to{opacity:1;transform:translateX(0)} }
@@ -199,7 +199,7 @@
             <span class="gear-btn" id="settingsGear" onclick="changeAccessCode()">⚙️</span>
         </div>
         <button id="loginBtn" class="auth-btn">⚡ ВОЙТИ ⚡</button>
-        <div class="auth-info">v11.1 • <span onclick="tryBecomeAdmin()">АДМИН</span></div>
+        <div class="auth-info">v11.2 • <span onclick="tryBecomeAdmin()">АДМИН</span></div>
         <div id="autoLoginMsg" style="color:#fff; font-size:12px; margin-top:10px; display:none;"></div>
     </div>
 </div>
@@ -561,7 +561,28 @@ socket.on('draw',(obj)=>{
     if(obj.creator===currentUser.name) myObjects.add(obj.id);
 });
 socket.on('remove_obj',(id)=>{ if(tacticalObjects[id]){ tacticalObjects[id].layers.forEach(l=>{ if(map&&map.hasLayer(l)) map.removeLayer(l); }); delete tacticalObjects[id]; myObjects.delete(id); if(rulerTimers[id]){ clearTimeout(rulerTimers[id]); delete rulerTimers[id]; } } });
-socket.on('receive_msg',(data)=>{ let n,t,c; if(typeof data==='string'){ const m=data.match(/^([^:]+):\s*(.+)$/); n=m?m[1]:'СИСТЕМА'; t=m?m[2]:data; c=playerColors[n]||'#ccc'; } else{ n=data.name||'Аноним'; t=data.text||''; c=data.color||playerColors[n]||'#ccc'; } addChatMessage(n,t,c); });
+
+// ===== ФИЛЬТРАЦИЯ СООБЩЕНИЙ =====
+socket.on('receive_msg',(data)=>{
+    let n,t,c;
+    if(typeof data==='string'){
+        const m=data.match(/^([^:]+):\s*(.+)$/);
+        n=m?m[1]:'СИСТЕМА';
+        t=m?m[2]:data;
+        c=playerColors[n]||'#ccc';
+    } else {
+        n=data.name||'Аноним';
+        t=data.text||'';
+        c=data.color||playerColors[n]||'#ccc';
+    }
+
+    // Если сообщение системное – выводим в верхний чат, иначе в общий
+    if (n.startsWith('⚡СИСТЕМА') || n.startsWith('СИСТЕМА')) {
+        addSystemMessage(`${n}: ${t}`, c);
+    } else {
+        addChatMessage(n, t, c);
+    }
+});
 
 const autoLoggedIn=tryAutoLogin(); if(!autoLoggedIn) document.getElementById('auth-screen').style.display='flex';
 
@@ -570,7 +591,7 @@ window.changeMap=changeMap; window.toggleChat=toggleChat; window.sendChatMessage
 window.deleteMyObjects=deleteMyObjects; window.reconnectApp=reconnectApp; window.exitApp=exitApp;
 window.changeAccessCode=changeAccessCode; window.tryBecomeAdmin=tryBecomeAdmin;
 
-console.log('🇷🇺 ScorpGEO v11.1 — Полный рабочий билд');
+console.log('🇷🇺 ScorpGEO v11.2 — Чистый чат');
 </script>
 </body>
 </html>
