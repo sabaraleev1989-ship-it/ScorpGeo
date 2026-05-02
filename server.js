@@ -16,9 +16,8 @@ const io = new Server(server, {
 
 const PORT = process.env.PORT || 3000;
 const ROOM_PASSWORD = '1234';
-const DISCONNECT_TIMEOUT = 900000;
 const DATA_FILE = path.join(__dirname, 'tactical_data.json');
-let ACCESS_CODE = '2026'; // Начальный код (потом поменяете через ⚙️)
+let ACCESS_CODE = '2026';
 
 const rooms = {};
 const playerSockets = {};
@@ -61,6 +60,7 @@ for (const [roomName, data] of Object.entries(savedData)) {
         messages: data.messages || [],
         lastActive: data.lastActive || Date.now()
     };
+    console.log(`📂 Комната ${roomName}: ${Object.keys(data.objects || {}).length} объектов`);
 }
 
 setInterval(saveData, 300000);
@@ -75,7 +75,65 @@ function clearAllObjects() {
     }
     saveData();
     io.emit('midnight_clear', { message: 'Все метки очищены (полночь)' });
+    console.log('✅ Все метки очищены');
 }
+
+function resetAllSessions() {
+    console.log('🌅 06:00 — Сброс всех сессий...');
+    let totalDisconnected = 0;
+    
+    for (const [roomName, roomData] of Object.entries(rooms)) {
+        const playerNames = Object.keys(roomData.players);
+        for (const playerName of playerNames) {
+            const player = roomData.players[playerName];
+            if (player.socketId) {
+                const playerSocket = io.sockets.sockets.get(player.socketId);
+                if (playerSocket) {
+                    playerSocket.emit('force_disconnect', { reason: 'Утренний сброс сессий. Войдите заново.' });
+                    playerSocket.disconnect(true);
+                }
+            }
+            delete roomData.players[playerName];
+            totalDisconnected++;
+        }
+        
+        const resetMsg = {
+            name: '⚡СИСТЕМА',
+            text: '🌅 Новый день! Все сессии сброшены. Войдите заново.',
+            color: '#ffaa00',
+            timestamp: Date.now()
+        };
+        roomData.messages.push(resetMsg);
+        io.to(roomName).emit('receive_msg', resetMsg);
+        io.to(roomName).emit('session_reset', { message: 'Сессии сброшены' });
+    }
+    
+    for (const [socketId, playerInfo] of Object.entries(playerSockets)) {
+        const playerSocket = io.sockets.sockets.get(socketId);
+        if (playerSocket) playerSocket.disconnect(true);
+    }
+    for (const key of Object.keys(playerSockets)) {
+        delete playerSockets[key];
+    }
+    
+    saveData();
+    console.log(`🌅 Сброшено сессий: ${totalDisconnected}`);
+}
+
+function scheduleMorningReset() {
+    const now = new Date();
+    const morning = new Date(now);
+    morning.setHours(6, 0, 0, 0);
+    if (now >= morning) morning.setDate(morning.getDate() + 1);
+    const timeUntilMorning = morning - now;
+    console.log(`🌅 Утренний сброс запланирован через ${Math.floor(timeUntilMorning / 60000)} минут (в ${morning.toLocaleTimeString()})`);
+    setTimeout(() => {
+        resetAllSessions();
+        setInterval(resetAllSessions, 24 * 60 * 60 * 1000);
+    }, timeUntilMorning);
+}
+
+scheduleMorningReset();
 
 function getTimeUntilMidnight() {
     const now = new Date();
@@ -116,10 +174,25 @@ io.on('connection', (socket) => {
         }
     });
 
+    socket.on('player_online', (data) => {
+        const { name, room } = data;
+        const roomData = rooms[room];
+        if (!roomData || !roomData.players[name]) return;
+        roomData.players[name].online = true;
+        io.to(room).emit('player_status_change', { name, online: true });
+    });
+
+    socket.on('player_offline', (data) => {
+        const { name, room } = data;
+        const roomData = rooms[room];
+        if (!roomData || !roomData.players[name]) return;
+        roomData.players[name].online = false;
+        io.to(room).emit('player_status_change', { name, online: false });
+    });
+
     socket.on('join_room', (data) => {
         const { room, name, team, pass, accessCode } = data;
         
-        // Проверка кода доступа
         if (accessCode !== ACCESS_CODE) {
             socket.emit('login_failed', { reason: 'Неверный код доступа' });
             return;
@@ -131,13 +204,10 @@ io.on('connection', (socket) => {
         const roomData = getOrCreateRoom(room);
         
         if (roomData.players[name]) {
-            if (roomData.players[name].disconnectTimer) {
-                clearTimeout(roomData.players[name].disconnectTimer);
-                roomData.players[name].disconnectTimer = null;
-            }
             roomData.players[name].socketId = socket.id;
             roomData.players[name].pendingDisconnect = false;
             roomData.players[name].explicitExit = false;
+            roomData.players[name].online = true;
         } else {
             roomData.players[name] = {
                 color: getRandomColor(),
@@ -145,7 +215,9 @@ io.on('connection', (socket) => {
                 socketId: socket.id,
                 team: team || room,
                 pendingDisconnect: false,
-                explicitExit: false
+                explicitExit: false,
+                online: true,
+                lastSeen: Date.now()
             };
         }
         
@@ -160,12 +232,20 @@ io.on('connection', (socket) => {
         
         const existingPlayers = [];
         for (const [pName, pData] of Object.entries(roomData.players)) {
-            if (pName !== name) existingPlayers.push({ name: pName, color: pData.color, lat: pData.lat, lng: pData.lng });
+            if (pName !== name) {
+                existingPlayers.push({ 
+                    name: pName, 
+                    color: pData.color, 
+                    lat: pData.lat, 
+                    lng: pData.lng, 
+                    online: pData.online !== false 
+                });
+            }
         }
         if (existingPlayers.length > 0) socket.emit('existing_players', existingPlayers);
         if (roomData.messages.length > 0) roomData.messages.slice(-100).forEach(msg => socket.emit('receive_msg', msg));
         
-        socket.to(room).emit('player_joined', { name, color: playerColor, lat: 55.7558, lng: 37.6176 });
+        socket.to(room).emit('player_joined', { name, color: playerColor, lat: 55.7558, lng: 37.6176, online: true });
         
         const joinMsg = { name: '⚡СИСТЕМА', text: `Боец ${name} на связи`, color: '#44ff44', timestamp: Date.now() };
         roomData.messages.push(joinMsg);
@@ -176,31 +256,28 @@ io.on('connection', (socket) => {
         const { room, name, color } = data;
         const roomData = rooms[room];
         if (!roomData || !roomData.players[name]) return;
-        if (roomData.players[name].disconnectTimer) {
-            clearTimeout(roomData.players[name].disconnectTimer);
-            roomData.players[name].disconnectTimer = null;
-        }
         roomData.players[name].socketId = socket.id;
         roomData.players[name].pendingDisconnect = false;
         roomData.players[name].explicitExit = false;
+        roomData.players[name].online = true;
         playerSockets[socket.id] = { name, team: room, room, color: color || roomData.players[name].color };
         socket.join(room);
         const ep = [];
         for (const [pn, pd] of Object.entries(roomData.players)) {
-            if (pn !== name) ep.push({ name: pn, color: pd.color, lat: pd.lat, lng: pd.lng });
+            if (pn !== name) ep.push({ name: pn, color: pd.color, lat: pd.lat, lng: pd.lng, online: pd.online !== false });
         }
         socket.emit('existing_players', ep);
-        socket.to(room).emit('player_reconnected', { name, color: color || roomData.players[name].color });
+        socket.to(room).emit('player_status_change', { name, online: true });
     });
 
     socket.on('keep_alive', (data) => {
         const { name, room } = data;
         const roomData = rooms[room];
         if (roomData && roomData.players[name]) {
-            roomData.players[name].pendingDisconnect = false;
-            if (roomData.players[name].disconnectTimer) {
-                clearTimeout(roomData.players[name].disconnectTimer);
-                roomData.players[name].disconnectTimer = null;
+            roomData.players[name].lastSeen = Date.now();
+            if (roomData.players[name].online === false) {
+                roomData.players[name].online = true;
+                io.to(room).emit('player_status_change', { name, online: true });
             }
         }
     });
@@ -212,7 +289,6 @@ io.on('connection', (socket) => {
         const roomData = rooms[room];
         if (roomData && roomData.players[name]) {
             roomData.players[name].explicitExit = true;
-            if (roomData.players[name].disconnectTimer) clearTimeout(roomData.players[name].disconnectTimer);
             delete roomData.players[name];
             const lm = { name: '⚡СИСТЕМА', text: `Боец ${name} вышел`, color: '#ff4444', timestamp: Date.now() };
             roomData.messages.push(lm);
@@ -224,7 +300,6 @@ io.on('connection', (socket) => {
         socket.disconnect(true);
     });
 
-    // GPS, объекты, чат, disconnect — без изменений как в v6.1
     socket.on('gps_sync', (data) => {
         if (!data || !data.lat || !data.lng) return;
         const playerInfo = playerSockets[socket.id];
@@ -244,7 +319,7 @@ io.on('connection', (socket) => {
         const { room } = playerInfo;
         const roomData = rooms[room];
         if (!roomData) return;
-        roomData.objects[objData.id] = { type: objData.type, lat: objData.lat, lng: objData.lng, start: objData.start, end: objData.end, creator: objData.creator, created: Date.now() };
+        roomData.objects[objData.id] = { type: objData.type, lat: objData.lat, lng: objData.lng, start: objData.start, end: objData.end, writer: objData.creator, created: Date.now() };
         io.to(room).emit('draw', objData);
         saveData();
     });
@@ -278,29 +353,14 @@ io.on('connection', (socket) => {
         const { room, name } = playerInfo;
         const roomData = rooms[room];
         if (roomData && roomData.players[name]) {
-            if (reason === 'io client disconnect' || roomData.players[name].explicitExit) {
-                if (roomData.players[name].disconnectTimer) clearTimeout(roomData.players[name].disconnectTimer);
-                delete roomData.players[name];
-                const lm = { name: '⚡СИСТЕМА', text: `Боец ${name} вышел`, color: '#ff4444', timestamp: Date.now() };
-                roomData.messages.push(lm);
-                io.to(room).emit('receive_msg', lm);
-                io.to(room).emit('player_left', { name });
-            } else {
-                roomData.players[name].pendingDisconnect = true;
-                roomData.players[name].disconnectTime = Date.now();
-                roomData.players[name].disconnectTimer = setTimeout(() => {
-                    if (roomData.players[name] && roomData.players[name].pendingDisconnect) {
-                        delete roomData.players[name];
-                        const lm = { name: '⚡СИСТЕМА', text: `Боец ${name} отключился (15 мин)`, color: '#ff4444', timestamp: Date.now() };
-                        roomData.messages.push(lm);
-                        io.to(room).emit('receive_msg', lm);
-                        io.to(room).emit('player_left', { name });
-                    }
-                }, DISCONNECT_TIMEOUT);
+            // Не удаляем игрока, просто помечаем офлайн (статус будет обновлён по таймауту на клиенте или утром)
+            roomData.players[name].lastSeen = Date.now();
+            if (roomData.players[name].online !== false) {
+                roomData.players[name].online = false;
+                io.to(room).emit('player_status_change', { name, online: false });
             }
         }
         delete playerSockets[socket.id];
-        saveData();
     });
 });
 
@@ -314,7 +374,7 @@ app.get('/api/status', (req, res) => {
 });
 
 server.listen(PORT, '0.0.0.0', () => {
-    console.log('🦂 ScorpGEO v6.2 с кодом доступа');
+    console.log('🦂 ScorpGEO v11.0 — Офлайн-статус + утренний сброс');
     console.log(`🔑 Код доступа: ${ACCESS_CODE}`);
     console.log(`📍 Порт: ${PORT}`);
 });
