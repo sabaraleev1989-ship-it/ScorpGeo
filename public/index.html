@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="ScorpGEO">
     <meta name="theme-color" content="#000000">
-    <title>ScorpGEO v11.5</title>
+    <title>ScorpGEO v11.6</title>
     
     <link rel="manifest" href="/manifest.json">
     <link rel="apple-touch-icon" href="/icons/icon-512.png">
@@ -37,39 +37,32 @@
             position: fixed;
         }
 
-        /* ОВЕРЛЕЙ АКТИВАЦИИ */
-        #activation-overlay {
+        /* ЗАСТАВКА ЗАГРУЗКИ */
+        #splash-screen {
             position: fixed; inset: 0; z-index: 99999;
-            background: rgba(0,0,0,0.85);
+            background: #000;
             display: flex; flex-direction: column;
             align-items: center; justify-content: center;
             color: #fff; font-family: 'Courier New', monospace;
-            text-align: center; padding: 20px;
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
+            transition: opacity 0.5s;
         }
-        #activation-overlay h2 {
-            font-size: 1.8rem; margin-bottom: 10px;
-            text-shadow: 0 0 15px var(--rus-blue);
-        }
-        #activation-overlay p {
-            font-size: 1.1rem; opacity: 0.8;
-            margin-bottom: 25px;
-        }
-        #activation-overlay .pulse-circle {
-            width: 80px; height: 80px;
-            border: 3px solid var(--rus-blue);
-            border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            animation: pulse-ring 1.5s infinite;
+        #splash-screen h2 {
+            font-size: 2rem; letter-spacing: 5px;
             margin-bottom: 20px;
+            animation: pulse-text 1.5s infinite;
         }
-        @keyframes pulse-ring {
-            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0,57,166,0.7); }
-            70% { transform: scale(1); box-shadow: 0 0 0 20px rgba(0,57,166,0); }
-            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0,57,166,0); }
+        @keyframes pulse-text {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
         }
-        .finger-icon { font-size: 40px; }
+        .loader {
+            width: 50px; height: 50px;
+            border: 3px solid rgba(255,255,255,0.2);
+            border-top-color: var(--rus-blue);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
 
         #particles { position:fixed; inset:0; z-index:0; background:transparent; pointer-events:none; }
         .particle { position:absolute; background:var(--rus-white); border-radius:50%; animation:float linear infinite; opacity:0; }
@@ -201,13 +194,11 @@
 </head>
 <body>
 
-<!-- ОВЕРЛЕЙ АКТИВАЦИИ -->
-<div id="activation-overlay">
-    <div class="pulse-circle">
-        <span class="finger-icon">👆</span>
-    </div>
-    <h2>АКТИВАЦИЯ</h2>
-    <p>Коснитесь экрана, чтобы<br>разрешить доступ к компасу<br>и геолокации</p>
+<!-- ЗАСТАВКА ЗАГРУЗКИ -->
+<div id="splash-screen">
+    <h2>ЗАГРУЗКА</h2>
+    <div class="loader"></div>
+    <p style="margin-top:20px;opacity:0.7;">ScorpGEO</p>
 </div>
 
 <div id="particles"></div>
@@ -247,7 +238,7 @@
             <span class="gear-btn" id="settingsGear" onclick="changeAccessCode()">⚙️</span>
         </div>
         <button id="loginBtn" class="auth-btn">⚡ ВОЙТИ ⚡</button>
-        <div class="auth-info">v11.5 • <span onclick="tryBecomeAdmin()">АДМИН</span></div>
+        <div class="auth-info">v11.6 • <span onclick="tryBecomeAdmin()">АДМИН</span></div>
         <div id="autoLoginMsg" style="color:#fff; font-size:12px; margin-top:10px; display:none;"></div>
     </div>
 </div>
@@ -308,67 +299,62 @@
     }
 })();
 
-// ==================== ФИКС PWA ВВОДА ====================
+// ==================== ФИКС ВВОДА (УЛУЧШЕННЫЙ) ====================
 document.querySelectorAll('.auth-input, #chat-input').forEach(input => {
     input.addEventListener('focus', function() {
         setTimeout(() => {
-            input.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }, 300);
+            // Прокручиваем так, чтобы поле оказалось вверху видимой области
+            input.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 350);
     });
 });
 
-// ==================== АВТО-АКТИВАЦИЯ ====================
-const overlay = document.getElementById('activation-overlay');
-let permissionsGranted = false;
+// ==================== ЗАСТАВКА И АВТОЗАПРОС РАЗРЕШЕНИЙ ====================
+const splash = document.getElementById('splash-screen');
 
-async function requestAllPermissions() {
+async function requestPermissionsAndHideSplash() {
     try {
-        // Запрос геолокации
+        // Сразу запрашиваем геолокацию (можно без жеста пользователя)
         if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(() => {}, () => {}, { enableHighAccuracy: true });
+            navigator.geolocation.getCurrentPosition(
+                () => {}, // успех
+                () => {}, // отказ – не страшно
+                { enableHighAccuracy: true }
+            );
         }
-        // Запрос ориентации (iOS)
+    } catch(e) {}
+    
+    // Плавно скрываем заставку
+    splash.style.opacity = '0';
+    setTimeout(() => {
+        splash.style.display = 'none';
+    }, 500);
+    
+    // Попытка вызвать запрос ориентации (iOS) без жеста – не сработает,
+    // поэтому он будет отложен до первого касания в любом месте.
+    // Мы просто вешаем обработчик на document, который вызовет запрос при первом клике,
+    // если разрешение ещё не получено.
+    const requestOrientation = async () => {
         if (typeof DeviceOrientationEvent !== 'undefined' &&
             typeof DeviceOrientationEvent.requestPermission === 'function') {
-            const response = await DeviceOrientationEvent.requestPermission();
-            if (response === 'granted') {
-                window.addEventListener('deviceorientation', handleOrientation, true);
-            }
+            try {
+                const resp = await DeviceOrientationEvent.requestPermission();
+                if (resp === 'granted') {
+                    window.addEventListener('deviceorientation', handleOrientation, true);
+                }
+            } catch(e) {}
         }
-        permissionsGranted = true;
-    } catch (e) {
-        console.log('Разрешения не получены', e);
-        permissionsGranted = true;
-    }
+        document.removeEventListener('click', requestOrientation);
+        document.removeEventListener('touchstart', requestOrientation);
+    };
+    document.addEventListener('click', requestOrientation, { once: true });
+    document.addEventListener('touchstart', requestOrientation, { once: true });
 }
 
-function checkAutoLogin() {
-    const autoLoggedIn = tryAutoLogin();
-    if (!autoLoggedIn) {
-        document.getElementById('auth-screen').style.display = 'flex';
-    }
-}
-
-if (!permissionsGranted) {
-    overlay.addEventListener('click', async () => {
-        if (!permissionsGranted) {
-            await requestAllPermissions();
-        }
-        overlay.style.display = 'none';
-        checkAutoLogin();
-    });
-} else {
-    overlay.style.display = 'none';
-    checkAutoLogin();
-}
-
-// Если устройство не iOS – скрываем оверлей через 1 сек
-if (typeof DeviceOrientationEvent === 'undefined' || typeof DeviceOrientationEvent.requestPermission !== 'function') {
-    setTimeout(() => {
-        overlay.style.display = 'none';
-        checkAutoLogin();
-    }, 1000);
-}
+// Запускаем заставку минимум на 1.5 секунды, потом запрашиваем разрешения
+setTimeout(() => {
+    requestPermissionsAndHideSplash();
+}, 1500);
 
 // ==================== DEVICE ID ====================
 function getDeviceId(){ let id=localStorage.getItem('scorpgeo_device_id'); if(!id){ id='dev_'+Date.now()+'_'+Math.random().toString(36).substr(2,9); localStorage.setItem('scorpgeo_device_id',id); } return id; }
@@ -416,9 +402,9 @@ window.undoAction=undoAction; window.redoAction=redoAction;
 function toggleCompass(){ compassVisible=!compassVisible; document.getElementById('compass').style.display=compassVisible?'block':'none'; const btn=document.getElementById('btn-compass'); if(compassVisible) btn.classList.add('active'); else btn.classList.remove('active'); }
 function updateCompass(){ if(!compassVisible) return; const svg=document.getElementById('compass-svg'); if(svg) svg.style.transform=`rotate(${compassHeading}deg)`; }
 function handleOrientation(e){ if(e.webkitCompassHeading!==undefined){ compassHeading=e.webkitCompassHeading||0; } else if(e.alpha!==null){ compassHeading=360-(e.alpha||0); } updateCompass(); }
-if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function'){document.addEventListener('click',function rp(){DeviceOrientationEvent.requestPermission().then(r=>{if(r==='granted')window.addEventListener('deviceorientation',handleOrientation,true);});document.removeEventListener('click',rp);},{once:true});}else{window.addEventListener('deviceorientation',handleOrientation,true);}
-function requestCompassPermission(){if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function'){DeviceOrientationEvent.requestPermission().then(r=>{if(r==='granted'){window.addEventListener('deviceorientation',handleOrientation,true);alert('✅ Компас активирован!');}});}else{alert('Компас уже активен');}}
-window.requestCompassPermission=requestCompassPermission; window.toggleCompass=toggleCompass;
+// запрос ориентации теперь вызывается через оверлей или первое касание
+window.requestCompassPermission = function(){}; // заглушка, если нужна
+window.toggleCompass=toggleCompass;
 
 // ===== КАРАНДАШ =====
 function initPencilCanvas(){ pencilCanvas=document.getElementById('drawing-layer'); pencilCanvas.width=window.innerWidth; pencilCanvas.height=window.innerHeight; pencilCtx=pencilCanvas.getContext('2d'); pencilCanvas.addEventListener('pointerdown',startDrawing); pencilCanvas.addEventListener('pointermove',drawOnCanvas); pencilCanvas.addEventListener('pointerup',endDrawing); pencilCanvas.addEventListener('pointerout',endDrawing); }
@@ -699,7 +685,7 @@ window.changeMap=changeMap; window.toggleChat=toggleChat; window.sendChatMessage
 window.deleteMyObjects=deleteMyObjects; window.reconnectApp=reconnectApp; window.exitApp=exitApp;
 window.changeAccessCode=changeAccessCode; window.tryBecomeAdmin=tryBecomeAdmin;
 
-console.log('🇷🇺 ScorpGEO v11.5 — Авто‑активация');
+console.log('🇷🇺 ScorpGEO v11.6 — Плавный ввод и заставка');
 </script>
 </body>
 </html>
