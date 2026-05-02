@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="ScorpGEO">
     <meta name="theme-color" content="#000000">
-    <title>ScorpGEO v11.4</title>
+    <title>ScorpGEO v11.5</title>
     
     <link rel="manifest" href="/manifest.json">
     <link rel="apple-touch-icon" href="/icons/icon-512.png">
@@ -36,6 +36,40 @@
             font-family:'Courier New',monospace;
             position: fixed;
         }
+
+        /* ОВЕРЛЕЙ АКТИВАЦИИ */
+        #activation-overlay {
+            position: fixed; inset: 0; z-index: 99999;
+            background: rgba(0,0,0,0.85);
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            color: #fff; font-family: 'Courier New', monospace;
+            text-align: center; padding: 20px;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+        #activation-overlay h2 {
+            font-size: 1.8rem; margin-bottom: 10px;
+            text-shadow: 0 0 15px var(--rus-blue);
+        }
+        #activation-overlay p {
+            font-size: 1.1rem; opacity: 0.8;
+            margin-bottom: 25px;
+        }
+        #activation-overlay .pulse-circle {
+            width: 80px; height: 80px;
+            border: 3px solid var(--rus-blue);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            animation: pulse-ring 1.5s infinite;
+            margin-bottom: 20px;
+        }
+        @keyframes pulse-ring {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0,57,166,0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 20px rgba(0,57,166,0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0,57,166,0); }
+        }
+        .finger-icon { font-size: 40px; }
 
         #particles { position:fixed; inset:0; z-index:0; background:transparent; pointer-events:none; }
         .particle { position:absolute; background:var(--rus-white); border-radius:50%; animation:float linear infinite; opacity:0; }
@@ -167,6 +201,15 @@
 </head>
 <body>
 
+<!-- ОВЕРЛЕЙ АКТИВАЦИИ -->
+<div id="activation-overlay">
+    <div class="pulse-circle">
+        <span class="finger-icon">👆</span>
+    </div>
+    <h2>АКТИВАЦИЯ</h2>
+    <p>Коснитесь экрана, чтобы<br>разрешить доступ к компасу<br>и геолокации</p>
+</div>
+
 <div id="particles"></div>
 <div id="connection-status">🟢 ОНЛАЙН</div>
 
@@ -204,7 +247,7 @@
             <span class="gear-btn" id="settingsGear" onclick="changeAccessCode()">⚙️</span>
         </div>
         <button id="loginBtn" class="auth-btn">⚡ ВОЙТИ ⚡</button>
-        <div class="auth-info">v11.4 • <span onclick="tryBecomeAdmin()">АДМИН</span></div>
+        <div class="auth-info">v11.5 • <span onclick="tryBecomeAdmin()">АДМИН</span></div>
         <div id="autoLoginMsg" style="color:#fff; font-size:12px; margin-top:10px; display:none;"></div>
     </div>
 </div>
@@ -269,11 +312,63 @@
 document.querySelectorAll('.auth-input, #chat-input').forEach(input => {
     input.addEventListener('focus', function() {
         setTimeout(() => {
-            // Прокручиваем внутри карточки к этому полю
             input.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }, 300);
     });
 });
+
+// ==================== АВТО-АКТИВАЦИЯ ====================
+const overlay = document.getElementById('activation-overlay');
+let permissionsGranted = false;
+
+async function requestAllPermissions() {
+    try {
+        // Запрос геолокации
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(() => {}, () => {}, { enableHighAccuracy: true });
+        }
+        // Запрос ориентации (iOS)
+        if (typeof DeviceOrientationEvent !== 'undefined' &&
+            typeof DeviceOrientationEvent.requestPermission === 'function') {
+            const response = await DeviceOrientationEvent.requestPermission();
+            if (response === 'granted') {
+                window.addEventListener('deviceorientation', handleOrientation, true);
+            }
+        }
+        permissionsGranted = true;
+    } catch (e) {
+        console.log('Разрешения не получены', e);
+        permissionsGranted = true;
+    }
+}
+
+function checkAutoLogin() {
+    const autoLoggedIn = tryAutoLogin();
+    if (!autoLoggedIn) {
+        document.getElementById('auth-screen').style.display = 'flex';
+    }
+}
+
+if (!permissionsGranted) {
+    overlay.addEventListener('click', async () => {
+        if (!permissionsGranted) {
+            await requestAllPermissions();
+        }
+        overlay.style.display = 'none';
+        checkAutoLogin();
+    });
+} else {
+    overlay.style.display = 'none';
+    checkAutoLogin();
+}
+
+// Если устройство не iOS – скрываем оверлей через 1 сек
+if (typeof DeviceOrientationEvent === 'undefined' || typeof DeviceOrientationEvent.requestPermission !== 'function') {
+    setTimeout(() => {
+        overlay.style.display = 'none';
+        checkAutoLogin();
+    }, 1000);
+}
 
 // ==================== DEVICE ID ====================
 function getDeviceId(){ let id=localStorage.getItem('scorpgeo_device_id'); if(!id){ id='dev_'+Date.now()+'_'+Math.random().toString(36).substr(2,9); localStorage.setItem('scorpgeo_device_id',id); } return id; }
@@ -598,14 +693,13 @@ socket.on('receive_msg',(data)=>{
     }
 });
 
-const autoLoggedIn=tryAutoLogin(); if(!autoLoggedIn) document.getElementById('auth-screen').style.display='flex';
-
+// ===== ЭКСПОРТ ФУНКЦИЙ =====
 window.doLogin=doLogin; window.setTool=setTool; window.centerOnMe=centerOnMe; window.zoomTo=zoomTo;
 window.changeMap=changeMap; window.toggleChat=toggleChat; window.sendChatMessage=sendChatMessage;
 window.deleteMyObjects=deleteMyObjects; window.reconnectApp=reconnectApp; window.exitApp=exitApp;
 window.changeAccessCode=changeAccessCode; window.tryBecomeAdmin=tryBecomeAdmin;
 
-console.log('🇷🇺 ScorpGEO v11.4 — Поля над клавиатурой');
+console.log('🇷🇺 ScorpGEO v11.5 — Авто‑активация');
 </script>
 </body>
 </html>
