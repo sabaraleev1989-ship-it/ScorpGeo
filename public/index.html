@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="ScorpGEO">
     <meta name="theme-color" content="#000000">
-    <title>ScorpGEO v11.6</title>
+    <title>ScorpGEO v11.7</title>
     
     <link rel="manifest" href="/manifest.json">
     <link rel="apple-touch-icon" href="/icons/icon-512.png">
@@ -238,7 +238,7 @@
             <span class="gear-btn" id="settingsGear" onclick="changeAccessCode()">⚙️</span>
         </div>
         <button id="loginBtn" class="auth-btn">⚡ ВОЙТИ ⚡</button>
-        <div class="auth-info">v11.6 • <span onclick="tryBecomeAdmin()">АДМИН</span></div>
+        <div class="auth-info">v11.7 • <span onclick="tryBecomeAdmin()">АДМИН</span></div>
         <div id="autoLoginMsg" style="color:#fff; font-size:12px; margin-top:10px; display:none;"></div>
     </div>
 </div>
@@ -299,41 +299,33 @@
     }
 })();
 
-// ==================== ФИКС ВВОДА (УЛУЧШЕННЫЙ) ====================
+// ==================== ФИКС ВВОДА ====================
 document.querySelectorAll('.auth-input, #chat-input').forEach(input => {
     input.addEventListener('focus', function() {
         setTimeout(() => {
-            // Прокручиваем так, чтобы поле оказалось вверху видимой области
-            input.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            input.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }, 350);
     });
 });
 
-// ==================== ЗАСТАВКА И АВТОЗАПРОС РАЗРЕШЕНИЙ ====================
+// ==================== ЗАСТАВКА И ЗАПРОС РАЗРЕШЕНИЙ ====================
 const splash = document.getElementById('splash-screen');
 
-async function requestPermissionsAndHideSplash() {
-    try {
-        // Сразу запрашиваем геолокацию (можно без жеста пользователя)
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                () => {}, // успех
-                () => {}, // отказ – не страшно
-                { enableHighAccuracy: true }
-            );
-        }
-    } catch(e) {}
-    
-    // Плавно скрываем заставку
+async function requestPermissionsAndShowAuth() {
+    // Закрываем заставку
     splash.style.opacity = '0';
-    setTimeout(() => {
-        splash.style.display = 'none';
-    }, 500);
-    
-    // Попытка вызвать запрос ориентации (iOS) без жеста – не сработает,
-    // поэтому он будет отложен до первого касания в любом месте.
-    // Мы просто вешаем обработчик на document, который вызовет запрос при первом клике,
-    // если разрешение ещё не получено.
+    setTimeout(() => splash.style.display = 'none', 500);
+
+    // Запрос геолокации (не требует жеста)
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            () => {}, // разрешили
+            () => {}, // отказ — не страшно
+            { enableHighAccuracy: true }
+        );
+    }
+
+    // Для ориентации (iOS) вешаем запрос на первое касание
     const requestOrientation = async () => {
         if (typeof DeviceOrientationEvent !== 'undefined' &&
             typeof DeviceOrientationEvent.requestPermission === 'function') {
@@ -351,9 +343,9 @@ async function requestPermissionsAndHideSplash() {
     document.addEventListener('touchstart', requestOrientation, { once: true });
 }
 
-// Запускаем заставку минимум на 1.5 секунды, потом запрашиваем разрешения
+// Запуск заставки минимум на 1.5 сек, затем запрос разрешений
 setTimeout(() => {
-    requestPermissionsAndHideSplash();
+    requestPermissionsAndShowAuth();
 }, 1500);
 
 // ==================== DEVICE ID ====================
@@ -402,8 +394,11 @@ window.undoAction=undoAction; window.redoAction=redoAction;
 function toggleCompass(){ compassVisible=!compassVisible; document.getElementById('compass').style.display=compassVisible?'block':'none'; const btn=document.getElementById('btn-compass'); if(compassVisible) btn.classList.add('active'); else btn.classList.remove('active'); }
 function updateCompass(){ if(!compassVisible) return; const svg=document.getElementById('compass-svg'); if(svg) svg.style.transform=`rotate(${compassHeading}deg)`; }
 function handleOrientation(e){ if(e.webkitCompassHeading!==undefined){ compassHeading=e.webkitCompassHeading||0; } else if(e.alpha!==null){ compassHeading=360-(e.alpha||0); } updateCompass(); }
-// запрос ориентации теперь вызывается через оверлей или первое касание
-window.requestCompassPermission = function(){}; // заглушка, если нужна
+window.requestCompassPermission = function() {
+    if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+        DeviceOrientationEvent.requestPermission().then(r => { if(r==='granted') window.addEventListener('deviceorientation', handleOrientation, true); });
+    }
+};
 window.toggleCompass=toggleCompass;
 
 // ===== КАРАНДАШ =====
@@ -685,7 +680,7 @@ window.changeMap=changeMap; window.toggleChat=toggleChat; window.sendChatMessage
 window.deleteMyObjects=deleteMyObjects; window.reconnectApp=reconnectApp; window.exitApp=exitApp;
 window.changeAccessCode=changeAccessCode; window.tryBecomeAdmin=tryBecomeAdmin;
 
-console.log('🇷🇺 ScorpGEO v11.6 — Плавный ввод и заставка');
+console.log('🇷🇺 ScorpGEO v11.7 — Чистый старт');
 </script>
 </body>
 </html>
