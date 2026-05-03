@@ -7,16 +7,16 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="ScorpGEO">
     <meta name="theme-color" content="#000000">
-    <title>ScorpGEO v11.7</title>
-    
+    <title>ScorpGEO v11.2.1</title>
+
     <link rel="manifest" href="/manifest.json">
     <link rel="apple-touch-icon" href="/icons/icon-512.png">
-    
+
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    
+
     <style>
         :root {
             --rus-white: #ffffff;
@@ -34,35 +34,7 @@
         body,html {
             width:100%; height:100%; background:#000; overflow:hidden;
             font-family:'Courier New',monospace;
-            position: fixed;
         }
-
-        /* ЗАСТАВКА ЗАГРУЗКИ */
-        #splash-screen {
-            position: fixed; inset: 0; z-index: 99999;
-            background: #000;
-            display: flex; flex-direction: column;
-            align-items: center; justify-content: center;
-            color: #fff; font-family: 'Courier New', monospace;
-            transition: opacity 0.5s;
-        }
-        #splash-screen h2 {
-            font-size: 2rem; letter-spacing: 5px;
-            margin-bottom: 20px;
-            animation: pulse-text 1.5s infinite;
-        }
-        @keyframes pulse-text {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-        .loader {
-            width: 50px; height: 50px;
-            border: 3px solid rgba(255,255,255,0.2);
-            border-top-color: var(--rus-blue);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
 
         #particles { position:fixed; inset:0; z-index:0; background:transparent; pointer-events:none; }
         .particle { position:absolute; background:var(--rus-white); border-radius:50%; animation:float linear infinite; opacity:0; }
@@ -74,6 +46,7 @@
                         radial-gradient(circle at 70% 70%, rgba(213,43,30,0.1) 0%, transparent 50%),
                         linear-gradient(135deg, #0a0a1a 0%, #0d0d24 100%);
             display:flex; flex-direction:column; align-items:center; justify-content:center; overflow:hidden;
+            padding-bottom: 20px; /* чтобы карточка не прилипала к низу */
         }
 
         .radar-container { position:relative; width:140px; height:140px; flex-shrink:0; margin-bottom:15px; z-index:2; }
@@ -107,18 +80,18 @@
             padding:28px 22px; width:90%; max-width:370px; text-align:center;
             z-index:10001; border-radius:16px; backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
             animation:cardIn 0.6s ease-out;
-            max-height: 80vh; overflow-y: auto; -webkit-overflow-scrolling: touch;
+            /* убираем ограничение высоты, чтобы клавиатура не вызывала прыжок */
         }
         @keyframes cardIn { from{opacity:0;transform:translateY(30px)} to{opacity:1;transform:translateY(0)} }
         .auth-title { font-size:1.8rem; font-weight:900; color:var(--rus-white); margin-bottom:6px; text-shadow:0 0 20px rgba(255,255,255,0.5); letter-spacing:4px; }
         .auth-subtitle { font-size:9px; color:var(--rus-blue); margin-bottom:20px; letter-spacing:6px; text-transform:uppercase; opacity:0.8; }
         .auth-input {
             width:100%; background:rgba(0,0,0,0.7); border:1px solid rgba(255,255,255,0.2); color:var(--rus-white);
-            padding:15px 14px; margin-bottom:10px; font-family:'Courier New',monospace; font-size:16px; text-align:center;
+            padding:15px 14px; margin-bottom:10px; font-family:'Courier New',monospace; font-size:14px; text-align:center;
             outline:none; border-radius:8px; transition:all 0.3s; line-height:1.4;
         }
         .auth-input:focus { border-color:var(--rus-white); box-shadow:0 0 20px rgba(255,255,255,0.3); background:rgba(255,255,255,0.08); }
-        .auth-input::placeholder { color:#555; letter-spacing:2px; font-size:13px; }
+        .auth-input::placeholder { color:#555; letter-spacing:2px; font-size:11px; }
         .auth-btn {
             width:100%; background:linear-gradient(135deg, var(--rus-blue), #001a4d); color:var(--rus-white);
             border:1px solid rgba(255,255,255,0.3); padding:14px; font-weight:bold; font-size:16px; cursor:pointer;
@@ -174,9 +147,9 @@
         .msg-name { font-weight:900; margin-right:6px; }
         .msg-text { color:#ddd; }
         .chat-input-area { display:flex; align-items:center; gap:4px; padding:4px; background:transparent; border-top:1px solid rgba(255,255,255,0.1); }
-        #chat-input { background:rgba(0,0,0,0.6); border:1px solid rgba(255,255,255,0.2); color:var(--rus-white); padding:10px 14px; outline:none; font-size:16px; font-family:'Courier New',monospace; flex:1; margin:4px; border-radius:20px; line-height:1.4; }
+        #chat-input { background:rgba(0,0,0,0.6); border:1px solid rgba(255,255,255,0.2); color:var(--rus-white); padding:10px 14px; outline:none; font-size:14px; font-family:'Courier New',monospace; flex:1; margin:4px; border-radius:20px; line-height:1.4; }
         #chat-input:focus { border-color:var(--rus-white); box-shadow:0 0 15px rgba(255,255,255,0.2); }
-        #chat-input::placeholder { color:#666; font-size:14px; }
+        #chat-input::placeholder { color:#666; font-size:13px; }
         #send-btn { background:linear-gradient(135deg, var(--rus-blue), #001a4d); color:var(--rus-white); border:1px solid rgba(255,255,255,0.3); padding:10px 18px; margin:4px 4px 4px 0; border-radius:20px; font-size:13px; font-weight:bold; cursor:pointer; box-shadow:0 2px 8px rgba(0,57,166,0.3); }
         #send-btn:active { background:var(--rus-red); }
 
@@ -193,13 +166,6 @@
     </style>
 </head>
 <body>
-
-<!-- ЗАСТАВКА ЗАГРУЗКИ -->
-<div id="splash-screen">
-    <h2>ЗАГРУЗКА</h2>
-    <div class="loader"></div>
-    <p style="margin-top:20px;opacity:0.7;">ScorpGEO</p>
-</div>
 
 <div id="particles"></div>
 <div id="connection-status">🟢 ОНЛАЙН</div>
@@ -238,7 +204,7 @@
             <span class="gear-btn" id="settingsGear" onclick="changeAccessCode()">⚙️</span>
         </div>
         <button id="loginBtn" class="auth-btn">⚡ ВОЙТИ ⚡</button>
-        <div class="auth-info">v11.7 • <span onclick="tryBecomeAdmin()">АДМИН</span></div>
+        <div class="auth-info">v11.2.1 • <span onclick="tryBecomeAdmin()">АДМИН</span></div>
         <div id="autoLoginMsg" style="color:#fff; font-size:12px; margin-top:10px; display:none;"></div>
     </div>
 </div>
@@ -299,55 +265,6 @@
     }
 })();
 
-// ==================== ФИКС ВВОДА ====================
-document.querySelectorAll('.auth-input, #chat-input').forEach(input => {
-    input.addEventListener('focus', function() {
-        setTimeout(() => {
-            input.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }, 350);
-    });
-});
-
-// ==================== ЗАСТАВКА И ЗАПРОС РАЗРЕШЕНИЙ ====================
-const splash = document.getElementById('splash-screen');
-
-async function requestPermissionsAndShowAuth() {
-    // Закрываем заставку
-    splash.style.opacity = '0';
-    setTimeout(() => splash.style.display = 'none', 500);
-
-    // Запрос геолокации (не требует жеста)
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-            () => {}, // разрешили
-            () => {}, // отказ — не страшно
-            { enableHighAccuracy: true }
-        );
-    }
-
-    // Для ориентации (iOS) вешаем запрос на первое касание
-    const requestOrientation = async () => {
-        if (typeof DeviceOrientationEvent !== 'undefined' &&
-            typeof DeviceOrientationEvent.requestPermission === 'function') {
-            try {
-                const resp = await DeviceOrientationEvent.requestPermission();
-                if (resp === 'granted') {
-                    window.addEventListener('deviceorientation', handleOrientation, true);
-                }
-            } catch(e) {}
-        }
-        document.removeEventListener('click', requestOrientation);
-        document.removeEventListener('touchstart', requestOrientation);
-    };
-    document.addEventListener('click', requestOrientation, { once: true });
-    document.addEventListener('touchstart', requestOrientation, { once: true });
-}
-
-// Запуск заставки минимум на 1.5 сек, затем запрос разрешений
-setTimeout(() => {
-    requestPermissionsAndShowAuth();
-}, 1500);
-
 // ==================== DEVICE ID ====================
 function getDeviceId(){ let id=localStorage.getItem('scorpgeo_device_id'); if(!id){ id='dev_'+Date.now()+'_'+Math.random().toString(36).substr(2,9); localStorage.setItem('scorpgeo_device_id',id); } return id; }
 const DEVICE_ID=getDeviceId();
@@ -390,15 +307,40 @@ function redoAction(){ if(redoStack.length===0){ alert('Нечего повто�
 function addToHistory(obj){ undoStack.push(obj); redoStack=[]; if(undoStack.length>50) undoStack.shift(); }
 window.undoAction=undoAction; window.redoAction=redoAction;
 
-// ===== КОМПАС =====
+// ===== КОМПАС + АВТОЗАПРОС ОРИЕНТАЦИИ =====
 function toggleCompass(){ compassVisible=!compassVisible; document.getElementById('compass').style.display=compassVisible?'block':'none'; const btn=document.getElementById('btn-compass'); if(compassVisible) btn.classList.add('active'); else btn.classList.remove('active'); }
 function updateCompass(){ if(!compassVisible) return; const svg=document.getElementById('compass-svg'); if(svg) svg.style.transform=`rotate(${compassHeading}deg)`; }
 function handleOrientation(e){ if(e.webkitCompassHeading!==undefined){ compassHeading=e.webkitCompassHeading||0; } else if(e.alpha!==null){ compassHeading=360-(e.alpha||0); } updateCompass(); }
-window.requestCompassPermission = function() {
+
+// Запрос ориентации при первом касании любого поля ввода
+function requestOrientationPermission(e) {
     if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-        DeviceOrientationEvent.requestPermission().then(r => { if(r==='granted') window.addEventListener('deviceorientation', handleOrientation, true); });
+        DeviceOrientationEvent.requestPermission().then(response => {
+            if (response === 'granted') {
+                window.addEventListener('deviceorientation', handleOrientation, true);
+            }
+        }).catch(console.error);
     }
-};
+    // Удаляем обработчик, чтобы запрос не повторялся
+    document.querySelectorAll('.auth-input').forEach(input => {
+        input.removeEventListener('focus', requestOrientationPermission);
+    });
+}
+
+// Вешаем обработчик на все поля ввода
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.auth-input').forEach(input => {
+        input.addEventListener('focus', requestOrientationPermission, { once: true });
+    });
+});
+
+// Также оставляем возможность запросить ориентацию кликом по компасу
+function requestCompassPermission(){
+    if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function'){
+        DeviceOrientationEvent.requestPermission().then(r=>{ if(r==='granted'){ window.addEventListener('deviceorientation', handleOrientation, true); alert('✅ Компас активирован!'); } });
+    } else { alert('Компас уже активен или не поддерживается'); }
+}
+window.requestCompassPermission=requestCompassPermission;
 window.toggleCompass=toggleCompass;
 
 // ===== КАРАНДАШ =====
@@ -674,13 +616,14 @@ socket.on('receive_msg',(data)=>{
     }
 });
 
-// ===== ЭКСПОРТ ФУНКЦИЙ =====
+const autoLoggedIn=tryAutoLogin(); if(!autoLoggedIn) document.getElementById('auth-screen').style.display='flex';
+
 window.doLogin=doLogin; window.setTool=setTool; window.centerOnMe=centerOnMe; window.zoomTo=zoomTo;
 window.changeMap=changeMap; window.toggleChat=toggleChat; window.sendChatMessage=sendChatMessage;
 window.deleteMyObjects=deleteMyObjects; window.reconnectApp=reconnectApp; window.exitApp=exitApp;
 window.changeAccessCode=changeAccessCode; window.tryBecomeAdmin=tryBecomeAdmin;
 
-console.log('🇷🇺 ScorpGEO v11.7 — Чистый старт');
+console.log('🇷🇺 ScorpGEO v11.2.1 — Стабильный + автозапрос ориентации');
 </script>
 </body>
 </html>
