@@ -127,6 +127,12 @@
             box-shadow:0 0 15px rgba(213,43,30,0.6), inset 0 0 20px rgba(213,43,30,0.3);
             text-shadow:0 0 8px rgba(255,255,255,0.6);
         }
+        /* Неактивная кнопка */
+        .tool-btn.disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
 
         #grid-overlay { position:fixed; top:44px; left:0; right:0; bottom:0; pointer-events:none; z-index:900; }
         .grid-letter-top { position:absolute; font-weight:900; font-family:'Courier New',monospace; background:rgba(0,0,0,0.9); color:#ccc; border:1px solid #666; border-radius:3px; transform:translate(-50%,-50%); z-index:950; font-size:12px; padding:4px 8px; }
@@ -228,11 +234,13 @@
     <div onclick="setTool('move')" id="btn-move" class="tool-btn active"><b>🖐️</b><span>Рука</span></div>
     <div onclick="centerOnMe()" class="tool-btn"><b>📍</b><span>Я тут</span></div>
     <div onclick="setTool('enemy')" id="btn-enemy" class="tool-btn"><b>💀</b><span>Враг</span></div>
-    <div onclick="setTool('target')" id="btn-target" class="tool-btn"><b>🎯</b><span>Цель</span></div>
+    <!-- Кнопка Цель - с id, изначально неактивна -->
+    <div id="btn-target" class="tool-btn disabled"><b>🎯</b><span>Цель</span></div>
     <div onclick="setTool('arrow')" id="btn-arrow" class="tool-btn"><b>➡️</b><span>Удар</span></div>
     <div onclick="setTool('ruler')" id="btn-ruler" class="tool-btn"><b>📏</b><span>Мерка</span></div>
     <div onclick="setTool('pencil')" id="btn-pencil" class="tool-btn" style="color:#ff8888;"><b>✏️</b><span>Карандаш</span></div>
-    <div id="btn-icon" class="tool-btn" style="color:#aaccff;"><b>🔷</b><span>Иконки</span></div>
+    <!-- Кнопка Иконки - с id, изначально неактивна -->
+    <div id="btn-icon" class="tool-btn disabled" style="color:#aaccff;"><b>🔷</b><span>Иконки</span></div>
     <div onclick="setTool('eraser')" id="btn-eraser" class="tool-btn"><b>🧹</b><span>Стерка</span></div>
     <div onclick="undoAction()" class="tool-btn" style="color:#ffaaaa;"><b>↩️</b><span>Отмена</span></div>
     <div onclick="redoAction()" class="tool-btn" style="color:#aaffaa;"><b>↪️</b><span>Повтор</span></div>
@@ -319,14 +327,15 @@ function hashCode(str) {
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
         hash = str.charCodeAt(i) + ((hash << 5) - hash);
-        hash = hash & hash; // Convert to 32bit integer
+        hash = hash & hash;
     }
     return Math.abs(hash);
 }
 
 function getTeamColor(teamName) {
     if (!teamName) return '#ffffff';
-    const hash = hashCode(teamName);
+    const normalized = teamName.toUpperCase();
+    const hash = hashCode(normalized);
     const hue = hash % 360;
     return `hsl(${hue}, 80%, 55%)`;
 }
@@ -374,8 +383,35 @@ window.requestCompassPermission = function() {
 };
 window.toggleCompass=toggleCompass;
 
+// ===== ПРОВЕРКА ЗВЕЗДЫ В ПОЗЫВНОМ =====
+function hasStarAccess() {
+    return currentUser.name && currentUser.name.includes('⭐');
+}
+
+// ===== АКТИВАЦИЯ/ДЕАКТИВАЦИЯ КНОПОК ЦЕЛЬ И ИКОНКИ =====
+function updateToolAccess() {
+    const targetBtn = document.getElementById('btn-target');
+    const iconBtn = document.getElementById('btn-icon');
+    if (!targetBtn || !iconBtn) return;
+    const star = hasStarAccess();
+    if (star) {
+        targetBtn.classList.remove('disabled');
+        iconBtn.classList.remove('disabled');
+        targetBtn.onclick = function() { setTool('target'); };
+        // для icon особая логика: мы не вешаем onclick, потому что он обрабатывается в addEventListener ниже
+        // но вернём возможность клика
+        iconBtn.style.pointerEvents = 'auto';
+    } else {
+        targetBtn.classList.add('disabled');
+        iconBtn.classList.add('disabled');
+        targetBtn.onclick = null;
+        iconBtn.style.pointerEvents = 'none';
+    }
+}
+
 // ===== ИКОНКИ =====
 function setIcon(icon, color) {
+    if (!hasStarAccess()) return; // дополнительная страховка
     iconMode = { icon, color };
     document.getElementById('icon-menu').style.display = 'none';
     activeTool = 'icon';
@@ -386,6 +422,7 @@ function setIcon(icon, color) {
 window.setIcon = setIcon;
 
 document.getElementById('btn-icon').addEventListener('click', function(e) {
+    if (!hasStarAccess()) return; // неактивная кнопка — не реагируем
     e.stopPropagation();
     const menu = document.getElementById('icon-menu');
     if (menu.style.display === 'flex') {
@@ -642,7 +679,7 @@ function handleMapClick(e){
     if(activeTool==='pencil') return;
     let{lat,lng}=e.latlng;
     if(activeTool==='arrow'||activeTool==='ruler'){ const nearest=findNearestObject(e.latlng); if(nearest){ lat=nearest.lat; lng=nearest.lng; } }
-    if(activeTool==='enemy'||activeTool==='target'){
+    if(activeTool==='enemy'||(activeTool==='target' && hasStarAccess())){
         const id=`${activeTool}_${Date.now()}_${Math.random().toString(36).substr(2,9)}`;
         socket.emit('new_obj',{id,type:activeTool,lat,lng,creator:currentUser.name});
         addToHistory({id,type:activeTool,lat,lng,creator:currentUser.name});
@@ -654,7 +691,7 @@ function handleMapClick(e){
             addToHistory({id,type:activeTool,start:rulerPoints[0],end:rulerPoints[1],creator:currentUser.name});
             rulerPoints=[];
         }else{ L.popup().setLatLng([lat,lng]).setContent('<b>'+(rulerPoints.length===1&&findNearestObject(e.latlng)?'✅ Привязано':'👆 Вторая точка')+'</b>').openOn(map); }
-    } else if (activeTool==='icon' && iconMode) {
+    } else if (activeTool==='icon' && iconMode && hasStarAccess()) {
         const id = 'icon_' + Date.now() + '_' + Math.random().toString(36).substr(2,9);
         const obj = { id, type: 'icon', lat, lng, icon: iconMode.icon, color: iconMode.color, creator: currentUser.name };
         socket.emit('new_obj', obj);
@@ -692,6 +729,10 @@ function esc(t){ const d=document.createElement('div'); d.textContent=t; return 
 function toggleChat(){ const c=document.getElementById('chat-container'); c.style.display=c.style.display==='flex'?'none':'flex'; if(c.style.display==='flex')document.getElementById('chat-input').focus(); }
 
 function setTool(t){
+    // Блокировка target и icon для обычных бойцов
+    if ((t === 'target' || t === 'icon') && !hasStarAccess()) {
+        return;
+    }
     if (activeTool === 'icon' && t !== 'icon') {
         document.getElementById('icon-menu').style.display = 'none';
     }
@@ -709,7 +750,7 @@ function setTool(t){
     document.querySelectorAll('.tool-btn').forEach(b=>b.classList.remove('active'));
     const btn=document.getElementById(`btn-${t}`);
     if(btn)btn.classList.add('active');
-    if (t === 'icon') {
+    if (t === 'icon' && hasStarAccess()) {
         document.getElementById('icon-menu').style.display = 'flex';
     }
     if(map&&t!=='pencil') map.closePopup();
@@ -744,15 +785,17 @@ function tryAutoLogin(){
 }
 
 socket.on('login_success',(data)=>{
-    // Цвет теперь определяется командой
+    // Цвет определяется командой
     currentUser.color = getTeamColor(currentUser.team);
-    playerColors = {}; // больше не нужен
+    playerColors = {};
     playersTeam[currentUser.name] = currentUser.team;
     saveSession();
     if(data.accessCode) currentAccessCode=data.accessCode;
     document.getElementById('auth-screen').style.display='none';
     document.getElementById('ui-panel').style.display='flex';
     document.getElementById('chat-container').style.display='flex';
+    // Активируем/деактивируем кнопки в зависимости от наличия звезды
+    updateToolAccess();
     initMap(); initPencilCanvas(); startGeolocation(); startKeepAlive(); setPlayerOnline();
 });
 socket.on('login_failed',(err)=>{ clearSession(); alert('Ошибка: '+(err?.reason||'Неверные данные')); });
@@ -760,7 +803,7 @@ socket.on('login_failed',(err)=>{ clearSession(); alert('Ошибка: '+(err?.r
 socket.on('existing_players',(p)=>p.forEach(x=>{
     if(x.name!==currentUser.name){
         const team = x.team || x.room || 'unknown';
-        playersTeam[x.name] = team;
+        playersTeam[x.name] = team.toUpperCase();
         playersStatus[x.name] = x.online!==false;
         updatePlayerMarker(x.name, x.lat, x.lng, getTeamColor(team));
     }
@@ -768,7 +811,7 @@ socket.on('existing_players',(p)=>p.forEach(x=>{
 socket.on('player_joined',(d)=>{
     if(d.name!==currentUser.name){
         const team = d.team || d.room || 'unknown';
-        playersTeam[d.name] = team;
+        playersTeam[d.name] = team.toUpperCase();
         playersStatus[d.name] = true;
         updatePlayerMarker(d.name, d.lat, d.lng, getTeamColor(team));
         addSystemMessage(`→ ${d.name} в сети`, '#4f4');
@@ -785,7 +828,6 @@ socket.on('player_left',(d)=>{
 });
 socket.on('player_move',(d)=>{
     if(d.name!==currentUser.name) {
-        // цвет берём из сохранённой команды
         updatePlayerMarker(d.name, d.lat, d.lng);
     }
 });
@@ -838,14 +880,18 @@ socket.on('receive_msg',(data)=>{
     else addChatMessage(n, t, c);
 });
 
-const autoLoggedIn=tryAutoLogin(); if(!autoLoggedIn) document.getElementById('auth-screen').style.display='flex';
+const autoLoggedIn=tryAutoLogin(); if(!autoLoggedIn) {
+    document.getElementById('auth-screen').style.display='flex';
+} else {
+    // При авто-логине тоже обновим доступ после получения login_success
+}
 
 window.doLogin=doLogin; window.setTool=setTool; window.centerOnMe=centerOnMe; window.zoomTo=zoomTo;
 window.changeMap=changeMap; window.toggleChat=toggleChat; window.sendChatMessage=sendChatMessage;
 window.deleteMyObjects=deleteMyObjects; window.reconnectApp=reconnectApp; window.exitApp=exitApp;
 window.changeAccessCode=changeAccessCode; window.tryBecomeAdmin=tryBecomeAdmin;
 
-console.log('🇷🇺 ScorpGEO v11.2.6 — Командные цвета, иконки');
+console.log('🇷🇺 ScorpGEO v11.2.6 — Звездный доступ, командные цвета');
 </script>
 </body>
 </html>
