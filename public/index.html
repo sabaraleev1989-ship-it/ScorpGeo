@@ -188,7 +188,6 @@
 <div id="particles"></div>
 <div id="connection-status">🟢 ОНЛАЙН</div>
 
-<!-- КОМПАС -->
 <div id="compass" style="position:fixed; top:90px; right:35px; z-index:8000; display:none;">
     <div id="compass-inner" onclick="requestCompassPermission()" style="background:rgba(0,0,0,0.95); border:2px solid #0039a6; border-radius:50%; width:60px; height:60px; display:flex; align-items:center; justify-content:center; cursor:pointer; box-shadow:0 0 20px rgba(0,57,166,0.4);">
         <div style="position:absolute; inset:-4px; border:2px solid #fff; border-radius:50%; opacity:0.5;"></div>
@@ -255,16 +254,16 @@
 <div id="grid-overlay"></div>
 <div id="distance-bar"></div>
 
-<!-- Меню иконок -->
+<!-- Меню иконок — исправленные символы -->
 <div id="icon-menu" onclick="event.stopPropagation()">
-    <div class="icon-option" onclick="setIcon('🚩','blue')" style="color:#0088ff;">🚩 Флаг син</div>
-    <div class="icon-option" onclick="setIcon('🔷','blue')" style="color:#0088ff;">🔷 Ромб син</div>
-    <div class="icon-option" onclick="setIcon('🔼','blue')" style="color:#0088ff;">🔼 Треуг вверх син</div>
-    <div class="icon-option" onclick="setIcon('🔽','blue')" style="color:#0088ff;">🔽 Треуг вниз син</div>
-    <div class="icon-option" onclick="setIcon('🚩','red')" style="color:#ff3333;">🚩 Флаг кр</div>
-    <div class="icon-option" onclick="setIcon('🔷','red')" style="color:#ff3333;">🔷 Ромб кр</div>
-    <div class="icon-option" onclick="setIcon('🔼','red')" style="color:#ff3333;">🔼 Треуг вверх кр</div>
-    <div class="icon-option" onclick="setIcon('🔽','red')" style="color:#ff3333;">🔽 Треуг вниз кр</div>
+    <div class="icon-option" onclick="setIcon('⚑','blue')" style="color:#0088ff;">⚑ Флаг син</div>
+    <div class="icon-option" onclick="setIcon('◆','blue')" style="color:#0088ff;">◆ Ромб син</div>
+    <div class="icon-option" onclick="setIcon('▲','blue')" style="color:#0088ff;">▲ Треуг вверх син</div>
+    <div class="icon-option" onclick="setIcon('▼','blue')" style="color:#0088ff;">▼ Треуг вниз син</div>
+    <div class="icon-option" onclick="setIcon('⚑','red')" style="color:#ff3333;">⚑ Флаг кр</div>
+    <div class="icon-option" onclick="setIcon('◆','red')" style="color:#ff3333;">◆ Ромб кр</div>
+    <div class="icon-option" onclick="setIcon('▲','red')" style="color:#ff3333;">▲ Треуг вверх кр</div>
+    <div class="icon-option" onclick="setIcon('▼','red')" style="color:#ff3333;">▼ Треуг вниз кр</div>
 </div>
 
 <!-- Двойной чат -->
@@ -338,7 +337,7 @@ function redoAction(){ if(redoStack.length===0){ alert('Нечего повто�
 function addToHistory(obj){ undoStack.push(obj); redoStack=[]; if(undoStack.length>50) undoStack.shift(); }
 window.undoAction=undoAction; window.redoAction=redoAction;
 
-// ===== КОМПАС (запрос только по кнопке) =====
+// ===== КОМПАС =====
 function toggleCompass(){
     if (!compassVisible) {
         if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
@@ -364,8 +363,6 @@ window.toggleCompass=toggleCompass;
 function setIcon(icon, color) {
     iconMode = { icon, color };
     document.getElementById('icon-menu').style.display = 'none';
-    // Оставляем активным инструмент 'icon', не переключаясь
-    // Убедимся, что кнопка активна (setTool не вызываем, чтобы не показывать меню)
     activeTool = 'icon';
     document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
     const btn = document.getElementById('btn-icon');
@@ -373,25 +370,20 @@ function setIcon(icon, color) {
 }
 window.setIcon = setIcon;
 
-// Обработчик кнопки иконок: переключаем меню
 document.getElementById('btn-icon').addEventListener('click', function(e) {
     e.stopPropagation();
     const menu = document.getElementById('icon-menu');
     if (menu.style.display === 'flex') {
-        // Закрыть меню, если открыто, и сбросить инструмент на move, если мы не в режиме icon
         menu.style.display = 'none';
         if (activeTool === 'icon') {
-            setTool('move'); // если меню закрыто вручную, убираем режим иконок
+            setTool('move');
         }
         return;
     }
-    // Открыть меню и активировать инструмент
     menu.style.display = 'flex';
     setTool('icon');
-    // setTool покажет меню, но мы уже показали, так что не страшно
 });
 
-// Закрытие меню при клике вне его (но не на кнопке)
 document.addEventListener('click', function(e) {
     const menu = document.getElementById('icon-menu');
     if (menu.style.display === 'flex' && !e.target.closest('#icon-menu') && !e.target.closest('#btn-icon')) {
@@ -651,7 +643,6 @@ function handleMapClick(e){
         const obj = { id, type: 'icon', lat, lng, icon: iconMode.icon, color: iconMode.color, creator: currentUser.name };
         socket.emit('new_obj', obj);
         addToHistory(obj);
-        // НЕ переключаем инструмент обратно на move
     }
 }
 
@@ -685,7 +676,6 @@ function esc(t){ const d=document.createElement('div'); d.textContent=t; return 
 function toggleChat(){ const c=document.getElementById('chat-container'); c.style.display=c.style.display==='flex'?'none':'flex'; if(c.style.display==='flex')document.getElementById('chat-input').focus(); }
 
 function setTool(t){
-    // Если переключаемся с иконок, скрываем меню
     if (activeTool === 'icon' && t !== 'icon') {
         document.getElementById('icon-menu').style.display = 'none';
     }
@@ -713,7 +703,6 @@ function changeMap(type){ if(tileLayer)map.removeLayer(tileLayer); tileLayer=L.t
 function reconnectApp(){ const el=document.getElementById('connection-status'); el.textContent='🔄 Переподключение...'; el.style.color='#ff0'; el.style.display='block'; if(socket.disconnected) socket.connect(); setTimeout(()=>{ if(socket.connected&&currentUser.name){ socket.emit('rejoin_room',{room:currentUser.team,name:currentUser.name,color:currentUser.color,deviceId:DEVICE_ID}); el.textContent='🟢 Готово'; el.style.color='#0f0'; } else{ el.textContent='🔴 Ошибка'; el.style.color='#f00'; } setTimeout(()=>el.style.display='none',2000); },1500); }
 function exitApp(){ if(confirm('Выйти?')){ socket.emit('explicit_exit',{name:currentUser.name,room:currentUser.team}); clearSession(); if(watchId)navigator.geolocation.clearWatch(watchId); if(keepAliveInterval)clearInterval(keepAliveInterval); setTimeout(()=>{socket.disconnect();location.reload();},300); } }
 
-// ===== ПРИВЯЗКА КНОПОК =====
 document.getElementById('loginBtn').addEventListener('click', doLogin);
 document.getElementById('sendChatBtn').addEventListener('click', sendChatMessage);
 
@@ -757,7 +746,7 @@ socket.on('draw',(obj)=>{
         mk.on('click',()=>{ if(activeTool==='eraser'){socket.emit('delete_obj',obj.id);return;} if(activeTool==='move') L.popup({closeButton:false,className:'creator-tooltip',autoClose:true}).setLatLng([obj.lat,obj.lng]).setContent(`👤 <b>${cn}</b>`).openOn(map); });
         layers.push(mk);
     } else if(obj.type==='icon'){
-        if (!obj.icon) return; // пропускаем битые объекты
+        if (!obj.icon) return;
         const color = obj.color === 'red' ? '#ff3333' : '#0088ff';
         const mk = L.marker([obj.lat, obj.lng], {icon: L.divIcon({html: `<div style="font-size:28px; color:${color}; filter:drop-shadow(1px 1px 2px black); cursor:pointer;">${obj.icon}</div>`, iconSize:[28,28], iconAnchor:[14,14], className:''}), zIndexOffset:500}).addTo(map);
         mk.on('click',()=>{ if(activeTool==='eraser'){socket.emit('delete_obj',obj.id);return;} if(activeTool==='move') L.popup({closeButton:false,className:'creator-tooltip',autoClose:true}).setLatLng([obj.lat,obj.lng]).setContent(`👤 <b>${cn}</b>`).openOn(map); });
