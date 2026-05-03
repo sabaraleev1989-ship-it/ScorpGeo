@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="ScorpGEO">
     <meta name="theme-color" content="#000000">
-    <title>ScorpGEO v11.2.4</title>
+    <title>ScorpGEO v11.2.5</title>
 
     <link rel="manifest" href="/manifest.json">
     <link rel="apple-touch-icon" href="/icons/icon-512.png">
@@ -18,7 +18,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
 
     <style>
-        /* все стили как в предыдущей версии */
         :root {
             --rus-white: #ffffff;
             --rus-blue: #0039a6;
@@ -107,6 +106,7 @@
         }
 
         #map { position:absolute; top:0; left:0; right:0; bottom:0; z-index:1; background:#1a1e1a; }
+        #drawing-layer { position:absolute; top:0; left:0; right:0; bottom:0; z-index:100; display:none; cursor:crosshair; touch-action:none; }
 
         .side-panel {
             position:fixed; left:0; top:44px; bottom:0; width:80px; background:var(--panel-bg);
@@ -167,16 +167,18 @@
             border: 1px solid var(--glass-border);
             border-radius: 12px; padding: 8px;
             z-index: 7000; display: none;
-            flex-direction: row; gap: 8px;
+            flex-direction: column; gap: 4px;
             pointer-events: auto;
+            max-height: 250px; overflow-y: auto;
         }
         .icon-option {
             background: transparent;
             border: 1px solid rgba(255,255,255,0.2);
-            border-radius: 8px; padding: 6px 10px;
+            border-radius: 8px; padding: 8px 12px;
             cursor: pointer; color: var(--rus-white);
-            font-size: 20px; text-align: center;
+            font-size: 18px; text-align: center;
             transition: background 0.2s;
+            white-space: nowrap;
         }
         .icon-option:hover { background: rgba(255,255,255,0.1); }
     </style>
@@ -220,7 +222,7 @@
             <span class="gear-btn" id="settingsGear" onclick="changeAccessCode()">⚙️</span>
         </div>
         <button id="loginBtn" class="auth-btn">⚡ ВОЙТИ ⚡</button>
-        <div class="auth-info">v11.2.4 • <span onclick="tryBecomeAdmin()">АДМИН</span></div>
+        <div class="auth-info">v11.2.5 • <span onclick="tryBecomeAdmin()">АДМИН</span></div>
         <div id="autoLoginMsg" style="color:#fff; font-size:12px; margin-top:10px; display:none;"></div>
     </div>
 </div>
@@ -249,19 +251,20 @@
 </div>
 
 <div id="map"></div>
+<canvas id="drawing-layer"></canvas>
 <div id="grid-overlay"></div>
 <div id="distance-bar"></div>
 
 <!-- Меню иконок -->
 <div id="icon-menu" onclick="event.stopPropagation()">
-    <div class="icon-option" onclick="setIcon('🚩','blue')" style="color: #0088ff;">🚩</div>
-    <div class="icon-option" onclick="setIcon('🔷','blue')" style="color: #0088ff;">🔷</div>
-    <div class="icon-option" onclick="setIcon('🔼','blue')" style="color: #0088ff;">🔼</div>
-    <div class="icon-option" onclick="setIcon('🔽','blue')" style="color: #0088ff;">🔽</div>
-    <div class="icon-option" onclick="setIcon('🚩','red')" style="color: #ff3333;">🚩</div>
-    <div class="icon-option" onclick="setIcon('🔷','red')" style="color: #ff3333;">🔷</div>
-    <div class="icon-option" onclick="setIcon('🔼','red')" style="color: #ff3333;">🔼</div>
-    <div class="icon-option" onclick="setIcon('🔽','red')" style="color: #ff3333;">🔽</div>
+    <div class="icon-option" onclick="setIcon('🚩','blue')" style="color: #0088ff;">🚩 Флаг син</div>
+    <div class="icon-option" onclick="setIcon('🔷','blue')" style="color: #0088ff;">🔷 Ромб син</div>
+    <div class="icon-option" onclick="setIcon('🔼','blue')" style="color: #0088ff;">🔼 Треуг вверх син</div>
+    <div class="icon-option" onclick="setIcon('🔽','blue')" style="color: #0088ff;">🔽 Треуг вниз син</div>
+    <div class="icon-option" onclick="setIcon('🚩','red')" style="color: #ff3333;">🚩 Флаг кр</div>
+    <div class="icon-option" onclick="setIcon('🔷','red')" style="color: #ff3333;">🔷 Ромб кр</div>
+    <div class="icon-option" onclick="setIcon('🔼','red')" style="color: #ff3333;">🔼 Треуг вверх кр</div>
+    <div class="icon-option" onclick="setIcon('🔽','red')" style="color: #ff3333;">🔽 Треуг вниз кр</div>
 </div>
 
 <!-- Двойной чат -->
@@ -302,11 +305,11 @@ const socket=io({ transports:['websocket','polling'], reconnection:true, reconne
 let map, activeTool='move', currentUser={name:'',team:'',color:'#fff'};
 let playersMarkers={}, playersStatus={}, tacticalObjects={}, myObjects=new Set(), rulerPoints=[], gridLayer=null, tileLayer=null, playerColors={}, watchId=null, keepAliveInterval=null, distanceTimer=null, rulerTimers={};
 let isAdmin=false, currentAccessCode='', compassHeading=0, compassVisible=false;
-let pencilPoints=[], pencilLine=null, isDrawing=false;
+let pencilCanvas, pencilCtx, isDrawing=false, pencilPoints=[];
 let undoStack=[], redoStack=[];
 let offlineTimer=null;
 let firstPositionSet = false;
-let iconMode = null;
+let iconMode = null; // { icon: '🚩', color: 'blue' }
 
 const METERS_PER_DEGREE=111320;
 const RUSSIAN_LETTERS=['А','Б','В','Г','Д','Е','Ё','Ж','З','И','Й','К','Л','М','Н','О','П','Р','С','Т','У','Ф','Х','Ц','Ч','Ш','Щ','Ъ','Ы','Ь','Э','Ю','Я'];
@@ -362,64 +365,94 @@ function setIcon(icon, color) {
     iconMode = { icon, color };
     document.getElementById('icon-menu').style.display = 'none';
     setTool('icon');
-    // не снимаем активность, setTool сам добавит active на btn-icon
 }
 window.setIcon = setIcon;
 
 // Закрытие меню при клике вне его
 document.addEventListener('click', function(e) {
     const menu = document.getElementById('icon-menu');
-    if (menu.style.display === 'flex' && !menu.contains(e.target) && e.target.id !== 'btn-icon') {
+    if (menu.style.display !== 'none' && !menu.contains(e.target) && e.target.id !== 'btn-icon') {
         menu.style.display = 'none';
         if (activeTool === 'icon') setTool('move');
     }
 });
 
-// ===== КАРАНДАШ через Leaflet =====
-function startPencil(e) {
-    if (activeTool !== 'pencil') return;
+// ===== КАРАНДАШ НА CANVAS =====
+function initPencilCanvas(){ 
+    pencilCanvas=document.getElementById('drawing-layer'); 
+    pencilCanvas.width=window.innerWidth; 
+    pencilCanvas.height=window.innerHeight; 
+    pencilCtx=pencilCanvas.getContext('2d'); 
+    pencilCanvas.addEventListener('pointerdown', startDrawing);
+    pencilCanvas.addEventListener('pointermove', drawOnCanvas);
+    pencilCanvas.addEventListener('pointerup', endDrawing);
+    pencilCanvas.addEventListener('pointerout', endDrawing);
+    pencilCanvas.addEventListener('pointercancel', endDrawing);
+}
+
+function startDrawing(e){ 
+    if(activeTool!=='pencil') return;
+    // Проверяем, что это первое касание (или мышь)
     if (e.pointerType === 'touch' && !e.isPrimary) return;
     if (e.pointerType === 'mouse' && e.buttons !== 1) return;
+    
+    // Если уже есть другие касания (мультитач), не начинаем рисование
+    if (e.pointerType === 'touch' && e.isPrimary && e.targetTouches && e.targetTouches.length > 1) return;
 
-    isDrawing = true;
-    pencilPoints = [];
-    const latlng = e.latlng;
-    pencilPoints.push([latlng.lat, latlng.lng]);
-    if (pencilLine) map.removeLayer(pencilLine);
-    const userColor = currentUser.color || '#fff';
-    pencilLine = L.polyline(pencilPoints, { color: userColor, weight: 5, opacity: 0.9 }).addTo(map);
-    // отключаем перемещение карты для точного рисования
-    map.dragging.disable();
+    isDrawing=true;
+    pencilPoints=[];
+    const rect=pencilCanvas.getBoundingClientRect();
+    const x=e.clientX-rect.left;
+    const y=e.clientY-rect.top;
+    const latlng=map.containerPointToLatLng([x,y]);
+    pencilPoints.push([latlng.lat,latlng.lng]);
+    pencilCtx.beginPath();
+    pencilCtx.moveTo(x,y);
+    pencilCtx.strokeStyle = currentUser.color || '#fff';
+    pencilCtx.lineWidth=5;
+    pencilCtx.lineCap='round';
+    
+    // Предотвращаем действия карты
+    e.preventDefault();
+    e.stopPropagation();
 }
 
-function movePencil(e) {
-    if (!isDrawing || activeTool !== 'pencil') return;
-    if (e.pointerType === 'touch' && !e.isPrimary) return;
-    // если больше одного касания — завершаем рисование и включаем dragging
-    if (e.pointerType === 'touch' && e.isPrimary && e.touches && e.touches.length > 1) {
-        endPencil();
+function drawOnCanvas(e){ 
+    if(!isDrawing||activeTool!=='pencil') return;
+    if(e.pointerType==='touch' && !e.isPrimary) return;
+    // Если начался мультитач, прекращаем рисование
+    if(e.pointerType==='touch' && e.isPrimary && e.targetTouches && e.targetTouches.length > 1) {
+        endDrawing();
         return;
     }
-    const latlng = e.latlng;
-    pencilPoints.push([latlng.lat, latlng.lng]);
-    if (pencilLine) pencilLine.setLatLngs(pencilPoints);
+    e.preventDefault();
+    const rect=pencilCanvas.getBoundingClientRect();
+    const x=e.clientX-rect.left;
+    const y=e.clientY-rect.top;
+    const latlng=map.containerPointToLatLng([x,y]);
+    pencilPoints.push([latlng.lat,latlng.lng]);
+    pencilCtx.lineTo(x,y);
+    pencilCtx.stroke();
 }
 
-function endPencil() {
-    if (!isDrawing) return;
-    isDrawing = false;
-    map.dragging.enable();
-    if (pencilLine) {
-        map.removeLayer(pencilLine);
-        pencilLine = null;
-    }
-    if (pencilPoints.length > 1) {
-        const id = 'pencil_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-        const obj = { id, type: 'pencil', points: pencilPoints, creator: currentUser.name, color: currentUser.color };
-        socket.emit('new_obj', obj);
+function endDrawing(){ 
+    if(!isDrawing) return;
+    isDrawing=false;
+    pencilCtx.clearRect(0,0,pencilCanvas.width,pencilCanvas.height);
+    if(pencilPoints.length>1){
+        const id='pencil_'+Date.now()+'_'+Math.random().toString(36).substr(2,9);
+        const obj={id:id,type:'pencil',points:pencilPoints,creator:currentUser.name, color:currentUser.color};
+        socket.emit('new_obj',obj);
         addToHistory(obj);
     }
-    pencilPoints = [];
+    pencilPoints=[];
+}
+
+function updateCanvasSize(){ 
+    if(pencilCanvas){ 
+        pencilCanvas.width=window.innerWidth; 
+        pencilCanvas.height=window.innerHeight; 
+    } 
 }
 
 // ===== ПОИСК БЛИЖАЙШЕГО ОБЪЕКТА =====
@@ -544,23 +577,20 @@ window.addEventListener('focus', () => { if (currentUser.name) forceReconnect();
 function startKeepAlive() { if (keepAliveInterval) clearInterval(keepAliveInterval); keepAliveInterval = setInterval(() => { if (socket.connected && currentUser.name) socket.emit('keep_alive', { name: currentUser.name, room: currentUser.team, deviceId: DEVICE_ID }); else if (currentUser.name && socket.disconnected) forceReconnect(); }, 20000); }
 
 // ==================== КАРТА ====================
-function initMap(){
-    if(map)return;
-    map=L.map('map',{zoomControl:false,attributionControl:false,maxZoom:22,minZoom:10,tap:true}).setView([55.7558,37.6176],18);
-    tileLayer=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:22,maxNativeZoom:19}).addTo(map);
-    map.on('click', handleMapClick);
-    map.on('mousedown touchstart', startPencil);
-    map.on('mousemove touchmove', movePencil);
-    map.on('mouseup touchend', endPencil);
-    map.on('moveend', drawGrid);
-    map.on('zoomend', drawGrid);
-    drawGrid();
-    setTimeout(()=>{map.invalidateSize();drawGrid();},500);
+function initMap(){ 
+    if(map)return; 
+    map=L.map('map',{zoomControl:false,attributionControl:false,maxZoom:22,minZoom:10,tap:true}).setView([55.7558,37.6176],18); 
+    tileLayer=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:22,maxNativeZoom:19}).addTo(map); 
+    map.on('click', handleMapClick); 
+    map.on('moveend', drawGrid); 
+    map.on('zoomend', drawGrid); 
+    drawGrid(); 
+    setTimeout(()=>{map.invalidateSize();drawGrid();},500); 
 }
 
-function startGeolocation(){
-    if(!navigator.geolocation)return;
-    if(watchId)navigator.geolocation.clearWatch(watchId);
+function startGeolocation(){ 
+    if(!navigator.geolocation)return; 
+    if(watchId)navigator.geolocation.clearWatch(watchId); 
     watchId=navigator.geolocation.watchPosition(pos=>{
         updateMyPosition(pos.coords.latitude,pos.coords.longitude);
         if (!firstPositionSet && map) {
@@ -568,39 +598,44 @@ function startGeolocation(){
             firstPositionSet = true;
         }
         socket.emit('gps_sync',{lat:pos.coords.latitude,lng:pos.coords.longitude});
-    },err=>console.warn('GPS:',err.message),{enableHighAccuracy:true,maximumAge:3000,timeout:10000});
+    },err=>console.warn('GPS:',err.message),{enableHighAccuracy:true,maximumAge:3000,timeout:10000}); 
 }
 
-function updateMyPosition(lat,lng){
-    if(!map)return;
-    if(playersMarkers[currentUser.name]) playersMarkers[currentUser.name].setLatLng([lat,lng]);
-    else playersMarkers[currentUser.name]=L.marker([lat,lng],{icon:createPlayerIcon(currentUser.name,currentUser.color,true),zIndexOffset:1000}).addTo(map);
+function updateMyPosition(lat,lng){ 
+    if(!map)return; 
+    if(playersMarkers[currentUser.name]) playersMarkers[currentUser.name].setLatLng([lat,lng]); 
+    else playersMarkers[currentUser.name]=L.marker([lat,lng],{icon:createPlayerIcon(currentUser.name,currentUser.color,true),zIndexOffset:1000}).addTo(map); 
 }
 
 function centerOnMe(){ if(playersMarkers[currentUser.name]) map.setView(playersMarkers[currentUser.name].getLatLng(),18); else alert('Позиция не определена'); }
 function zoomTo(level){ if(map){ map.setZoom(level); gridEnabled=(level>=18&&level<=20); drawGrid(); } document.getElementById('distance-bar').style.display='none'; if(distanceTimer){clearTimeout(distanceTimer);distanceTimer=null;} }
 
 function handleMapClick(e){
-    if (activeTool === 'pencil' || activeTool === 'icon') return;
+    if(activeTool==='pencil') return;
     let{lat,lng}=e.latlng;
     if(activeTool==='arrow'||activeTool==='ruler'){ const nearest=findNearestObject(e.latlng); if(nearest){ lat=nearest.lat; lng=nearest.lng; } }
     if(activeTool==='enemy'||activeTool==='target'){
         const id=`${activeTool}_${Date.now()}_${Math.random().toString(36).substr(2,9)}`;
         socket.emit('new_obj',{id,type:activeTool,lat,lng,creator:currentUser.name});
+        addToHistory({id,type:activeTool,lat,lng,creator:currentUser.name});
     } else if(activeTool==='arrow'||activeTool==='ruler'){
         rulerPoints.push({lat,lng});
         if(rulerPoints.length===2){
             const id=`${activeTool}_${Date.now()}_${Math.random().toString(36).substr(2,9)}`;
             socket.emit('new_obj',{id,type:activeTool,start:rulerPoints[0],end:rulerPoints[1],creator:currentUser.name});
+            addToHistory({id,type:activeTool,start:rulerPoints[0],end:rulerPoints[1],creator:currentUser.name});
             rulerPoints=[];
         }else{ L.popup().setLatLng([lat,lng]).setContent('<b>'+(rulerPoints.length===1&&findNearestObject(e.latlng)?'✅ Привязано':'👆 Вторая точка')+'</b>').openOn(map); }
     } else if (activeTool==='icon' && iconMode) {
         const id = 'icon_' + Date.now() + '_' + Math.random().toString(36).substr(2,9);
-        socket.emit('new_obj', { id, type: 'icon', lat, lng, icon: iconMode.icon, color: iconMode.color, creator: currentUser.name });
+        const obj = { id, type: 'icon', lat, lng, icon: iconMode.icon, color: iconMode.color, creator: currentUser.name };
+        socket.emit('new_obj', obj);
+        addToHistory(obj);
         iconMode = null;
         setTool('move');
     }
 }
+
 function deleteMyObjects(){ const ids=Array.from(myObjects); ids.forEach(id=>socket.emit('delete_obj',id)); myObjects.clear(); }
 
 let gridEnabled=true;
@@ -634,8 +669,13 @@ function setTool(t){
     if (activeTool === 'icon' && t !== 'icon') document.getElementById('icon-menu').style.display = 'none';
     activeTool=t;
     rulerPoints=[]; pencilPoints=[]; isDrawing=false;
-    if(pencilLine) { map.removeLayer(pencilLine); pencilLine=null; }
-    map.dragging.enable();
+    if(pencilCtx) pencilCtx.clearRect(0,0,pencilCanvas.width,pencilCanvas.height);
+    const dl = document.getElementById('drawing-layer');
+    if (t==='pencil') {
+        dl.style.display = 'block';
+    } else {
+        dl.style.display = 'none';
+    }
     document.getElementById('distance-bar').style.display='none';
     if(distanceTimer){clearTimeout(distanceTimer);distanceTimer=null;}
     document.querySelectorAll('.tool-btn').forEach(b=>b.classList.remove('active'));
@@ -676,7 +716,7 @@ function tryAutoLogin(){
 
 socket.on('login_success',(data)=>{ currentUser.color=data.color; playerColors[currentUser.name]=data.color; saveSession(); if(data.accessCode) currentAccessCode=data.accessCode;
     document.getElementById('auth-screen').style.display='none'; document.getElementById('ui-panel').style.display='flex'; document.getElementById('chat-container').style.display='flex';
-    initMap(); startGeolocation(); startKeepAlive(); setPlayerOnline(); });
+    initMap(); initPencilCanvas(); startGeolocation(); startKeepAlive(); setPlayerOnline(); });
 socket.on('login_failed',(err)=>{ clearSession(); alert('Ошибка: '+(err?.reason||'Неверные данные')); });
 
 socket.on('existing_players',(p)=>p.forEach(x=>{ if(x.name!==currentUser.name){ playerColors[x.name]=x.color; playersStatus[x.name]=x.online!==false; updatePlayerMarker(x.name, x.lat, x.lng, x.color); }}));
@@ -711,7 +751,7 @@ socket.on('draw',(obj)=>{
         const lb=L.marker([md.lat,md.lng],{icon:L.divIcon({html:`<div style="background:#000;color:#fff;padding:4px 8px;border:1px solid #d52b1e;border-radius:10px;font-size:12px;font-weight:bold;">📏 ${tx}</div>`,iconSize:[80,24],iconAnchor:[40,12],className:''}),interactive:false}).addTo(map);
         ln.on('click',(e)=>{ if(activeTool==='eraser'){socket.emit('delete_obj',obj.id);return;} if(activeTool==='move') L.popup({closeButton:false,className:'creator-tooltip',autoClose:true}).setLatLng(e.latlng).setContent(`👤 <b>${cn}</b>`).openOn(map); });
         layers.push(ln,lb);
-        if(obj.creator===currentUser.name) rulerTimers[obj.id]=setTimeout(()=>{ socket.emit('delete_obj',obj.id); },3000);
+        if(obj.creator===currentUser.name){ rulerTimers[obj.id]=setTimeout(()=>{ socket.emit('delete_obj',obj.id); },3000); }
     } else if(obj.type==='pencil'){
         const plColor = obj.color || '#d52b1e';
         const pl=L.polyline(obj.points,{color:plColor,weight:5,opacity:0.9,interactive:true}).addTo(map);
@@ -738,7 +778,7 @@ window.changeMap=changeMap; window.toggleChat=toggleChat; window.sendChatMessage
 window.deleteMyObjects=deleteMyObjects; window.reconnectApp=reconnectApp; window.exitApp=exitApp;
 window.changeAccessCode=changeAccessCode; window.tryBecomeAdmin=tryBecomeAdmin;
 
-console.log('🇷🇺 ScorpGEO v11.2.4 — Иконки, цвет карандаша');
+console.log('🇷🇺 ScorpGEO v11.2.5 — Иконки фикс, карандаш canvas, мультитач');
 </script>
 </body>
 </html>
