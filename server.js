@@ -54,7 +54,6 @@ function saveData() {
 const savedData = loadData();
 for (const [roomName, data] of Object.entries(savedData)) {
     if (roomName === 'accessCode') continue;
-    // 🔥 Нормализация загруженных комнат
     const normalizedRoom = roomName.toUpperCase();
     rooms[normalizedRoom] = {
         players: {},
@@ -150,7 +149,6 @@ function getRandomColor() {
     return colors[Math.floor(Math.random() * colors.length)];
 }
 
-// 🔥 Геттер комнаты с нормализацией
 function getOrCreateRoom(roomName) {
     const normalized = roomName.toUpperCase();
     if (!rooms[normalized]) {
@@ -180,7 +178,7 @@ io.on('connection', (socket) => {
 
     socket.on('player_online', (data) => {
         const { name, room } = data;
-        const normalizedRoom = room.toUpperCase(); // 🔥
+        const normalizedRoom = room.toUpperCase();
         const roomData = rooms[normalizedRoom];
         if (!roomData || !roomData.players[name]) return;
         roomData.players[name].online = true;
@@ -189,7 +187,7 @@ io.on('connection', (socket) => {
 
     socket.on('player_offline', (data) => {
         const { name, room } = data;
-        const normalizedRoom = room.toUpperCase(); // 🔥
+        const normalizedRoom = room.toUpperCase();
         const roomData = rooms[normalizedRoom];
         if (!roomData || !roomData.players[name]) return;
         roomData.players[name].online = false;
@@ -197,12 +195,11 @@ io.on('connection', (socket) => {
     });
 
     socket.on('join_room', (data) => {
-        // 🔥 Нормализация комнаты
         const room = data.room.trim().toUpperCase();
         const name = data.name.trim();
         const pass = data.pass;
         const accessCode = data.accessCode;
-        const team = (data.team || data.room).trim().toUpperCase(); // тоже нормализуем
+        const team = (data.team || data.room).trim().toUpperCase();
         
         if (accessCode !== ACCESS_CODE) {
             socket.emit('login_failed', { reason: 'Неверный код доступа' });
@@ -218,7 +215,7 @@ io.on('connection', (socket) => {
             return;
         }
         
-        const roomData = getOrCreateRoom(room); // уже вернёт нормализованную
+        const roomData = getOrCreateRoom(room);
         
         if (roomData.players[name]) {
             roomData.players[name].socketId = socket.id;
@@ -230,7 +227,7 @@ io.on('connection', (socket) => {
                 color: getRandomColor(),
                 lat: 55.7558, lng: 37.6176,
                 socketId: socket.id,
-                team: team, // команда нормализована
+                team: team,
                 pendingDisconnect: false,
                 explicitExit: false,
                 online: true,
@@ -262,7 +259,7 @@ io.on('connection', (socket) => {
                     lat: pData.lat,
                     lng: pData.lng,
                     online: pData.online !== false,
-                    team: pData.team // передаём команду, чтобы клиент мог определить цвет
+                    team: pData.team
                 });
             }
         }
@@ -289,7 +286,7 @@ io.on('connection', (socket) => {
     });
 
     socket.on('rejoin_room', (data) => {
-        const room = data.room.trim().toUpperCase(); // 🔥
+        const room = data.room.trim().toUpperCase();
         const name = data.name;
         const roomData = rooms[room];
         if (!roomData || !roomData.players[name]) return;
@@ -326,7 +323,7 @@ io.on('connection', (socket) => {
 
     socket.on('keep_alive', (data) => {
         const name = data.name;
-        const room = data.room.toUpperCase(); // 🔥
+        const room = data.room.toUpperCase();
         const roomData = rooms[room];
         if (roomData && roomData.players[name]) {
             roomData.players[name].lastSeen = Date.now();
@@ -340,7 +337,7 @@ io.on('connection', (socket) => {
     socket.on('explicit_exit', (data) => {
         const playerInfo = playerSockets[socket.id];
         if (!playerInfo) return;
-        const { room, name } = playerInfo; // уже нормализованный
+        const { room, name } = playerInfo;
         const roomData = rooms[room];
         if (roomData && roomData.players[name]) {
             roomData.players[name].explicitExit = true;
@@ -364,7 +361,7 @@ io.on('connection', (socket) => {
         if (!data || !data.lat || !data.lng) return;
         const playerInfo = playerSockets[socket.id];
         if (!playerInfo) return;
-        const { room, name } = playerInfo; // уже нормализованный
+        const { room, name } = playerInfo;
         const roomData = rooms[room];
         if (!roomData || !roomData.players[name]) return;
         roomData.players[name].lat = data.lat;
@@ -381,7 +378,7 @@ io.on('connection', (socket) => {
         if (!objData || !objData.id || !objData.type) return;
         const playerInfo = playerSockets[socket.id];
         if (!playerInfo) return;
-        const { room } = playerInfo; // уже нормализованный
+        const { room } = playerInfo;
         const roomData = rooms[room];
         if (!roomData) return;
         roomData.objects[objData.id] = {
@@ -397,12 +394,19 @@ io.on('connection', (socket) => {
         saveData();
     });
 
+    // ===== НОВОЕ: удаление с проверкой прав =====
     socket.on('delete_obj', (objectId) => {
         const playerInfo = playerSockets[socket.id];
         if (!playerInfo) return;
-        const { room } = playerInfo; // уже нормализованный
+        const { room, name } = playerInfo;
         const roomData = rooms[room];
         if (!roomData || !roomData.objects[objectId]) return;
+
+        const obj = roomData.objects[objectId];
+        const isOwner = obj.writer === name;
+        const hasStar = name.includes('⭐');
+        if (!isOwner && !hasStar) return; // нет прав
+
         delete roomData.objects[objectId];
         io.to(room).emit('remove_obj', objectId);
         saveData();
@@ -411,7 +415,7 @@ io.on('connection', (socket) => {
     socket.on('chat_msg', (msgData) => {
         const playerInfo = playerSockets[socket.id];
         if (!playerInfo) return;
-        const { room, name, color } = playerInfo; // уже нормализованный
+        const { room, name, color } = playerInfo;
         const roomData = rooms[room];
         if (!roomData) return;
         const msg = {
@@ -425,10 +429,18 @@ io.on('connection', (socket) => {
         io.to(room).emit('receive_msg', msg);
     });
 
+    // ===== НОВОЕ: ретрансляция статуса (убит/ранен) =====
+    socket.on('player_custom_status', (data) => {
+        const playerInfo = playerSockets[socket.id];
+        if (!playerInfo) return;
+        const { room } = playerInfo;
+        socket.to(room).emit('player_custom_status', data);
+    });
+
     socket.on('disconnect', (reason) => {
         const playerInfo = playerSockets[socket.id];
         if (!playerInfo) return;
-        const { room, name } = playerInfo; // уже нормализованный
+        const { room, name } = playerInfo;
         const roomData = rooms[room];
         if (roomData && roomData.players[name]) {
             roomData.players[name].lastSeen = Date.now();
@@ -451,7 +463,7 @@ app.get('/api/status', (req, res) => {
 });
 
 server.listen(PORT, '0.0.0.0', () => {
-    console.log('🦂 ScorpGEO v11.0 — Игнор регистра команд');
+    console.log('🦂 ScorpGEO v11.0 — Игнор регистра, Статусы, Умное удаление');
     console.log(`🔑 Код доступа: ${ACCESS_CODE}`);
     console.log(`📍 Порт: ${PORT}`);
 });
