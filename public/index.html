@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="ScorpGEO">
     <meta name="theme-color" content="#000000">
-    <title>ScorpGEO v11.2.5</title>
+    <title>ScorpGEO v11.2.6</title>
 
     <link rel="manifest" href="/manifest.json">
     <link rel="apple-touch-icon" href="/icons/icon-512.png">
@@ -176,7 +176,7 @@
             border: 1px solid rgba(255,255,255,0.2);
             border-radius: 8px; padding: 8px 12px;
             cursor: pointer; color: var(--rus-white);
-            font-size: 18px; text-align: center;
+            font-size: 16px; text-align: center;
             transition: background 0.2s;
             white-space: nowrap;
         }
@@ -222,7 +222,7 @@
             <span class="gear-btn" id="settingsGear" onclick="changeAccessCode()">⚙️</span>
         </div>
         <button id="loginBtn" class="auth-btn">⚡ ВОЙТИ ⚡</button>
-        <div class="auth-info">v11.2.5 • <span onclick="tryBecomeAdmin()">АДМИН</span></div>
+        <div class="auth-info">v11.2.6 • <span onclick="tryBecomeAdmin()">АДМИН</span></div>
         <div id="autoLoginMsg" style="color:#fff; font-size:12px; margin-top:10px; display:none;"></div>
     </div>
 </div>
@@ -235,7 +235,7 @@
     <div onclick="setTool('arrow')" id="btn-arrow" class="tool-btn"><b>➡️</b><span>Удар</span></div>
     <div onclick="setTool('ruler')" id="btn-ruler" class="tool-btn"><b>📏</b><span>Мерка</span></div>
     <div onclick="setTool('pencil')" id="btn-pencil" class="tool-btn" style="color:#ff8888;"><b>✏️</b><span>Карандаш</span></div>
-    <div onclick="setTool('icon')" id="btn-icon" class="tool-btn" style="color:#aaccff;"><b>🔷</b><span>Иконки</span></div>
+    <div id="btn-icon" class="tool-btn" style="color:#aaccff;"><b>🔷</b><span>Иконки</span></div>
     <div onclick="setTool('eraser')" id="btn-eraser" class="tool-btn"><b>🧹</b><span>Стерка</span></div>
     <div onclick="undoAction()" class="tool-btn" style="color:#ffaaaa;"><b>↩️</b><span>Отмена</span></div>
     <div onclick="redoAction()" class="tool-btn" style="color:#aaffaa;"><b>↪️</b><span>Повтор</span></div>
@@ -257,14 +257,14 @@
 
 <!-- Меню иконок -->
 <div id="icon-menu" onclick="event.stopPropagation()">
-    <div class="icon-option" onclick="setIcon('🚩','blue')" style="color: #0088ff;">🚩 Флаг син</div>
-    <div class="icon-option" onclick="setIcon('🔷','blue')" style="color: #0088ff;">🔷 Ромб син</div>
-    <div class="icon-option" onclick="setIcon('🔼','blue')" style="color: #0088ff;">🔼 Треуг вверх син</div>
-    <div class="icon-option" onclick="setIcon('🔽','blue')" style="color: #0088ff;">🔽 Треуг вниз син</div>
-    <div class="icon-option" onclick="setIcon('🚩','red')" style="color: #ff3333;">🚩 Флаг кр</div>
-    <div class="icon-option" onclick="setIcon('🔷','red')" style="color: #ff3333;">🔷 Ромб кр</div>
-    <div class="icon-option" onclick="setIcon('🔼','red')" style="color: #ff3333;">🔼 Треуг вверх кр</div>
-    <div class="icon-option" onclick="setIcon('🔽','red')" style="color: #ff3333;">🔽 Треуг вниз кр</div>
+    <div class="icon-option" onclick="setIcon('🚩','blue')" style="color:#0088ff;">🚩 Флаг син</div>
+    <div class="icon-option" onclick="setIcon('🔷','blue')" style="color:#0088ff;">🔷 Ромб син</div>
+    <div class="icon-option" onclick="setIcon('🔼','blue')" style="color:#0088ff;">🔼 Треуг вверх син</div>
+    <div class="icon-option" onclick="setIcon('🔽','blue')" style="color:#0088ff;">🔽 Треуг вниз син</div>
+    <div class="icon-option" onclick="setIcon('🚩','red')" style="color:#ff3333;">🚩 Флаг кр</div>
+    <div class="icon-option" onclick="setIcon('🔷','red')" style="color:#ff3333;">🔷 Ромб кр</div>
+    <div class="icon-option" onclick="setIcon('🔼','red')" style="color:#ff3333;">🔼 Треуг вверх кр</div>
+    <div class="icon-option" onclick="setIcon('🔽','red')" style="color:#ff3333;">🔽 Треуг вниз кр</div>
 </div>
 
 <!-- Двойной чат -->
@@ -309,7 +309,7 @@ let pencilCanvas, pencilCtx, isDrawing=false, pencilPoints=[];
 let undoStack=[], redoStack=[];
 let offlineTimer=null;
 let firstPositionSet = false;
-let iconMode = null; // { icon: '🚩', color: 'blue' }
+let iconMode = null;
 
 const METERS_PER_DEGREE=111320;
 const RUSSIAN_LETTERS=['А','Б','В','Г','Д','Е','Ё','Ж','З','И','Й','К','Л','М','Н','О','П','Р','С','Т','У','Ф','Х','Ц','Ч','Ш','Щ','Ъ','Ы','Ь','Э','Ю','Я'];
@@ -364,16 +364,41 @@ window.toggleCompass=toggleCompass;
 function setIcon(icon, color) {
     iconMode = { icon, color };
     document.getElementById('icon-menu').style.display = 'none';
-    setTool('icon');
+    // Оставляем активным инструмент 'icon', не переключаясь
+    // Убедимся, что кнопка активна (setTool не вызываем, чтобы не показывать меню)
+    activeTool = 'icon';
+    document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+    const btn = document.getElementById('btn-icon');
+    if (btn) btn.classList.add('active');
 }
 window.setIcon = setIcon;
 
-// Закрытие меню при клике вне его
+// Обработчик кнопки иконок: переключаем меню
+document.getElementById('btn-icon').addEventListener('click', function(e) {
+    e.stopPropagation();
+    const menu = document.getElementById('icon-menu');
+    if (menu.style.display === 'flex') {
+        // Закрыть меню, если открыто, и сбросить инструмент на move, если мы не в режиме icon
+        menu.style.display = 'none';
+        if (activeTool === 'icon') {
+            setTool('move'); // если меню закрыто вручную, убираем режим иконок
+        }
+        return;
+    }
+    // Открыть меню и активировать инструмент
+    menu.style.display = 'flex';
+    setTool('icon');
+    // setTool покажет меню, но мы уже показали, так что не страшно
+});
+
+// Закрытие меню при клике вне его (но не на кнопке)
 document.addEventListener('click', function(e) {
     const menu = document.getElementById('icon-menu');
-    if (menu.style.display !== 'none' && !menu.contains(e.target) && e.target.id !== 'btn-icon') {
+    if (menu.style.display === 'flex' && !e.target.closest('#icon-menu') && !e.target.closest('#btn-icon')) {
         menu.style.display = 'none';
-        if (activeTool === 'icon') setTool('move');
+        if (activeTool === 'icon') {
+            setTool('move');
+        }
     }
 });
 
@@ -392,11 +417,8 @@ function initPencilCanvas(){
 
 function startDrawing(e){ 
     if(activeTool!=='pencil') return;
-    // Проверяем, что это первое касание (или мышь)
     if (e.pointerType === 'touch' && !e.isPrimary) return;
     if (e.pointerType === 'mouse' && e.buttons !== 1) return;
-    
-    // Если уже есть другие касания (мультитач), не начинаем рисование
     if (e.pointerType === 'touch' && e.isPrimary && e.targetTouches && e.targetTouches.length > 1) return;
 
     isDrawing=true;
@@ -412,7 +434,6 @@ function startDrawing(e){
     pencilCtx.lineWidth=5;
     pencilCtx.lineCap='round';
     
-    // Предотвращаем действия карты
     e.preventDefault();
     e.stopPropagation();
 }
@@ -420,7 +441,6 @@ function startDrawing(e){
 function drawOnCanvas(e){ 
     if(!isDrawing||activeTool!=='pencil') return;
     if(e.pointerType==='touch' && !e.isPrimary) return;
-    // Если начался мультитач, прекращаем рисование
     if(e.pointerType==='touch' && e.isPrimary && e.targetTouches && e.targetTouches.length > 1) {
         endDrawing();
         return;
@@ -631,8 +651,7 @@ function handleMapClick(e){
         const obj = { id, type: 'icon', lat, lng, icon: iconMode.icon, color: iconMode.color, creator: currentUser.name };
         socket.emit('new_obj', obj);
         addToHistory(obj);
-        iconMode = null;
-        setTool('move');
+        // НЕ переключаем инструмент обратно на move
     }
 }
 
@@ -666,7 +685,10 @@ function esc(t){ const d=document.createElement('div'); d.textContent=t; return 
 function toggleChat(){ const c=document.getElementById('chat-container'); c.style.display=c.style.display==='flex'?'none':'flex'; if(c.style.display==='flex')document.getElementById('chat-input').focus(); }
 
 function setTool(t){
-    if (activeTool === 'icon' && t !== 'icon') document.getElementById('icon-menu').style.display = 'none';
+    // Если переключаемся с иконок, скрываем меню
+    if (activeTool === 'icon' && t !== 'icon') {
+        document.getElementById('icon-menu').style.display = 'none';
+    }
     activeTool=t;
     rulerPoints=[]; pencilPoints=[]; isDrawing=false;
     if(pencilCtx) pencilCtx.clearRect(0,0,pencilCanvas.width,pencilCanvas.height);
@@ -681,7 +703,9 @@ function setTool(t){
     document.querySelectorAll('.tool-btn').forEach(b=>b.classList.remove('active'));
     const btn=document.getElementById(`btn-${t}`);
     if(btn)btn.classList.add('active');
-    if (t === 'icon') document.getElementById('icon-menu').style.display = 'flex';
+    if (t === 'icon') {
+        document.getElementById('icon-menu').style.display = 'flex';
+    }
     if(map&&t!=='pencil') map.closePopup();
 }
 
@@ -733,6 +757,7 @@ socket.on('draw',(obj)=>{
         mk.on('click',()=>{ if(activeTool==='eraser'){socket.emit('delete_obj',obj.id);return;} if(activeTool==='move') L.popup({closeButton:false,className:'creator-tooltip',autoClose:true}).setLatLng([obj.lat,obj.lng]).setContent(`👤 <b>${cn}</b>`).openOn(map); });
         layers.push(mk);
     } else if(obj.type==='icon'){
+        if (!obj.icon) return; // пропускаем битые объекты
         const color = obj.color === 'red' ? '#ff3333' : '#0088ff';
         const mk = L.marker([obj.lat, obj.lng], {icon: L.divIcon({html: `<div style="font-size:28px; color:${color}; filter:drop-shadow(1px 1px 2px black); cursor:pointer;">${obj.icon}</div>`, iconSize:[28,28], iconAnchor:[14,14], className:''}), zIndexOffset:500}).addTo(map);
         mk.on('click',()=>{ if(activeTool==='eraser'){socket.emit('delete_obj',obj.id);return;} if(activeTool==='move') L.popup({closeButton:false,className:'creator-tooltip',autoClose:true}).setLatLng([obj.lat,obj.lng]).setContent(`👤 <b>${cn}</b>`).openOn(map); });
@@ -778,7 +803,7 @@ window.changeMap=changeMap; window.toggleChat=toggleChat; window.sendChatMessage
 window.deleteMyObjects=deleteMyObjects; window.reconnectApp=reconnectApp; window.exitApp=exitApp;
 window.changeAccessCode=changeAccessCode; window.tryBecomeAdmin=tryBecomeAdmin;
 
-console.log('🇷🇺 ScorpGEO v11.2.5 — Иконки фикс, карандаш canvas, мультитач');
+console.log('🇷🇺 ScorpGEO v11.2.6 — Иконки фикс, меню переключатель');
 </script>
 </body>
 </html>
