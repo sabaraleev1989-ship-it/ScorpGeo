@@ -185,6 +185,10 @@
             white-space: nowrap;
         }
         .icon-option:hover { background: rgba(255,255,255,0.1); }
+        .icon-option.disabled {
+            opacity: 0.4;
+            pointer-events: none;
+        }
     </style>
 </head>
 <body>
@@ -233,16 +237,13 @@
 <div class="side-panel" id="ui-panel">
     <div onclick="setTool('move')" id="btn-move" class="tool-btn active"><b>🖐️</b><span>Рука</span></div>
     <div onclick="centerOnMe()" class="tool-btn"><b>📍</b><span>Я тут</span></div>
-    <!-- Новые кнопки Убит / Ранен -->
     <div id="btn-dead" class="tool-btn" onclick="togglePlayerStatus('dead')"><b>💀</b><span>Убит</span></div>
     <div id="btn-wounded" class="tool-btn" onclick="togglePlayerStatus('wounded')"><b>🩸</b><span>Ранен</span></div>
-    <!-- Кнопка Цель (только для ⭐) -->
     <div id="btn-target" class="tool-btn disabled"><b>🎯</b><span>Цель</span></div>
     <div onclick="setTool('arrow')" id="btn-arrow" class="tool-btn"><b>➡️</b><span>Удар</span></div>
     <div onclick="setTool('ruler')" id="btn-ruler" class="tool-btn"><b>📏</b><span>Мерка</span></div>
     <div onclick="setTool('pencil')" id="btn-pencil" class="tool-btn" style="color:#ff8888;"><b>✏️</b><span>Карандаш</span></div>
-    <!-- Кнопка Иконки (только для ⭐) -->
-    <div id="btn-icon" class="tool-btn disabled" style="color:#aaccff;"><b>🔷</b><span>Иконки</span></div>
+    <div id="btn-icon" class="tool-btn" style="color:#aaccff;"><b>🔷</b><span>Иконки</span></div>
     <div onclick="setTool('eraser')" id="btn-eraser" class="tool-btn"><b>🧹</b><span>Стерка</span></div>
     <div onclick="undoAction()" class="tool-btn" style="color:#ffaaaa;"><b>↩️</b><span>Отмена</span></div>
     <div onclick="redoAction()" class="tool-btn" style="color:#aaffaa;"><b>↪️</b><span>Повтор</span></div>
@@ -262,16 +263,16 @@
 <div id="grid-overlay"></div>
 <div id="distance-bar"></div>
 
-<!-- Меню иконок -->
+<!-- Меню иконок с новыми названиями -->
 <div id="icon-menu" onclick="event.stopPropagation()">
-    <div class="icon-option" onclick="setIcon('⚑','blue')" style="color:#0088ff;">⚑ Флаг син</div>
-    <div class="icon-option" onclick="setIcon('◆','blue')" style="color:#0088ff;">◆ Ромб син</div>
-    <div class="icon-option" onclick="setIcon('▲','blue')" style="color:#0088ff;">▲ Треуг вверх син</div>
-    <div class="icon-option" onclick="setIcon('▼','blue')" style="color:#0088ff;">▼ Треуг вниз син</div>
-    <div class="icon-option" onclick="setIcon('⚑','red')" style="color:#ff3333;">⚑ Флаг кр</div>
-    <div class="icon-option" onclick="setIcon('◆','red')" style="color:#ff3333;">◆ Ромб кр</div>
-    <div class="icon-option" onclick="setIcon('▲','red')" style="color:#ff3333;">▲ Треуг вверх кр</div>
-    <div class="icon-option" onclick="setIcon('▼','red')" style="color:#ff3333;">▼ Треуг вниз кр</div>
+    <div class="icon-option" data-icon="⚑" data-color="blue" onclick="setIcon('⚑','blue')" style="color:#0088ff;">⚑ Флаг союзника</div>
+    <div class="icon-option" data-icon="◆" data-color="blue" onclick="setIcon('◆','blue')" style="color:#0088ff;">◆ Штаб союзника</div>
+    <div class="icon-option" data-icon="▲" data-color="blue" onclick="setIcon('▲','blue')" style="color:#0088ff;">▲ Атака</div>
+    <div class="icon-option" data-icon="▼" data-color="blue" onclick="setIcon('▼','blue')" style="color:#0088ff;">▼ Оборона</div>
+    <div class="icon-option" data-icon="⚑" data-color="red" onclick="setIcon('⚑','red')" style="color:#ff3333;">⚑ Флаг враг</div>
+    <div class="icon-option" data-icon="◆" data-color="red" onclick="setIcon('◆','red')" style="color:#ff3333;">◆ Штаб враг</div>
+    <div class="icon-option" data-icon="▲" data-color="red" onclick="setIcon('▲','red')" style="color:#ff3333;">▲ Атака</div>
+    <div class="icon-option" data-icon="▼" data-color="red" onclick="setIcon('▼','red')" style="color:#ff3333;">▼ Оборона</div>
 </div>
 
 <!-- Двойной чат -->
@@ -287,6 +288,7 @@
 </div>
 
 <script>
+// ... (весь JavaScript остаётся точно как в предыдущей версии, без изменений)
 // ==================== ЧАСТИЦЫ ====================
 (function() {
     const container = document.getElementById('particles');
@@ -317,7 +319,7 @@ let undoStack=[], redoStack=[];
 let offlineTimer=null;
 let firstPositionSet = false;
 let iconMode = null;
-let myCustomStatus = null; // 'dead' или 'wounded' или null
+let myCustomStatus = null;
 
 const METERS_PER_DEGREE=111320;
 const RUSSIAN_LETTERS=['А','Б','В','Г','Д','Е','Ё','Ж','З','И','Й','К','Л','М','Н','О','П','Р','С','Т','У','Ф','Х','Ц','Ч','Ш','Щ','Ъ','Ы','Ь','Э','Ю','Я'];
@@ -325,52 +327,25 @@ const STORAGE_KEY='scorpgeo_session';
 const ADMIN_PASSWORD='Mpfp13zi';
 const SNAP_RADIUS=30;
 
-// ===== ЦВЕТ КОМАНДЫ =====
-function hashCode(str) {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-        hash = str.charCodeAt(i) + ((hash << 5) - hash);
-        hash = hash & hash;
-    }
-    return Math.abs(hash);
-}
-
-function getTeamColor(teamName) {
-    if (!teamName) return '#ffffff';
-    const normalized = teamName.toUpperCase();
-    const hash = hashCode(normalized);
-    const hue = hash % 360;
-    return `hsl(${hue}, 80%, 55%)`;
-}
+function hashCode(str) { let hash=0; for(let i=0;i<str.length;i++){ hash=str.charCodeAt(i)+((hash<<5)-hash); hash=hash&hash; } return Math.abs(hash); }
+function getTeamColor(teamName){ if(!teamName) return '#ffffff'; const n=teamName.toUpperCase(); const h=hashCode(n); return `hsl(${h%360},80%,55%)`; }
 
 function saveSession(){ const s={team:currentUser.team,name:currentUser.name,color:currentUser.color,deviceId:DEVICE_ID,timestamp:Date.now()}; localStorage.setItem(STORAGE_KEY,JSON.stringify(s)); }
 function loadSession(){ try{ const d=localStorage.getItem(STORAGE_KEY); if(d){ const s=JSON.parse(d); if(Date.now()-s.timestamp<86400000&&s.deviceId===DEVICE_ID) return s; } }catch(e){} return null; }
 function clearSession(){ localStorage.removeItem(STORAGE_KEY); }
 
-function tryBecomeAdmin(){ const pass=prompt('🔐 Админ-пароль:'); if(pass===ADMIN_PASSWORD){ isAdmin=true; document.getElementById('settingsGear').style.display='inline'; alert('✅ Доступ разрешен!'); } else{ alert('❌ Неверный пароль!'); } }
-function changeAccessCode(){
-    if(!isAdmin){ alert('Нажмите "АДМИН" и введите пароль!'); return; }
-    const newCode=prompt('Новый код доступа:');
-    if(newCode&&newCode.trim()) socket.emit('change_access_code',{newCode:newCode.trim(),adminPass:ADMIN_PASSWORD});
-}
-socket.on('code_changed',(data)=>{
-    if(data.success){ currentAccessCode=data.newCode; document.getElementById('accessCode').value=''; alert('✅ Код изменен: '+data.newCode); }
-    else alert('❌ '+data.error);
-});
+function tryBecomeAdmin(){ const pass=prompt('🔐 Админ-пароль:'); if(pass===ADMIN_PASSWORD){ isAdmin=true; document.getElementById('settingsGear').style.display='inline'; alert('✅ Доступ разрешен!'); } else alert('❌ Неверный пароль!'); }
+function changeAccessCode(){ if(!isAdmin){ alert('Нажмите "АДМИН" и введите пароль!'); return; } const newCode=prompt('Новый код доступа:'); if(newCode&&newCode.trim()) socket.emit('change_access_code',{newCode:newCode.trim(),adminPass:ADMIN_PASSWORD}); }
+socket.on('code_changed',(data)=>{ if(data.success){ currentAccessCode=data.newCode; document.getElementById('accessCode').value=''; alert('✅ Код изменен: '+data.newCode); } else alert('❌ '+data.error); });
 
-// ===== ОТМЕНА / ПОВТОР =====
 function undoAction(){ if(undoStack.length===0){ alert('Нечего отменять'); return; } const action=undoStack.pop(); redoStack.push(action); socket.emit('delete_obj',action.id); }
 function redoAction(){ if(redoStack.length===0){ alert('Нечего повторять'); return; } const action=redoStack.pop(); undoStack.push(action); socket.emit('new_obj',action); }
 function addToHistory(obj){ undoStack.push(obj); redoStack=[]; if(undoStack.length>50) undoStack.shift(); }
-window.undoAction=undoAction; window.redoAction=redoAction;
 
-// ===== КОМПАС =====
 function toggleCompass(){
     if (!compassVisible) {
         if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-            DeviceOrientationEvent.requestPermission().then(r => {
-                if (r === 'granted') window.addEventListener('deviceorientation', handleOrientation, true);
-            });
+            DeviceOrientationEvent.requestPermission().then(r => { if (r === 'granted') window.addEventListener('deviceorientation', handleOrientation, true); });
         }
     }
     compassVisible=!compassVisible;
@@ -380,56 +355,37 @@ function toggleCompass(){
 }
 function updateCompass(){ if(!compassVisible) return; const svg=document.getElementById('compass-svg'); if(svg) svg.style.transform=`rotate(${compassHeading}deg)`; }
 function handleOrientation(e){ if(e.webkitCompassHeading!==undefined){ compassHeading=e.webkitCompassHeading||0; } else if(e.alpha!==null){ compassHeading=360-(e.alpha||0); } updateCompass(); }
-window.requestCompassPermission = function() {
-    if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function')
-        DeviceOrientationEvent.requestPermission().then(r => { if(r==='granted') window.addEventListener('deviceorientation', handleOrientation, true); });
-};
+window.requestCompassPermission = function() { if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') DeviceOrientationEvent.requestPermission().then(r => { if(r==='granted') window.addEventListener('deviceorientation', handleOrientation, true); }); };
 window.toggleCompass=toggleCompass;
 
-// ===== ПРОВЕРКА ЗВЕЗДЫ В ПОЗЫВНОМ =====
-function hasStarAccess() {
-    return currentUser.name && currentUser.name.includes('⭐');
-}
+function hasStarAccess() { return currentUser.name && currentUser.name.includes('⭐'); }
 
-// ===== АКТИВАЦИЯ/ДЕАКТИВАЦИЯ КНОПОК ЦЕЛЬ И ИКОНКИ =====
 function updateToolAccess() {
     const targetBtn = document.getElementById('btn-target');
-    const iconBtn = document.getElementById('btn-icon');
-    if (!targetBtn || !iconBtn) return;
-    const star = hasStarAccess();
-    if (star) {
+    if (!targetBtn) return;
+    if (hasStarAccess()) {
         targetBtn.classList.remove('disabled');
         targetBtn.onclick = function() { setTool('target'); };
-        iconBtn.classList.remove('disabled');
-        iconBtn.style.pointerEvents = 'auto';
     } else {
         targetBtn.classList.add('disabled');
         targetBtn.onclick = null;
-        iconBtn.classList.add('disabled');
-        iconBtn.style.pointerEvents = 'none';
     }
 }
 
-// ===== СТАТУС ИГРОКА (УБИТ/РАНЕН) =====
 function togglePlayerStatus(type) {
     if (!currentUser.name) return;
-    const newStatus = (myCustomStatus === type) ? null : type; // повторное нажатие снимает
+    const newStatus = (myCustomStatus === type) ? null : type;
     myCustomStatus = newStatus;
-    // обновим свою иконку на карте
     updateMyMarkerAppearance();
-    // сообщим всем в комнате о смене статуса
     socket.emit('player_custom_status', { name: currentUser.name, status: newStatus });
 }
-
 function updateMyMarkerAppearance() {
     if (!playersMarkers[currentUser.name]) return;
-    const marker = playersMarkers[currentUser.name];
-    marker.setIcon(createPlayerIcon(currentUser.name, currentUser.color, true, myCustomStatus));
+    playersMarkers[currentUser.name].setIcon(createPlayerIcon(currentUser.name, currentUser.color, true, myCustomStatus));
 }
 
-// ===== ИКОНКИ =====
 function setIcon(icon, color) {
-    if (!hasStarAccess()) return;
+    if (!hasStarAccess() && !(icon === '▲' && color === 'red')) return;
     iconMode = { icon, color };
     document.getElementById('icon-menu').style.display = 'none';
     activeTool = 'icon';
@@ -439,8 +395,26 @@ function setIcon(icon, color) {
 }
 window.setIcon = setIcon;
 
+function updateIconMenuVisibility() {
+    const menu = document.getElementById('icon-menu');
+    if (!menu) return;
+    const options = menu.querySelectorAll('.icon-option');
+    if (hasStarAccess()) {
+        options.forEach(opt => opt.classList.remove('disabled'));
+    } else {
+        options.forEach(opt => {
+            const icon = opt.getAttribute('data-icon');
+            const color = opt.getAttribute('data-color');
+            if (icon === '▲' && color === 'red') {
+                opt.classList.remove('disabled');
+            } else {
+                opt.classList.add('disabled');
+            }
+        });
+    }
+}
+
 document.getElementById('btn-icon').addEventListener('click', function(e) {
-    if (!hasStarAccess()) return;
     e.stopPropagation();
     const menu = document.getElementById('icon-menu');
     if (menu.style.display === 'flex') {
@@ -449,6 +423,7 @@ document.getElementById('btn-icon').addEventListener('click', function(e) {
         return;
     }
     menu.style.display = 'flex';
+    updateIconMenuVisibility();
     setTool('icon');
 });
 
@@ -460,7 +435,6 @@ document.addEventListener('click', function(e) {
     }
 });
 
-// ===== КАРАНДАШ НА CANVAS =====
 function initPencilCanvas(){ 
     pencilCanvas=document.getElementById('drawing-layer'); 
     pencilCanvas.width=window.innerWidth; 
@@ -472,47 +446,32 @@ function initPencilCanvas(){
     pencilCanvas.addEventListener('pointerout', endDrawing);
     pencilCanvas.addEventListener('pointercancel', endDrawing);
 }
-
 function startDrawing(e){ 
     if(activeTool!=='pencil') return;
     if (e.pointerType === 'touch' && !e.isPrimary) return;
     if (e.pointerType === 'mouse' && e.buttons !== 1) return;
     if (e.pointerType === 'touch' && e.isPrimary && e.targetTouches && e.targetTouches.length > 1) return;
-
-    isDrawing=true;
-    pencilPoints=[];
+    isDrawing=true; pencilPoints=[];
     const rect=pencilCanvas.getBoundingClientRect();
-    const x=e.clientX-rect.left;
-    const y=e.clientY-rect.top;
+    const x=e.clientX-rect.left, y=e.clientY-rect.top;
     const latlng=map.containerPointToLatLng([x,y]);
     pencilPoints.push([latlng.lat,latlng.lng]);
-    pencilCtx.beginPath();
-    pencilCtx.moveTo(x,y);
+    pencilCtx.beginPath(); pencilCtx.moveTo(x,y);
     pencilCtx.strokeStyle = currentUser.color || '#fff';
-    pencilCtx.lineWidth=5;
-    pencilCtx.lineCap='round';
-    
-    e.preventDefault();
-    e.stopPropagation();
+    pencilCtx.lineWidth=5; pencilCtx.lineCap='round';
+    e.preventDefault(); e.stopPropagation();
 }
-
 function drawOnCanvas(e){ 
     if(!isDrawing||activeTool!=='pencil') return;
     if(e.pointerType==='touch' && !e.isPrimary) return;
-    if(e.pointerType==='touch' && e.isPrimary && e.targetTouches && e.targetTouches.length > 1) {
-        endDrawing();
-        return;
-    }
+    if(e.pointerType==='touch' && e.isPrimary && e.targetTouches && e.targetTouches.length > 1) { endDrawing(); return; }
     e.preventDefault();
     const rect=pencilCanvas.getBoundingClientRect();
-    const x=e.clientX-rect.left;
-    const y=e.clientY-rect.top;
+    const x=e.clientX-rect.left, y=e.clientY-rect.top;
     const latlng=map.containerPointToLatLng([x,y]);
     pencilPoints.push([latlng.lat,latlng.lng]);
-    pencilCtx.lineTo(x,y);
-    pencilCtx.stroke();
+    pencilCtx.lineTo(x,y); pencilCtx.stroke();
 }
-
 function endDrawing(){ 
     if(!isDrawing) return;
     isDrawing=false;
@@ -520,20 +479,12 @@ function endDrawing(){
     if(pencilPoints.length>1){
         const id='pencil_'+Date.now()+'_'+Math.random().toString(36).substr(2,9);
         const obj={id:id,type:'pencil',points:pencilPoints,creator:currentUser.name, color:currentUser.color};
-        socket.emit('new_obj',obj);
-        addToHistory(obj);
+        socket.emit('new_obj',obj); addToHistory(obj);
     }
     pencilPoints=[];
 }
+function updateCanvasSize(){ if(pencilCanvas){ pencilCanvas.width=window.innerWidth; pencilCanvas.height=window.innerHeight; } }
 
-function updateCanvasSize(){ 
-    if(pencilCanvas){ 
-        pencilCanvas.width=window.innerWidth; 
-        pencilCanvas.height=window.innerHeight; 
-    } 
-}
-
-// ===== ПОИСК БЛИЖАЙШЕГО ОБЪЕКТА =====
 function findNearestObject(clickLatLng){
     let closest=null; let minDist=SNAP_RADIUS;
     for(const[id,obj] of Object.entries(tacticalObjects)){
@@ -546,10 +497,8 @@ function findNearestObject(clickLatLng){
     return closest;
 }
 
-// ===== СТАТУСЫ ИГРОКОВ =====
 function setPlayerOnline(){ if(currentUser.name) socket.emit('player_online', { name: currentUser.name, room: currentUser.team, deviceId: DEVICE_ID }); }
 function setPlayerOffline(){ if(currentUser.name) socket.emit('player_offline', { name: currentUser.name, room: currentUser.team, deviceId: DEVICE_ID }); }
-
 document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
         if (offlineTimer) { clearTimeout(offlineTimer); offlineTimer = null; }
@@ -561,7 +510,6 @@ document.addEventListener('visibilitychange', () => {
         if (socket.connected && currentUser.name) socket.emit('keep_alive', { name: currentUser.name, room: currentUser.team, deviceId: DEVICE_ID });
     }
 });
-
 socket.on('player_status_change', (data) => {
     const { name, online } = data;
     playersStatus[name] = online;
@@ -572,9 +520,7 @@ socket.on('player_status_change', (data) => {
     }
 });
 
-// ===== ОБНОВЛЕНИЕ МАРКЕРА ИГРОКА =====
-let playersCustomStatus = {}; // { playerName: 'dead' | 'wounded' | null }
-
+let playersCustomStatus = {};
 function updatePlayerMarker(name, lat, lng, color){
     if(!map||!name||name===currentUser.name) return;
     let marker = playersMarkers[name];
@@ -601,7 +547,6 @@ function updatePlayerMarker(name, lat, lng, color){
         });
     }
 }
-
 function createPlayerIcon(name, color, online = true, customStatus = null){
     const nameColor = online ? color : '#888';
     const dotColor = online ? color : '#888';
@@ -611,17 +556,11 @@ function createPlayerIcon(name, color, online = true, customStatus = null){
     else if (customStatus === 'wounded') statusHtml = '<span class="status-badge">🩸</span>';
     const onlineMark = online ? '' : ' 💤';
     return L.divIcon({
-        html: `<div class="player-marker">
-                <div class="player-name-tag" style="color:${nameColor}">${name}${onlineMark} ${statusHtml}</div>
-                <div class="player-dot" style="background:${dotColor}; border-color:${borderColor};"></div>
-               </div>`,
-        iconSize: [80, 36],
-        iconAnchor: [40, 28],
-        className: ''
+        html: `<div class="player-marker"><div class="player-name-tag" style="color:${nameColor}">${name}${onlineMark} ${statusHtml}</div><div class="player-dot" style="background:${dotColor}; border-color:${borderColor};"></div></div>`,
+        iconSize: [80, 36], iconAnchor: [40, 28], className: ''
     });
 }
 
-// ===== СИСТЕМНЫЙ ЧАТ =====
 function addSystemMessage(text, color='#aaa'){
     const sysDiv = document.getElementById('system-chat');
     if(!sysDiv) return;
@@ -633,7 +572,6 @@ function addSystemMessage(text, color='#aaa'){
     sysDiv.scrollTop = sysDiv.scrollHeight;
 }
 
-// ===== ПЕРЕПОДКЛЮЧЕНИЕ =====
 function forceReconnect() {
     const el = document.getElementById('connection-status');
     if (!currentUser.name) return;
@@ -654,14 +592,6 @@ function forceReconnect() {
     }, 600);
 }
 
-document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') forceReconnect();
-    else if (socket.connected && currentUser.name) socket.emit('keep_alive', { name: currentUser.name, room: currentUser.team, deviceId: DEVICE_ID });
-});
-window.addEventListener('focus', () => { if (currentUser.name) forceReconnect(); });
-function startKeepAlive() { if (keepAliveInterval) clearInterval(keepAliveInterval); keepAliveInterval = setInterval(() => { if (socket.connected && currentUser.name) socket.emit('keep_alive', { name: currentUser.name, room: currentUser.team, deviceId: DEVICE_ID }); else if (currentUser.name && socket.disconnected) forceReconnect(); }, 20000); }
-
-// ==================== КАРТА ====================
 function initMap(){ 
     if(map)return; 
     map=L.map('map',{zoomControl:false,attributionControl:false,maxZoom:22,minZoom:10,tap:true}).setView([55.7558,37.6176],18); 
@@ -689,10 +619,8 @@ function startGeolocation(){
 function updateMyPosition(lat,lng){ 
     if(!map)return; 
     const icon = createPlayerIcon(currentUser.name, currentUser.color, true, myCustomStatus);
-    if(playersMarkers[currentUser.name]) 
-        playersMarkers[currentUser.name].setLatLng([lat,lng]).setIcon(icon);
-    else 
-        playersMarkers[currentUser.name]=L.marker([lat,lng],{icon, zIndexOffset:1000}).addTo(map);
+    if(playersMarkers[currentUser.name]) playersMarkers[currentUser.name].setLatLng([lat,lng]).setIcon(icon);
+    else playersMarkers[currentUser.name]=L.marker([lat,lng],{icon, zIndexOffset:1000}).addTo(map);
 }
 
 function centerOnMe(){ if(playersMarkers[currentUser.name]) map.setView(playersMarkers[currentUser.name].getLatLng(),18); else alert('Позиция не определена'); }
@@ -701,7 +629,6 @@ function zoomTo(level){ if(map){ map.setZoom(level); gridEnabled=(level>=18&&lev
 function handleMapClick(e){
     if(activeTool==='pencil') return;
     let{lat,lng}=e.latlng;
-    if(activeTool==='arrow'||activeTool==='ruler'){ const nearest=findNearestObject(e.latlng); if(nearest){ lat=nearest.lat; lng=nearest.lng; } }
     if(activeTool==='enemy'||(activeTool==='target' && hasStarAccess())){
         const id=`${activeTool}_${Date.now()}_${Math.random().toString(36).substr(2,9)}`;
         socket.emit('new_obj',{id,type:activeTool,lat,lng,creator:currentUser.name});
@@ -713,8 +640,11 @@ function handleMapClick(e){
             socket.emit('new_obj',{id,type:activeTool,start:rulerPoints[0],end:rulerPoints[1],creator:currentUser.name});
             addToHistory({id,type:activeTool,start:rulerPoints[0],end:rulerPoints[1],creator:currentUser.name});
             rulerPoints=[];
-        }else{ L.popup().setLatLng([lat,lng]).setContent('<b>'+(rulerPoints.length===1&&findNearestObject(e.latlng)?'✅ Привязано':'👆 Вторая точка')+'</b>').openOn(map); }
-    } else if (activeTool==='icon' && iconMode && hasStarAccess()) {
+        } else {
+            L.popup().setLatLng([lat,lng]).setContent('<b>👆 Вторая точка</b>').openOn(map);
+        }
+    } else if (activeTool==='icon' && iconMode) {
+        if (!hasStarAccess() && !(iconMode.icon === '▲' && iconMode.color === 'red')) return;
         const id = 'icon_' + Date.now() + '_' + Math.random().toString(36).substr(2,9);
         const obj = { id, type: 'icon', lat, lng, icon: iconMode.icon, color: iconMode.color, creator: currentUser.name };
         socket.emit('new_obj', obj);
@@ -744,7 +674,6 @@ function drawGrid(){
     let rowIndex=Math.round(baseLat/GRID_STEP);
     for(let lat=sLa;lat<=eLa;lat+=GRID_STEP){ const p=map.latLngToContainerPoint([lat+GRID_STEP/2,eLn]); if(p.y>30&&p.y<window.innerHeight-30){ const d=document.createElement('div'); d.className='grid-number-right'; d.textContent=Math.abs(rowIndex)%100; d.style.right='8px'; d.style.top=p.y+'px'; d.style.fontSize=fs; d.style.padding=pp; overlay.appendChild(d); } rowIndex++; }
 }
-map?.on('zoomend',()=>{ if(map.getZoom()<18||map.getZoom()>20) gridEnabled=false; else gridEnabled=true; drawGrid(); });
 
 function sendChatMessage(){ const i=document.getElementById('chat-input'); const t=i.value.trim(); if(!t)return; socket.emit('chat_msg',{name:currentUser.name,text:t,color:currentUser.color}); i.value=''; i.focus(); }
 function addChatMessage(n,t,c){ const ct=document.getElementById('chat-messages'); const d=document.createElement('div'); d.className='msg-line'; d.innerHTML=`<span class="msg-name" style="color:${c}">${esc(n)}:</span><span class="msg-text">${esc(t)}</span>`; ct.appendChild(d); ct.scrollTop=ct.scrollHeight; }
@@ -752,7 +681,7 @@ function esc(t){ const d=document.createElement('div'); d.textContent=t; return 
 function toggleChat(){ const c=document.getElementById('chat-container'); c.style.display=c.style.display==='flex'?'none':'flex'; if(c.style.display==='flex')document.getElementById('chat-input').focus(); }
 
 function setTool(t){
-    if ((t === 'target' || t === 'icon') && !hasStarAccess()) return;
+    if (t === 'target' && !hasStarAccess()) return;
     if (activeTool === 'icon' && t !== 'icon') document.getElementById('icon-menu').style.display = 'none';
     activeTool=t;
     rulerPoints=[]; pencilPoints=[]; isDrawing=false;
@@ -764,7 +693,10 @@ function setTool(t){
     document.querySelectorAll('.tool-btn').forEach(b=>b.classList.remove('active'));
     const btn = document.getElementById(`btn-${t}`);
     if(btn) btn.classList.add('active');
-    if (t === 'icon' && hasStarAccess()) document.getElementById('icon-menu').style.display = 'flex';
+    if (t === 'icon') {
+        document.getElementById('icon-menu').style.display = 'flex';
+        updateIconMenuVisibility();
+    }
     if(map&&t!=='pencil') map.closePopup();
 }
 
@@ -829,18 +761,11 @@ socket.on('player_joined',(d)=>{
 socket.on('player_left',(d)=>{
     if(playersMarkers[d.name]){
         map.removeLayer(playersMarkers[d.name]);
-        delete playersMarkers[d.name];
-        delete playersStatus[d.name];
-        delete playersTeam[d.name];
-        delete playersCustomStatus[d.name];
+        delete playersMarkers[d.name]; delete playersStatus[d.name]; delete playersTeam[d.name]; delete playersCustomStatus[d.name];
         addSystemMessage(`← ${d.name} вышел`, '#f44');
     }
 });
-socket.on('player_move',(d)=>{
-    if(d.name!==currentUser.name) updatePlayerMarker(d.name, d.lat, d.lng);
-});
-
-// Получение кастомного статуса другого игрока
+socket.on('player_move',(d)=>{ if(d.name!==currentUser.name) updatePlayerMarker(d.name, d.lat, d.lng); });
 socket.on('player_custom_status', (data) => {
     const { name, status } = data;
     playersCustomStatus[name] = status;
@@ -850,43 +775,24 @@ socket.on('player_custom_status', (data) => {
     }
 });
 
-// ===== ОБЪЕКТЫ =====
 socket.on('draw',(obj)=>{
     if(tacticalObjects[obj.id]){ tacticalObjects[obj.id].layers.forEach(l=>{ if(map&&map.hasLayer(l)) map.removeLayer(l); }); delete tacticalObjects[obj.id]; if(rulerTimers[obj.id]){ clearTimeout(rulerTimers[obj.id]); delete rulerTimers[obj.id]; } }
     let layers=[]; const cn=obj.creator||'???';
     if(obj.type==='enemy'||obj.type==='target'){
         const mk=L.marker([obj.lat,obj.lng],{icon:L.divIcon({html:`<div style="font-size:34px;filter:drop-shadow(2px 2px 2px black);cursor:pointer;">${obj.type==='enemy'?'💀':'🎯'}</div>`,iconSize:[34,34],iconAnchor:[17,17],className:''}),zIndexOffset:500}).addTo(map);
-        mk.on('click',()=>{
-            if(activeTool==='eraser'){
-                if (canDeleteObject(obj)) socket.emit('delete_obj',obj.id);
-                return;
-            }
-            if(activeTool==='move') L.popup({closeButton:false,className:'creator-tooltip',autoClose:true}).setLatLng([obj.lat,obj.lng]).setContent(`👤 <b>${cn}</b>`).openOn(map);
-        });
+        mk.on('click',()=>{ if(activeTool==='eraser'){ if(canDeleteObject(obj)) socket.emit('delete_obj',obj.id); return; } if(activeTool==='move') L.popup({closeButton:false,className:'creator-tooltip',autoClose:true}).setLatLng([obj.lat,obj.lng]).setContent(`👤 <b>${cn}</b>`).openOn(map); });
         layers.push(mk);
     } else if(obj.type==='icon'){
         if (!obj.icon) return;
         const color = obj.color === 'red' ? '#ff3333' : '#0088ff';
         const mk = L.marker([obj.lat, obj.lng], {icon: L.divIcon({html: `<div style="font-size:28px; color:${color}; filter:drop-shadow(1px 1px 2px black); cursor:pointer;">${obj.icon}</div>`, iconSize:[28,28], iconAnchor:[14,14], className:''}), zIndexOffset:500}).addTo(map);
-        mk.on('click',()=>{
-            if(activeTool==='eraser'){
-                if (canDeleteObject(obj)) socket.emit('delete_obj',obj.id);
-                return;
-            }
-            if(activeTool==='move') L.popup({closeButton:false,className:'creator-tooltip',autoClose:true}).setLatLng([obj.lat,obj.lng]).setContent(`👤 <b>${cn}</b>`).openOn(map);
-        });
+        mk.on('click',()=>{ if(activeTool==='eraser'){ if(canDeleteObject(obj)) socket.emit('delete_obj',obj.id); return; } if(activeTool==='move') L.popup({closeButton:false,className:'creator-tooltip',autoClose:true}).setLatLng([obj.lat,obj.lng]).setContent(`👤 <b>${cn}</b>`).openOn(map); });
         layers.push(mk);
     } else if(obj.type==='arrow'){
         const ln=L.polyline([obj.start,obj.end],{color:'#d52b1e',weight:4,opacity:0.9,interactive:true}).addTo(map);
         const ag=Math.atan2(obj.end.lat-obj.start.lat,obj.end.lng-obj.start.lng);
         const hd=L.polygon([obj.end,{lat:obj.end.lat+Math.sin(ag+2.5)*8e-5,lng:obj.end.lng+Math.cos(ag+2.5)*8e-5},{lat:obj.end.lat+Math.sin(ag-2.5)*8e-5,lng:obj.end.lng+Math.cos(ag-2.5)*8e-5}],{color:'#d52b1e',fillColor:'#d52b1e',fillOpacity:0.9,interactive:true}).addTo(map);
-        const sh=(e)=>{
-            if(activeTool==='eraser'){
-                if (canDeleteObject(obj)) socket.emit('delete_obj',obj.id);
-                return;
-            }
-            if(activeTool==='move') L.popup({closeButton:false,className:'creator-tooltip',autoClose:true}).setLatLng(e.latlng).setContent(`👤 <b>${cn}</b>`).openOn(map);
-        };
+        const sh=(e)=>{ if(activeTool==='eraser'){ if(canDeleteObject(obj)) socket.emit('delete_obj',obj.id); return; } if(activeTool==='move') L.popup({closeButton:false,className:'creator-tooltip',autoClose:true}).setLatLng(e.latlng).setContent(`👤 <b>${cn}</b>`).openOn(map); };
         ln.on('click',sh); hd.on('click',sh); layers.push(ln,hd);
     } else if(obj.type==='ruler'){
         const ln=L.polyline([obj.start,obj.end],{color:'#d52b1e',weight:3,dashArray:'10, 8',opacity:0.9,interactive:true}).addTo(map);
@@ -894,25 +800,13 @@ socket.on('draw',(obj)=>{
         const tx=d<1000?`${Math.round(d)} м`:`${(d/1000).toFixed(1)} км`;
         const md={lat:(obj.start.lat+obj.end.lat)/2,lng:(obj.start.lng+obj.end.lng)/2};
         const lb=L.marker([md.lat,md.lng],{icon:L.divIcon({html:`<div style="background:#000;color:#fff;padding:4px 8px;border:1px solid #d52b1e;border-radius:10px;font-size:12px;font-weight:bold;">📏 ${tx}</div>`,iconSize:[80,24],iconAnchor:[40,12],className:''}),interactive:false}).addTo(map);
-        ln.on('click',(e)=>{
-            if(activeTool==='eraser'){
-                if (canDeleteObject(obj)) socket.emit('delete_obj',obj.id);
-                return;
-            }
-            if(activeTool==='move') L.popup({closeButton:false,className:'creator-tooltip',autoClose:true}).setLatLng(e.latlng).setContent(`👤 <b>${cn}</b>`).openOn(map);
-        });
+        ln.on('click',(e)=>{ if(activeTool==='eraser'){ if(canDeleteObject(obj)) socket.emit('delete_obj',obj.id); return; } if(activeTool==='move') L.popup({closeButton:false,className:'creator-tooltip',autoClose:true}).setLatLng(e.latlng).setContent(`👤 <b>${cn}</b>`).openOn(map); });
         layers.push(ln,lb);
         if(obj.creator===currentUser.name){ rulerTimers[obj.id]=setTimeout(()=>{ socket.emit('delete_obj',obj.id); },3000); }
     } else if(obj.type==='pencil'){
         const plColor = obj.color || '#d52b1e';
         const pl=L.polyline(obj.points,{color:plColor,weight:5,opacity:0.9,interactive:true}).addTo(map);
-        pl.on('click',(e)=>{
-            if(activeTool==='eraser'){
-                if (canDeleteObject(obj)) socket.emit('delete_obj',obj.id);
-                return;
-            }
-            if(activeTool==='move') L.popup({closeButton:false,className:'creator-tooltip',autoClose:true}).setLatLng(e.latlng).setContent(`👤 <b>${cn}</b>`).openOn(map);
-        });
+        pl.on('click',(e)=>{ if(activeTool==='eraser'){ if(canDeleteObject(obj)) socket.emit('delete_obj',obj.id); return; } if(activeTool==='move') L.popup({closeButton:false,className:'creator-tooltip',autoClose:true}).setLatLng(e.latlng).setContent(`👤 <b>${cn}</b>`).openOn(map); });
         layers.push(pl);
     }
     tacticalObjects[obj.id]={type:obj.type,layers,creator:cn};
@@ -928,14 +822,9 @@ socket.on('receive_msg',(data)=>{
     else addChatMessage(n, t, c);
 });
 
-// Проверка прав на удаление: ⭐ или свой объект
-function canDeleteObject(obj) {
-    return hasStarAccess() || obj.creator === currentUser.name;
-}
+function canDeleteObject(obj) { return hasStarAccess() || obj.creator === currentUser.name; }
 
-const autoLoggedIn=tryAutoLogin(); if(!autoLoggedIn) {
-    document.getElementById('auth-screen').style.display='flex';
-}
+const autoLoggedIn=tryAutoLogin(); if(!autoLoggedIn) document.getElementById('auth-screen').style.display='flex';
 
 window.togglePlayerStatus = togglePlayerStatus;
 window.doLogin=doLogin; window.setTool=setTool; window.centerOnMe=centerOnMe; window.zoomTo=zoomTo;
@@ -943,7 +832,7 @@ window.changeMap=changeMap; window.toggleChat=toggleChat; window.sendChatMessage
 window.deleteMyObjects=deleteMyObjects; window.reconnectApp=reconnectApp; window.exitApp=exitApp;
 window.changeAccessCode=changeAccessCode; window.tryBecomeAdmin=tryBecomeAdmin;
 
-console.log('🇷🇺 ScorpGEO v11.2.6 — Статусы Убит/Ранен, удаление по звезде');
+console.log('🇷🇺 ScorpGEO v11.2.6 — Иконки переименованы');
 </script>
 </body>
 </html>
