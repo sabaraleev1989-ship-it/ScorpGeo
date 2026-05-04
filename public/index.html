@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="ScorpGEO">
     <meta name="theme-color" content="#000000">
-    <title>ScorpGEO v11.2.6</title>
+    <title>ScorpGEO v11.3.2</title>
 
     <link rel="manifest" href="/manifest.json">
     <link rel="apple-touch-icon" href="/icons/icon-512.png">
@@ -222,14 +222,17 @@
         <div class="auth-title">ScorpGEO</div>
         <div class="auth-subtitle">TACTICAL MAP</div>
         <input type="text" id="teamName" class="auth-input" placeholder="КОМАНДА" maxlength="10" autocomplete="off">
-        <input type="text" id="playerName" class="auth-input" placeholder="ПОЗЫВНОЙ" maxlength="10" autocomplete="off">
+        <input type="text" id="playerName" class="auth-input" placeholder="ПОЗЫВНОЙ" maxlength="10" autocomplete="off" oninput="toggleCommanderField()">
         <input type="password" id="password" class="auth-input" placeholder="ПАРОЛЬ" maxlength="20" autocomplete="off">
+        <div id="commander-password-wrapper" style="display:none;">
+            <input type="password" id="commanderPassword" class="auth-input" placeholder="ПАРОЛЬ КОМАНДИРА" maxlength="20" autocomplete="off">
+        </div>
         <div class="code-wrapper">
             <input type="text" id="accessCode" class="auth-input" placeholder="УНИКАЛЬНЫЙ КОД" maxlength="10" autocomplete="off">
             <span class="gear-btn" id="settingsGear" onclick="changeAccessCode()">⚙️</span>
         </div>
         <button id="loginBtn" class="auth-btn">⚡ ВОЙТИ ⚡</button>
-        <div class="auth-info">v11.2.6 • <span onclick="tryBecomeAdmin()">АДМИН</span></div>
+        <div class="auth-info">v11.3.2 • <span onclick="tryBecomeAdmin()">АДМИН</span></div>
         <div id="autoLoginMsg" style="color:#fff; font-size:12px; margin-top:10px; display:none;"></div>
     </div>
 </div>
@@ -263,7 +266,7 @@
 <div id="grid-overlay"></div>
 <div id="distance-bar"></div>
 
-<!-- Меню иконок с новыми названиями -->
+<!-- Меню иконок -->
 <div id="icon-menu" onclick="event.stopPropagation()">
     <div class="icon-option" data-icon="⚑" data-color="blue" onclick="setIcon('⚑','blue')" style="color:#0088ff;">⚑ Флаг союзника</div>
     <div class="icon-option" data-icon="◆" data-color="blue" onclick="setIcon('◆','blue')" style="color:#0088ff;">◆ Штаб союзника</div>
@@ -288,7 +291,6 @@
 </div>
 
 <script>
-// ... (весь JavaScript остаётся точно как в предыдущей версии, без изменений)
 // ==================== ЧАСТИЦЫ ====================
 (function() {
     const container = document.getElementById('particles');
@@ -327,6 +329,9 @@ const STORAGE_KEY='scorpgeo_session';
 const ADMIN_PASSWORD='Mpfp13zi';
 const SNAP_RADIUS=30;
 
+// ===== КОМАНДИРСКИЙ ПАРОЛЬ (из localStorage) =====
+let COMMANDER_PASSWORD = localStorage.getItem('scorpgeo_commander_pass') || 'star2026';
+
 function hashCode(str) { let hash=0; for(let i=0;i<str.length;i++){ hash=str.charCodeAt(i)+((hash<<5)-hash); hash=hash&hash; } return Math.abs(hash); }
 function getTeamColor(teamName){ if(!teamName) return '#ffffff'; const n=teamName.toUpperCase(); const h=hashCode(n); return `hsl(${h%360},80%,55%)`; }
 
@@ -335,13 +340,38 @@ function loadSession(){ try{ const d=localStorage.getItem(STORAGE_KEY); if(d){ c
 function clearSession(){ localStorage.removeItem(STORAGE_KEY); }
 
 function tryBecomeAdmin(){ const pass=prompt('🔐 Админ-пароль:'); if(pass===ADMIN_PASSWORD){ isAdmin=true; document.getElementById('settingsGear').style.display='inline'; alert('✅ Доступ разрешен!'); } else alert('❌ Неверный пароль!'); }
-function changeAccessCode(){ if(!isAdmin){ alert('Нажмите "АДМИН" и введите пароль!'); return; } const newCode=prompt('Новый код доступа:'); if(newCode&&newCode.trim()) socket.emit('change_access_code',{newCode:newCode.trim(),adminPass:ADMIN_PASSWORD}); }
-socket.on('code_changed',(data)=>{ if(data.success){ currentAccessCode=data.newCode; document.getElementById('accessCode').value=''; alert('✅ Код изменен: '+data.newCode); } else alert('❌ '+data.error); });
+
+// ===== ШЕСТЕРЁНКА: изменение кода доступа или командирского пароля =====
+function changeAccessCode(){
+    if(!isAdmin){ alert('Нажмите "АДМИН" и введите пароль!'); return; }
+    const choice = prompt('Что изменить?\n1 — Код доступа\n2 — Пароль командира\nВведите 1 или 2:');
+    if (choice === '1') {
+        const newCode = prompt('Новый код доступа:');
+        if (newCode && newCode.trim()) {
+            socket.emit('change_access_code', { newCode: newCode.trim(), adminPass: ADMIN_PASSWORD });
+        }
+    } else if (choice === '2') {
+        const newPass = prompt('Новый пароль командира:');
+        if (newPass && newPass.trim()) {
+            COMMANDER_PASSWORD = newPass.trim();
+            localStorage.setItem('scorpgeo_commander_pass', COMMANDER_PASSWORD);
+            alert('✅ Пароль командира изменён!');
+        }
+    } else {
+        alert('Отмена');
+    }
+}
+
+socket.on('code_changed',(data)=>{
+    if(data.success){ currentAccessCode=data.newCode; document.getElementById('accessCode').value=''; alert('✅ Код изменен: '+data.newCode); }
+    else alert('❌ '+data.error);
+});
 
 function undoAction(){ if(undoStack.length===0){ alert('Нечего отменять'); return; } const action=undoStack.pop(); redoStack.push(action); socket.emit('delete_obj',action.id); }
 function redoAction(){ if(redoStack.length===0){ alert('Нечего повторять'); return; } const action=redoStack.pop(); undoStack.push(action); socket.emit('new_obj',action); }
 function addToHistory(obj){ undoStack.push(obj); redoStack=[]; if(undoStack.length>50) undoStack.shift(); }
 
+// ===== КОМПАС =====
 function toggleCompass(){
     if (!compassVisible) {
         if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
@@ -707,22 +737,54 @@ function exitApp(){ if(confirm('Выйти?')){ socket.emit('explicit_exit',{nam
 document.getElementById('loginBtn').addEventListener('click', doLogin);
 document.getElementById('sendChatBtn').addEventListener('click', sendChatMessage);
 
+function toggleCommanderField() {
+    const nameInput = document.getElementById('playerName');
+    const wrapper = document.getElementById('commander-password-wrapper');
+    if (!nameInput || !wrapper) return;
+    const name = nameInput.value.trim();
+    if (name.includes('⭐')) {
+        wrapper.style.display = 'block';
+    } else {
+        wrapper.style.display = 'none';
+    }
+}
+
 function doLogin(){
-    const team=document.getElementById('teamName').value.trim().toUpperCase();
-    const name=document.getElementById('playerName').value.trim().toUpperCase();
-    const pass=document.getElementById('password').value;
-    const code=document.getElementById('accessCode').value.trim();
-    if(!team||!name||!pass||!code){ alert('Заполните все поля!'); return; }
-    currentUser.name=name; currentUser.team=team; localStorage.setItem('scorpgeo_code',code);
-    socket.emit('join_room',{room:team,name,team,pass,accessCode:code,deviceId:DEVICE_ID});
+    const team = document.getElementById('teamName').value.trim().toUpperCase();
+    let name = document.getElementById('playerName').value.trim().toUpperCase();
+    const pass = document.getElementById('password').value;
+    const code = document.getElementById('accessCode').value.trim();
+    
+    if (!team || !name || !pass || !code) {
+        alert('Заполните все поля!');
+        return;
+    }
+
+    if (name.includes('⭐')) {
+        const commanderPass = document.getElementById('commanderPassword').value;
+        if (commanderPass !== COMMANDER_PASSWORD) {
+            name = name.replace(/⭐/g, '');
+            document.getElementById('playerName').value = name;
+            alert('❌ Неверный пароль командира! Звезда убрана.');
+        }
+    }
+
+    currentUser.name = name;
+    currentUser.team = team;
+    localStorage.setItem('scorpgeo_code', code);
+    socket.emit('join_room', { room: team, name, team, pass, accessCode: code, deviceId: DEVICE_ID });
 }
 
 function tryAutoLogin(){
-    const s=loadSession();
-    if(s&&s.team&&s.name){ currentUser.name=s.name; currentUser.team=s.team; currentUser.color=s.color;
-        document.getElementById('autoLoginMsg').textContent='↻ Автовход: '+s.name; document.getElementById('autoLoginMsg').style.display='block';
-        setTimeout(()=>document.getElementById('autoLoginMsg').style.display='none',2500);
-        socket.emit('join_room',{room:s.team,name:s.name,team:s.team,pass:'1234',accessCode:localStorage.getItem('scorpgeo_code')||'',deviceId:DEVICE_ID});
+    const s = loadSession();
+    if (s && s.team && s.name) {
+        currentUser.name = s.name;
+        currentUser.team = s.team;
+        currentUser.color = s.color;
+        document.getElementById('autoLoginMsg').textContent = '↻ Автовход: ' + s.name;
+        document.getElementById('autoLoginMsg').style.display = 'block';
+        setTimeout(() => document.getElementById('autoLoginMsg').style.display = 'none', 2500);
+        socket.emit('join_room', { room: s.team, name: s.name, team: s.team, pass: '1234', accessCode: localStorage.getItem('scorpgeo_code') || '', deviceId: DEVICE_ID });
         return true;
     }
     return false;
@@ -832,7 +894,7 @@ window.changeMap=changeMap; window.toggleChat=toggleChat; window.sendChatMessage
 window.deleteMyObjects=deleteMyObjects; window.reconnectApp=reconnectApp; window.exitApp=exitApp;
 window.changeAccessCode=changeAccessCode; window.tryBecomeAdmin=tryBecomeAdmin;
 
-console.log('🇷🇺 ScorpGEO v11.2.6 — Иконки переименованы');
+console.log('🇷🇺 ScorpGEO v11.3.2 — Командирский пароль через шестерёнку');
 </script>
 </body>
 </html>
