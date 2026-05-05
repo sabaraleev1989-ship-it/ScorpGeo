@@ -51,7 +51,7 @@ function saveData() {
                 objects: roomData.objects,
                 messages: roomData.messages.slice(-100),
                 lastActive: Date.now(),
-                password: roomData.password || null   // сохраняем пароль комнаты
+                password: roomData.password || null
             };
         }
         fs.writeFileSync(DATA_FILE, JSON.stringify(dataToSave, null, 2));
@@ -67,14 +67,14 @@ for (const [roomName, data] of Object.entries(savedData)) {
         objects: data.objects || {},
         messages: data.messages || [],
         lastActive: data.lastActive || Date.now(),
-        password: data.password || null   // загружаем пароль комнаты
+        password: data.password || null
     };
     console.log(`📂 Комната ${normalizedRoom}: ${Object.keys(data.objects || {}).length} объектов, пароль ${data.password ? 'установлен' : 'не задан'}`);
 }
 
 setInterval(saveData, 300000);
 
-// ===== Функции очистки и сброса (без изменений) =====
+// ===== Функции очистки и сброса =====
 function clearAllObjects() {
     console.log('🕛 ПОЛНОЧЬ! Очистка всех меток...');
     for (const roomData of Object.values(rooms)) {
@@ -107,6 +107,9 @@ function resetAllSessions() {
             totalDisconnected++;
         }
         
+        // После утреннего сброса комната пуста — пароль сбрасывается
+        roomData.password = null;
+
         const resetMsg = {
             name: '⚡СИСТЕМА',
             text: '🌅 Новый день! Все сессии сброшены. Войдите заново.',
@@ -176,39 +179,41 @@ io.on('connection', (socket) => {
     });
 
     socket.on('change_access_code', (data) => {
-        if (data.adminPass === 'Mpfp13zi') {
-            const choice = data.choice;
-            if (choice === '1') { // смена кода доступа
-                const newCode = data.newCode;
-                if (newCode && typeof newCode === 'string' && newCode.trim() !== '') {
-                    ACCESS_CODE = newCode.trim();
-                    console.log(`🔑 Код изменен: ${ACCESS_CODE}`);
-                    socket.emit('code_changed', { success: true, newCode: ACCESS_CODE });
-                    saveData();
-                } else {
-                    socket.emit('code_changed', { success: false, error: 'Код не может быть пустым' });
-                }
-            } else if (choice === '3') { // смена пароля комнаты
-                const room = data.room.trim().toUpperCase();
-                const roomData = rooms[room];
-                if (!roomData) {
-                    socket.emit('code_changed', { success: false, error: 'Комната не найдена' });
-                    return;
-                }
-                const newPassword = data.newPassword;
-                if (newPassword && typeof newPassword === 'string' && newPassword.trim() !== '') {
-                    roomData.password = newPassword.trim();
-                    console.log(`🔐 Пароль комнаты ${room} изменён: ${roomData.password}`);
-                    socket.emit('code_changed', { success: true, message: 'Пароль комнаты обновлён' });
-                    saveData();
-                } else {
-                    socket.emit('code_changed', { success: false, error: 'Пароль не может быть пустым' });
-                }
+        if (data.adminPass !== 'Mpfp13zi') {
+            socket.emit('code_changed', { success: false, error: 'Неверный админ-пароль' });
+            return;
+        }
+
+        const choice = data.choice;
+
+        if (choice === '1') { // Смена кода доступа
+            const newCode = data.newCode;
+            if (newCode && typeof newCode === 'string' && newCode.trim() !== '') {
+                ACCESS_CODE = newCode.trim();
+                console.log(`🔑 Код изменен: ${ACCESS_CODE}`);
+                socket.emit('code_changed', { success: true, newCode: ACCESS_CODE });
+                saveData();
             } else {
-                socket.emit('code_changed', { success: false, error: 'Неверный выбор операции' });
+                socket.emit('code_changed', { success: false, error: 'Код не может быть пустым' });
+            }
+        } else if (choice === '3') { // Смена пароля комнаты
+            const room = data.room.trim().toUpperCase();
+            const roomData = rooms[room];
+            if (!roomData) {
+                socket.emit('code_changed', { success: false, error: 'Комната не найдена' });
+                return;
+            }
+            const newPassword = data.newPassword;
+            if (newPassword && typeof newPassword === 'string' && newPassword.trim() !== '') {
+                roomData.password = newPassword.trim();
+                console.log(`🔐 Пароль комнаты ${room} изменён админом на: ${roomData.password}`);
+                socket.emit('code_changed', { success: true, message: 'Пароль комнаты обновлён' });
+                saveData();
+            } else {
+                socket.emit('code_changed', { success: false, error: 'Пароль не может быть пустым' });
             }
         } else {
-            socket.emit('code_changed', { success: false, error: 'Неверный админ-пароль' });
+            socket.emit('code_changed', { success: false, error: 'Неверный выбор операции' });
         }
     });
 
@@ -237,7 +242,6 @@ io.on('connection', (socket) => {
         const accessCode = data.accessCode;
         const team = (data.team || data.room).trim().toUpperCase();
 
-        // Проверка кода доступа
         if (!accessCode || accessCode !== ACCESS_CODE) {
             socket.emit('login_failed', { reason: 'Неверный код доступа' });
             return;
@@ -250,23 +254,19 @@ io.on('connection', (socket) => {
 
         const roomData = getOrCreateRoom(room);
 
-        // === НОВАЯ ЛОГИКА ПАРОЛЯ КОМНАТЫ ===
+        // Проверка пароля комнаты
         if (roomData.password !== null) {
-            // Пароль в комнате уже установлен
             if (pass !== roomData.password) {
                 socket.emit('login_failed', { reason: 'Неверный пароль комнаты' });
                 return;
             }
         } else {
-            // Пароль ещё не задан (новая комната или старая без пароля)
             if (pass && pass.trim() !== '') {
-                roomData.password = pass.trim(); // первый вошедший задаёт пароль
+                roomData.password = pass.trim();
                 console.log(`🔐 Пароль комнаты ${room} установлен: ${roomData.password}`);
                 saveData();
             }
-            // если pass пустой, разрешаем вход, но пароль не устанавливаем
         }
-        // ===================================
 
         if (roomData.players[name]) {
             roomData.players[name].socketId = socket.id;
@@ -336,9 +336,6 @@ io.on('connection', (socket) => {
         io.to(room).emit('receive_msg', joinMsg);
     });
 
-    // ===== Остальные обработчики (rejoin, keep_alive, gps, объекты, чат, статусы) без изменений =====
-    // (приведены ниже в сокращении, но они должны быть в полном коде)
-
     socket.on('rejoin_room', (data) => {
         const room = data.room.trim().toUpperCase();
         const name = data.name;
@@ -394,7 +391,6 @@ io.on('connection', (socket) => {
         const { room, name } = playerInfo;
         const roomData = rooms[room];
         if (roomData && roomData.players[name]) {
-            roomData.players[name].explicitExit = true;
             delete roomData.players[name];
             const lm = {
                 name: '⚡СИСТЕМА',
@@ -405,6 +401,13 @@ io.on('connection', (socket) => {
             roomData.messages.push(lm);
             io.to(room).emit('receive_msg', lm);
             io.to(room).emit('player_left', { name });
+
+            // Если комната опустела – сбрасываем пароль
+            if (Object.keys(roomData.players).length === 0) {
+                roomData.password = null;
+                console.log(`🔓 Комната ${room} опустела – пароль сброшен`);
+                saveData();
+            }
         }
         delete playerSockets[socket.id];
         saveData();
@@ -502,6 +505,8 @@ io.on('connection', (socket) => {
             }
         }
         delete playerSockets[socket.id];
+
+        // Не сбрасываем пароль при disconnect, т.к. игрок может вернуться
     });
 });
 
@@ -515,7 +520,7 @@ app.get('/api/status', (req, res) => {
 });
 
 server.listen(PORT, '0.0.0.0', () => {
-    console.log('🦂 ScorpGEO v11.4.0 — Пароль комнаты задаётся командой');
+    console.log('🦂 ScorpGEO v11.4.1 — Сброс пароля при опустении комнаты, админ меняет пароль');
     console.log(`🔑 Код доступа: ${ACCESS_CODE}`);
     console.log(`📍 Порт: ${PORT}`);
 });
