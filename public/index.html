@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="ScorpGEO">
     <meta name="theme-color" content="#000000">
-    <title>ScorpGEO v11.3.5</title>
+    <title>ScorpGEO v11.3.6</title>
 
     <link rel="manifest" href="/manifest.json">
     <link rel="apple-touch-icon" href="/icons/icon-512.png">
@@ -232,7 +232,7 @@
             <span class="gear-btn" id="settingsGear" onclick="changeAccessCode()">⚙️</span>
         </div>
         <button id="loginBtn" class="auth-btn">⚡ ВОЙТИ ⚡</button>
-        <div class="auth-info">v11.3.5 • <span onclick="tryBecomeAdmin()">АДМИН</span></div>
+        <div class="auth-info">v11.3.6 • <span onclick="tryBecomeAdmin()">АДМИН</span></div>
         <div id="autoLoginMsg" style="color:#fff; font-size:12px; margin-top:10px; display:none;"></div>
     </div>
 </div>
@@ -683,14 +683,17 @@ function updateMyPosition(lat,lng){
 function centerOnMe(){ if(playersMarkers[currentUser.name]) map.setView(playersMarkers[currentUser.name].getLatLng(),18); else alert('Позиция не определена'); }
 function zoomTo(level){ if(map){ map.setZoom(level); gridEnabled=(level>=18&&level<=20); drawGrid(); } document.getElementById('distance-bar').style.display='none'; if(distanceTimer){clearTimeout(distanceTimer);distanceTimer=null;} }
 
+// ===== ОБРАБОТКА КЛИКОВ С ПРИВЯЗКОЙ ДЛЯ МЕРКИ =====
 function handleMapClick(e){
     if(activeTool==='pencil') return;
     let{lat,lng}=e.latlng;
-    if(activeTool==='enemy'||(activeTool==='target' && hasStarAccess())){
-        const id=`${activeTool}_${Date.now()}_${Math.random().toString(36).substr(2,9)}`;
-        socket.emit('new_obj',{id,type:activeTool,lat,lng,creator:currentUser.name});
-        addToHistory({id,type:activeTool,lat,lng,creator:currentUser.name});
-    } else if(activeTool==='arrow'||activeTool==='ruler'){
+
+    if(activeTool==='arrow'||activeTool==='ruler'){
+        const nearest = findNearestObject(e.latlng);
+        if (nearest) {
+            lat = nearest.lat;
+            lng = nearest.lng;
+        }
         rulerPoints.push({lat,lng});
         if(rulerPoints.length===2){
             const id=`${activeTool}_${Date.now()}_${Math.random().toString(36).substr(2,9)}`;
@@ -698,8 +701,16 @@ function handleMapClick(e){
             addToHistory({id,type:activeTool,start:rulerPoints[0],end:rulerPoints[1],creator:currentUser.name});
             rulerPoints=[];
         } else {
-            L.popup().setLatLng([lat,lng]).setContent('<b>👆 Вторая точка</b>').openOn(map);
+            const hasSnap = findNearestObject(e.latlng) !== null;
+            L.popup().setLatLng([lat,lng]).setContent('<b>' + (hasSnap ? '✅ Привязано' : '👆 Вторая точка') + '</b>').openOn(map);
         }
+        return;
+    }
+
+    if(activeTool==='enemy'||(activeTool==='target' && hasStarAccess())){
+        const id=`${activeTool}_${Date.now()}_${Math.random().toString(36).substr(2,9)}`;
+        socket.emit('new_obj',{id,type:activeTool,lat,lng,creator:currentUser.name});
+        addToHistory({id,type:activeTool,lat,lng,creator:currentUser.name});
     } else if (activeTool==='icon' && iconMode) {
         if (!hasStarAccess() && !(iconMode.icon === '▲' && iconMode.color === 'red')) return;
         const id = 'icon_' + Date.now() + '_' + Math.random().toString(36).substr(2,9);
@@ -916,7 +927,7 @@ window.deleteMyObjects=deleteMyObjects; window.reconnectApp=reconnectApp; window
 window.changeAccessCode=changeAccessCode; window.tryBecomeAdmin=tryBecomeAdmin;
 window.cycleMapType = cycleMapType;
 
-console.log('🇷🇺 ScorpGEO v11.3.5 — Исправлены баги, состояние работает');
+console.log('🇷🇺 ScorpGEO v11.3.6 — Мерка цепляется к объектам');
 </script>
 </body>
 </html>
