@@ -223,7 +223,7 @@
         <div class="auth-subtitle">TACTICAL MAP</div>
         <input type="text" id="teamName" class="auth-input" placeholder="КОМАНДА" maxlength="10" autocomplete="off">
         <input type="text" id="playerName" class="auth-input" placeholder="ПОЗЫВНОЙ" maxlength="10" autocomplete="off" oninput="toggleCommanderField()">
-        <input type="password" id="password" class="auth-input" placeholder="ПАРОЛЬ" maxlength="20" autocomplete="off">
+        <input type="password" id="password" class="auth-input" placeholder="ПАРОЛЬ КОМНАТЫ" maxlength="20" autocomplete="off">
         <div id="commander-password-wrapper" style="display:none;">
             <input type="password" id="commanderPassword" class="auth-input" placeholder="ПАРОЛЬ КОМАНДИРА" maxlength="20" autocomplete="off">
         </div>
@@ -344,10 +344,10 @@ function clearSession(){ localStorage.removeItem(STORAGE_KEY); }
 
 function tryBecomeAdmin(){ const pass=prompt('🔐 Админ-пароль:'); if(pass===ADMIN_PASSWORD){ isAdmin=true; document.getElementById('settingsGear').style.display='inline'; alert('✅ Доступ разрешен!'); } else alert('❌ Неверный пароль!'); }
 
-// ===== ШЕСТЕРЁНКА: изменение кода, пароля командира или пароля комнаты =====
+// ===== ШЕСТЕРЁНКА (только код доступа и пароль командира) =====
 function changeAccessCode(){
     if(!isAdmin){ alert('Нажмите "АДМИН" и введите пароль!'); return; }
-    const choice = prompt('Что изменить?\n1 — Код доступа\n2 — Пароль командира\n3 — Пароль комнаты\nВведите 1, 2 или 3:');
+    const choice = prompt('Что изменить?\n1 — Код доступа\n2 — Пароль командира\nВведите 1 или 2:');
     if (choice === '1') {
         const newCode = prompt('Новый код доступа:');
         if (newCode && newCode.trim()) {
@@ -359,16 +359,6 @@ function changeAccessCode(){
             COMMANDER_PASSWORD = newPass.trim();
             localStorage.setItem('scorpgeo_commander_pass', COMMANDER_PASSWORD);
             alert('✅ Пароль командира изменён!');
-        }
-    } else if (choice === '3') {
-        const newRoomPass = prompt('Новый пароль комнаты:');
-        if (newRoomPass && newRoomPass.trim()) {
-            socket.emit('change_access_code', {
-                adminPass: ADMIN_PASSWORD,
-                choice: '3',
-                room: currentUser.team,
-                newPassword: newRoomPass.trim()
-            });
         }
     } else {
         alert('Отмена');
@@ -809,7 +799,7 @@ function toggleCommanderField() {
 function doLogin(){
     const team = document.getElementById('teamName').value.trim().toUpperCase();
     let name = document.getElementById('playerName').value.trim().toUpperCase();
-    const pass = document.getElementById('password').value;
+    const pass = document.getElementById('password').value;   // пароль комнаты
     const code = document.getElementById('accessCode').value.trim();
     
     if (!team || !name || !pass || !code) { alert('Заполните все поля!'); return; }
