@@ -15,9 +15,9 @@ const io = new Server(server, {
 });
 
 const PORT = process.env.PORT || 3000;
-const ROOM_PASSWORD = '1234';
 const DATA_FILE = path.join(__dirname, 'tactical_data.json');
-let ACCESS_CODE = '2026';
+const DEFAULT_ACCESS_CODE = '2026';
+let ACCESS_CODE = DEFAULT_ACCESS_CODE;
 
 const rooms = {};
 const playerSockets = {};
@@ -29,7 +29,11 @@ function loadData() {
     try {
         if (fs.existsSync(DATA_FILE)) {
             const data = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
-            if (data.accessCode) ACCESS_CODE = data.accessCode;
+            if (data.accessCode && typeof data.accessCode === 'string' && data.accessCode.trim() !== '') {
+                ACCESS_CODE = data.accessCode.trim();
+            } else {
+                ACCESS_CODE = DEFAULT_ACCESS_CODE;
+            }
             console.log(`💾 Данные загружены. Код доступа: ${ACCESS_CODE}`);
             return data;
         }
@@ -39,12 +43,15 @@ function loadData() {
 
 function saveData() {
     try {
-        const dataToSave = { accessCode: ACCESS_CODE };
+        const dataToSave = {
+            accessCode: ACCESS_CODE
+        };
         for (const [roomName, roomData] of Object.entries(rooms)) {
             dataToSave[roomName] = {
                 objects: roomData.objects,
                 messages: roomData.messages.slice(-100),
-                lastActive: Date.now()
+                lastActive: Date.now(),
+                password: roomData.password || null   // сохраняем пароль комнаты
             };
         }
         fs.writeFileSync(DATA_FILE, JSON.stringify(dataToSave, null, 2));
@@ -59,13 +66,15 @@ for (const [roomName, data] of Object.entries(savedData)) {
         players: {},
         objects: data.objects || {},
         messages: data.messages || [],
-        lastActive: data.lastActive || Date.now()
+        lastActive: data.lastActive || Date.now(),
+        password: data.password || null   // загружаем пароль комнаты
     };
-    console.log(`📂 Комната ${normalizedRoom} (загружена): ${Object.keys(data.objects || {}).length} объектов`);
+    console.log(`📂 Комната ${normalizedRoom}: ${Object.keys(data.objects || {}).length} объектов, пароль ${data.password ? 'установлен' : 'не задан'}`);
 }
 
 setInterval(saveData, 300000);
 
+// ===== Функции очистки и сброса (без изменений) =====
 function clearAllObjects() {
     console.log('🕛 ПОЛНОЧЬ! Очистка всех меток...');
     for (const roomData of Object.values(rooms)) {
@@ -152,12 +161,13 @@ function getRandomColor() {
 function getOrCreateRoom(roomName) {
     const normalized = roomName.toUpperCase();
     if (!rooms[normalized]) {
-        rooms[normalized] = { players: {}, objects: {}, messages: [] };
+        rooms[normalized] = { players: {}, objects: {}, messages: [], password: null };
         console.log(`🏠 Комната создана: ${normalized}`);
     }
     return rooms[normalized];
 }
 
+// ==================== ОСНОВНАЯ ЛОГИКА ====================
 io.on('connection', (socket) => {
     console.log(`🔌 Подключение: ${socket.id}`);
 
@@ -167,10 +177,36 @@ io.on('connection', (socket) => {
 
     socket.on('change_access_code', (data) => {
         if (data.adminPass === 'Mpfp13zi') {
-            ACCESS_CODE = data.newCode;
-            console.log(`🔑 Код изменен: ${ACCESS_CODE}`);
-            socket.emit('code_changed', { success: true, newCode: ACCESS_CODE });
-            saveData();
+            const choice = data.choice;
+            if (choice === '1') { // смена кода доступа
+                const newCode = data.newCode;
+                if (newCode && typeof newCode === 'string' && newCode.trim() !== '') {
+                    ACCESS_CODE = newCode.trim();
+                    console.log(`🔑 Код изменен: ${ACCESS_CODE}`);
+                    socket.emit('code_changed', { success: true, newCode: ACCESS_CODE });
+                    saveData();
+                } else {
+                    socket.emit('code_changed', { success: false, error: 'Код не может быть пустым' });
+                }
+            } else if (choice === '3') { // смена пароля комнаты
+                const room = data.room.trim().toUpperCase();
+                const roomData = rooms[room];
+                if (!roomData) {
+                    socket.emit('code_changed', { success: false, error: 'Комната не найдена' });
+                    return;
+                }
+                const newPassword = data.newPassword;
+                if (newPassword && typeof newPassword === 'string' && newPassword.trim() !== '') {
+                    roomData.password = newPassword.trim();
+                    console.log(`🔐 Пароль комнаты ${room} изменён: ${roomData.password}`);
+                    socket.emit('code_changed', { success: true, message: 'Пароль комнаты обновлён' });
+                    saveData();
+                } else {
+                    socket.emit('code_changed', { success: false, error: 'Пароль не может быть пустым' });
+                }
+            } else {
+                socket.emit('code_changed', { success: false, error: 'Неверный выбор операции' });
+            }
         } else {
             socket.emit('code_changed', { success: false, error: 'Неверный админ-пароль' });
         }
@@ -200,23 +236,38 @@ io.on('connection', (socket) => {
         const pass = data.pass;
         const accessCode = data.accessCode;
         const team = (data.team || data.room).trim().toUpperCase();
-        
-        if (accessCode !== ACCESS_CODE) {
+
+        // Проверка кода доступа
+        if (!accessCode || accessCode !== ACCESS_CODE) {
             socket.emit('login_failed', { reason: 'Неверный код доступа' });
             return;
         }
-        
-        if (pass !== ROOM_PASSWORD) {
-            socket.emit('login_failed', { reason: 'Неверный пароль' });
-            return;
-        }
+
         if (!room || !name) {
             socket.emit('login_failed', { reason: 'Заполните все поля' });
             return;
         }
-        
+
         const roomData = getOrCreateRoom(room);
-        
+
+        // === НОВАЯ ЛОГИКА ПАРОЛЯ КОМНАТЫ ===
+        if (roomData.password !== null) {
+            // Пароль в комнате уже установлен
+            if (pass !== roomData.password) {
+                socket.emit('login_failed', { reason: 'Неверный пароль комнаты' });
+                return;
+            }
+        } else {
+            // Пароль ещё не задан (новая комната или старая без пароля)
+            if (pass && pass.trim() !== '') {
+                roomData.password = pass.trim(); // первый вошедший задаёт пароль
+                console.log(`🔐 Пароль комнаты ${room} установлен: ${roomData.password}`);
+                saveData();
+            }
+            // если pass пустой, разрешаем вход, но пароль не устанавливаем
+        }
+        // ===================================
+
         if (roomData.players[name]) {
             roomData.players[name].socketId = socket.id;
             roomData.players[name].pendingDisconnect = false;
@@ -234,11 +285,11 @@ io.on('connection', (socket) => {
                 lastSeen: Date.now()
             };
         }
-        
+
         const playerColor = roomData.players[name].color;
         playerSockets[socket.id] = { name, team: team, room, color: playerColor };
         socket.join(room);
-        
+
         socket.emit('login_success', {
             color: playerColor,
             name,
@@ -246,14 +297,14 @@ io.on('connection', (socket) => {
             objectsCount: Object.keys(roomData.objects).length,
             accessCode: ACCESS_CODE
         });
-        
+
         const allObjects = Object.entries(roomData.objects).map(([id, obj]) => ({ id, ...obj }));
         allObjects.forEach(obj => socket.emit('draw', obj));
-        
+
         const existingPlayers = [];
         for (const [pName, pData] of Object.entries(roomData.players)) {
             if (pName !== name) {
-                existingPlayers.push({ 
+                existingPlayers.push({
                     name: pName,
                     color: pData.color,
                     lat: pData.lat,
@@ -265,7 +316,7 @@ io.on('connection', (socket) => {
         }
         if (existingPlayers.length > 0) socket.emit('existing_players', existingPlayers);
         if (roomData.messages.length > 0) roomData.messages.slice(-100).forEach(msg => socket.emit('receive_msg', msg));
-        
+
         socket.to(room).emit('player_joined', {
             name,
             color: playerColor,
@@ -274,7 +325,7 @@ io.on('connection', (socket) => {
             online: true,
             team: team
         });
-        
+
         const joinMsg = {
             name: '⚡СИСТЕМА',
             text: `Боец ${name} на связи`,
@@ -284,6 +335,9 @@ io.on('connection', (socket) => {
         roomData.messages.push(joinMsg);
         io.to(room).emit('receive_msg', joinMsg);
     });
+
+    // ===== Остальные обработчики (rejoin, keep_alive, gps, объекты, чат, статусы) без изменений =====
+    // (приведены ниже в сокращении, но они должны быть в полном коде)
 
     socket.on('rejoin_room', (data) => {
         const room = data.room.trim().toUpperCase();
@@ -394,7 +448,6 @@ io.on('connection', (socket) => {
         saveData();
     });
 
-    // ===== НОВОЕ: удаление с проверкой прав =====
     socket.on('delete_obj', (objectId) => {
         const playerInfo = playerSockets[socket.id];
         if (!playerInfo) return;
@@ -405,7 +458,7 @@ io.on('connection', (socket) => {
         const obj = roomData.objects[objectId];
         const isOwner = obj.writer === name;
         const hasStar = name.includes('⭐');
-        if (!isOwner && !hasStar) return; // нет прав
+        if (!isOwner && !hasStar) return;
 
         delete roomData.objects[objectId];
         io.to(room).emit('remove_obj', objectId);
@@ -429,7 +482,6 @@ io.on('connection', (socket) => {
         io.to(room).emit('receive_msg', msg);
     });
 
-    // ===== НОВОЕ: ретрансляция статуса (убит/ранен) =====
     socket.on('player_custom_status', (data) => {
         const playerInfo = playerSockets[socket.id];
         if (!playerInfo) return;
@@ -463,7 +515,7 @@ app.get('/api/status', (req, res) => {
 });
 
 server.listen(PORT, '0.0.0.0', () => {
-    console.log('🦂 ScorpGEO v11.0 — Игнор регистра, Статусы, Умное удаление');
+    console.log('🦂 ScorpGEO v11.4.0 — Пароль комнаты задаётся командой');
     console.log(`🔑 Код доступа: ${ACCESS_CODE}`);
     console.log(`📍 Порт: ${PORT}`);
 });
