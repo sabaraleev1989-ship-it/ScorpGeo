@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="ScorpGEO">
     <meta name="theme-color" content="#000000">
-    <title>ScorpGEO v11.3.6</title>
+    <title>ScorpGEO v11.4.0</title>
 
     <link rel="manifest" href="/manifest.json">
     <link rel="apple-touch-icon" href="/icons/icon-512.png">
@@ -232,7 +232,7 @@
             <span class="gear-btn" id="settingsGear" onclick="changeAccessCode()">⚙️</span>
         </div>
         <button id="loginBtn" class="auth-btn">⚡ ВОЙТИ ⚡</button>
-        <div class="auth-info">v11.3.6 • <span onclick="tryBecomeAdmin()">АДМИН</span></div>
+        <div class="auth-info">v11.4.0 • <span onclick="tryBecomeAdmin()">АДМИН</span></div>
         <div id="autoLoginMsg" style="color:#fff; font-size:12px; margin-top:10px; display:none;"></div>
     </div>
 </div>
@@ -344,12 +344,15 @@ function clearSession(){ localStorage.removeItem(STORAGE_KEY); }
 
 function tryBecomeAdmin(){ const pass=prompt('🔐 Админ-пароль:'); if(pass===ADMIN_PASSWORD){ isAdmin=true; document.getElementById('settingsGear').style.display='inline'; alert('✅ Доступ разрешен!'); } else alert('❌ Неверный пароль!'); }
 
+// ===== ШЕСТЕРЁНКА: изменение кода, пароля командира или пароля комнаты =====
 function changeAccessCode(){
     if(!isAdmin){ alert('Нажмите "АДМИН" и введите пароль!'); return; }
-    const choice = prompt('Что изменить?\n1 — Код доступа\n2 — Пароль командира\nВведите 1 или 2:');
+    const choice = prompt('Что изменить?\n1 — Код доступа\n2 — Пароль командира\n3 — Пароль комнаты\nВведите 1, 2 или 3:');
     if (choice === '1') {
         const newCode = prompt('Новый код доступа:');
-        if (newCode && newCode.trim()) socket.emit('change_access_code', { newCode: newCode.trim(), adminPass: ADMIN_PASSWORD });
+        if (newCode && newCode.trim()) {
+            socket.emit('change_access_code', { adminPass: ADMIN_PASSWORD, choice: '1', newCode: newCode.trim() });
+        }
     } else if (choice === '2') {
         const newPass = prompt('Новый пароль командира:');
         if (newPass && newPass.trim()) {
@@ -357,12 +360,33 @@ function changeAccessCode(){
             localStorage.setItem('scorpgeo_commander_pass', COMMANDER_PASSWORD);
             alert('✅ Пароль командира изменён!');
         }
+    } else if (choice === '3') {
+        const newRoomPass = prompt('Новый пароль комнаты:');
+        if (newRoomPass && newRoomPass.trim()) {
+            socket.emit('change_access_code', {
+                adminPass: ADMIN_PASSWORD,
+                choice: '3',
+                room: currentUser.team,
+                newPassword: newRoomPass.trim()
+            });
+        }
+    } else {
+        alert('Отмена');
     }
 }
 
 socket.on('code_changed',(data)=>{
-    if(data.success){ currentAccessCode=data.newCode; document.getElementById('accessCode').value=''; alert('✅ Код изменен: '+data.newCode); }
-    else alert('❌ '+data.error);
+    if (data.success) {
+        if (data.newCode) {
+            currentAccessCode = data.newCode;
+            document.getElementById('accessCode').value = '';
+            alert('✅ Код изменён: ' + data.newCode);
+        } else if (data.message) {
+            alert('✅ ' + data.message);
+        }
+    } else {
+        alert('❌ ' + (data.error || 'Ошибка'));
+    }
 });
 
 function undoAction(){ if(undoStack.length===0){ alert('Нечего отменять'); return; } const action=undoStack.pop(); redoStack.push(action); socket.emit('delete_obj',action.id); }
@@ -683,7 +707,6 @@ function updateMyPosition(lat,lng){
 function centerOnMe(){ if(playersMarkers[currentUser.name]) map.setView(playersMarkers[currentUser.name].getLatLng(),18); else alert('Позиция не определена'); }
 function zoomTo(level){ if(map){ map.setZoom(level); gridEnabled=(level>=18&&level<=20); drawGrid(); } document.getElementById('distance-bar').style.display='none'; if(distanceTimer){clearTimeout(distanceTimer);distanceTimer=null;} }
 
-// ===== ОБРАБОТКА КЛИКОВ С ПРИВЯЗКОЙ ДЛЯ МЕРКИ =====
 function handleMapClick(e){
     if(activeTool==='pencil') return;
     let{lat,lng}=e.latlng;
@@ -809,13 +832,18 @@ function doLogin(){
 function tryAutoLogin(){
     const s = loadSession();
     if (s && s.team && s.name) {
+        const savedCode = localStorage.getItem('scorpgeo_code');
+        if (!savedCode || savedCode.trim() === '') {
+            document.getElementById('autoLoginMsg').style.display = 'none';
+            return false;
+        }
         currentUser.name = s.name;
         currentUser.team = s.team;
         currentUser.color = s.color;
         document.getElementById('autoLoginMsg').textContent = '↻ Автовход: ' + s.name;
         document.getElementById('autoLoginMsg').style.display = 'block';
         setTimeout(() => document.getElementById('autoLoginMsg').style.display = 'none', 2500);
-        socket.emit('join_room', { room: s.team, name: s.name, team: s.team, pass: '1234', accessCode: localStorage.getItem('scorpgeo_code') || '', deviceId: DEVICE_ID });
+        socket.emit('join_room', { room: s.team, name: s.name, team: s.team, pass: '1234', accessCode: savedCode, deviceId: DEVICE_ID });
         return true;
     }
     return false;
@@ -927,7 +955,7 @@ window.deleteMyObjects=deleteMyObjects; window.reconnectApp=reconnectApp; window
 window.changeAccessCode=changeAccessCode; window.tryBecomeAdmin=tryBecomeAdmin;
 window.cycleMapType = cycleMapType;
 
-console.log('🇷🇺 ScorpGEO v11.3.6 — Мерка цепляется к объектам');
+console.log('🇷🇺 ScorpGEO v11.4.0 — Пароль комнаты задаётся командой');
 </script>
 </body>
 </html>
